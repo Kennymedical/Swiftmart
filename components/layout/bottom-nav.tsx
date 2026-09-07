@@ -13,16 +13,15 @@ export function BottomNav({ username, avatarUrl, unreadNotifications = 0 }: Bott
   const pathname = usePathname();
 
   const items = [
-    { href: '/', label: 'Home', icon: HomeIcon },
     { href: '/products', label: 'Shop', icon: ShopIcon },
-    { href: '/post/create', label: 'Post', icon: PlusIcon },
+    { href: '/wallet', label: 'Wallet', icon: WalletIcon },
     {
       href: '/notifications',
       label: 'Alerts',
       icon: BellIcon,
       badge: unreadNotifications,
     },
-    { href: username ? `/profile/${username}` : '/login', label: 'Profile', icon: null, avatarUrl },
+    { href: username ? '/profile' : '/login', label: 'Profile', icon: null, avatarUrl },
   ];
 
   return (
@@ -57,33 +56,28 @@ export function BottomNav({ username, avatarUrl, unreadNotifications = 0 }: Bott
   );
 }
 
-function HomeIcon({ active }: { active: boolean }) {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? '#2563eb' : '#6b7280'} strokeWidth="2">
-      <path d="M3 9l9-7 9 7v11a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z" strokeLinejoin="round" />
-    </svg>
-  );
-}
 function ShopIcon({ active }: { active: boolean }) {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? '#2563eb' : '#6b7280'} strokeWidth="2">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? '#D4AF37' : '#6b7280'} strokeWidth="2">
       <path d="M4 8h16l-1.5 11a1 1 0 0 1-1 1H6.5a1 1 0 0 1-1-1z" />
       <path d="M8 8V6a4 4 0 1 1 8 0v2" />
     </svg>
   );
 }
-function PlusIcon({ active }: { active: boolean }) {
+function WalletIcon({ active }: { active: boolean }) {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? '#2563eb' : '#6b7280'} strokeWidth="2">
-      <path d="M12 5v14M5 12h14" strokeLinecap="round" />
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? '#D4AF37' : '#6b7280'} strokeWidth="2">
+      <rect x="3" y="6" width="18" height="13" rx="2" />
+      <path d="M3 10h18" />
+      <circle cx="16.5" cy="14.5" r="1" fill={active ? '#D4AF37' : '#6b7280'} />
     </svg>
   );
 }
 function BellIcon({ active }: { active: boolean }) {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? '#2563eb' : '#6b7280'} strokeWidth="2">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? '#D4AF37' : '#6b7280'} strokeWidth="2">
       <path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" strokeLinejoin="round" />
       <path d="M13.7 21a2 2 0 0 1-3.4 0" />
     </svg>
   );
-}
+                }
