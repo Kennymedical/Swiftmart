@@ -13,6 +13,7 @@ export function BottomNav({ username, avatarUrl, unreadNotifications = 0 }: Bott
   const pathname = usePathname();
 
   const items = [
+    { href: '/', label: 'Home', icon: HomeIcon },
     { href: '/products', label: 'Shop', icon: ShopIcon },
     { href: '/wallet', label: 'Wallet', icon: WalletIcon },
     {
@@ -56,6 +57,13 @@ export function BottomNav({ username, avatarUrl, unreadNotifications = 0 }: Bott
   );
 }
 
+function HomeIcon({ active }: { active: boolean }) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? '#D4AF37' : '#6b7280'} strokeWidth="2">
+      <path d="M3 9l9-7 9 7v11a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z" strokeLinejoin="round" />
+    </svg>
+  );
+}
 function ShopIcon({ active }: { active: boolean }) {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? '#D4AF37' : '#6b7280'} strokeWidth="2">
@@ -80,4 +88,5 @@ function BellIcon({ active }: { active: boolean }) {
       <path d="M13.7 21a2 2 0 0 1-3.4 0" />
     </svg>
   );
-                }
+     }
+      
