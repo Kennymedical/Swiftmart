@@ -26,7 +26,7 @@ export default function FundWalletPage() {
       } = await supabase.auth.getSession();
       if (!session) throw new Error('Please sign in again');
 
-      const { data, error: fnError } = await supabase.functions.invoke('wallet-fund', {
+      const { data, error: fnError } = await supabase.functions.invoke('wallet-fund-', {
         body: { amountKobo: Math.round(naira * 100) },
       });
       if (fnError) throw fnError;
