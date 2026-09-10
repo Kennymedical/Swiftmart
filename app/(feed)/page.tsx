@@ -87,7 +87,11 @@ export default async function FeedPage() {
               >
                 {/* HEADER: User + Time */}
                 <div className="flex items-center gap-3 mb-3">
-                  <img src={post.author.avatar_url} className="w-10 h-10 rounded-full border-2 border-[#D4AF37]" />
+                  <img 
+  src={post.author.avatar_url || `https://ui-avatars.com/api/?name=${post.author.username}&background=D4AF37&color=0F172A`} 
+  className="w-10 h-10 rounded-full border-2 border-[#D4AF37]" 
+  alt={post.author.username}
+/>
                   <div>
                     <p className="font-bold text-white">{post.author.username}</p>
                     <p className="text-xs text-gray-400">
