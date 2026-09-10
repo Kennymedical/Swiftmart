@@ -100,7 +100,7 @@ export default async function FeedPage() {
                 <img src={post.product.images[0]} className="w-full rounded-xl mb-3" />
 
                 {/* PRODUCT INFO */}
-                <h2 className="text-lg font-bold text-white mb-1">{post.product.name}</h2>
+                <img src={post.product.images[0] || '/placeholder.jpg'} className="w-full rounded-xl mb-3" alt={post.product.name} />
                 <p className="text-sm text-gray-300 mb-3">{post.content}</p>
 
                 {/* PRICE + BUTTON */}
@@ -108,7 +108,7 @@ export default async function FeedPage() {
                   <p className="text-2xl font-extrabold text-[#D4AF37]">₦{post.product.price_kobo / 100}</p>
                   <button className="bg-[#D4AF37] text-[#0F172A] font-bold px-5 py-2 rounded-xl hover:scale-105 transition">
                     Buy Now
-                  </button>
+                  <p className="text-2xl font-extrabold text-[#D4AF37]">₦{(post.product.price_kobo / 100).toLocaleString()}</p>
                 </div>
 
                 {/* LIKE / COMMENT / SHARE */}
