@@ -70,63 +70,65 @@ export default async function FeedPage() {
   const { feed, currentUserId, profile, unreadNotifications } = await getFeedData();
 
   return (
-    <div className="min-h-screen bg-[#0F172A] pb-24">
-      <div className="mx-auto max-w-lg">
-        <StoryBar currentUserAvatarUrl={profile?.avatar_url} />
+  <div className="min-h-screen bg-[#0F172A] pb-24">
+    <div className="mx-auto max-w-lg">
+      <StoryBar currentUserAvatarUrl={profile?.avatar_url} />
 
-        {feed.length === 0? (
-          <p className="py-16 text-center text-gray-500">
-            No posts yet - follow some vendors to fill your feed.
-          </p>
-        ) : (
-          <div className="px-4 pt-4 space-y-4">
-            {feed.map((post) => (
-              <div 
-                key={post.id}
-                className="bg-[#1E293B] border border-[#D4AF37]/20 rounded-2xl p-4 shadow-[0_0_15px_rgba(212,175,55,0.1)]"
-              >
-                {/* HEADER: User + Time */}
-                <div className="flex items-center gap-3 mb-3">
-                  <img 
-  src={post.author.avatar_url || `https://ui-avatars.com/api/?name=${post.author.username}&background=D4AF37&color=0F172A`} 
-  className="w-10 h-10 rounded-full border-2 border-[#D4AF37]" 
-  alt={post.author.username}
-/>
-                  <div>
-                    <p className="font-bold text-white">{post.author.username}</p>
-                    <p className="text-xs text-gray-400">
-                      {new Date(post.created_at).toLocaleDateString()}
-                    </p>
-                  </div>
-                </div>
-
-                {/* PRODUCT IMAGE */}
-                <img src={post.product.images[0]} className="w-full rounded-xl mb-3" />
-
-                {/* PRODUCT INFO */}
-                <img src={post.product.images[0] || '/placeholder.jpg'} className="w-full rounded-xl mb-3" alt={post.product.name} />
-                <p className="text-sm text-gray-300 mb-3">{post.content}</p>
-
-                {/* PRICE + BUTTON */}
-                <div className="flex items-center justify-between">
-                  <p className="text-2xl font-extrabold text-[#D4AF37]">₦{post.product.price_kobo / 100}</p>
-                  <button className="bg-[#D4AF37] text-[#0F172A] font-bold px-5 py-2 rounded-xl hover:scale-105 transition">
-                    Buy Now
-                  <p className="text-2xl font-extrabold text-[#D4AF37]">₦{(post.product.price_kobo / 100).toLocaleString()}</p>
-                </div>
-
-                {/* LIKE / COMMENT / SHARE */}
-                <div className="flex gap-6 mt-4 pt-3 border-t border-[#D4AF37]/10">
-                  <button className="text-gray-400 text-sm">❤️ {post.likes_count}</button>
-                  <button className="text-gray-400 text-sm">💬 {post.comments_count}</button>
-                  <button className="text-gray-400 text-sm">📤 Share</button>
+      {feed.length === 0? (
+        <p className="py-16 text-center text-gray-500">
+          No posts yet - follow some vendors to fill your feed.
+        </p>
+      ) : (
+        <div className="px-4 pt-4 space-y-4">
+          {feed.map((post) => (
+            <div 
+              key={post.id}
+              className="bg-[#1E293B] border-[#D4AF37]/20 rounded-2xl p-4 shadow-[0_0_15px_rgba(212,175,55,0.1)]"
+            >
+              {/* HEADER */}
+              <div className="flex items-center gap-3 mb-3">
+                <img 
+                  src={post.author.avatar_url || `https://ui-avatars.com/api/?name=${post.author.username}&background=D4AF37&color=0F172A`} 
+                  className="w-10 h-10 rounded-full border-2 border-[#D4AF37]" 
+                  alt={post.author.username}
+                />
+                <div>
+                  <p className="font-bold text-white">{post.author.username}</p>
+                  <p className="text-xs text-gray-400">
+                    {new Date(post.created_at).toLocaleDateString()}
+                  </p>
                 </div>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
+
+              {/* PRODUCT IMAGE */}
+              <img 
+                src={post.product.images[0] || '/placeholder.jpg'} 
+                className="w-full rounded-xl mb-3" 
+                alt={post.product.name} 
+              />
+
+              {/* PRODUCT INFO */}
+              <h2 className="text-lg font-bold text-white mb-1">{post.product.name}</h2>
+              <p className="text-sm text-gray-300 mb-3">{post.content}</p>
+
+              {/* PRICE + BUTTON */}
+              <div className="flex items-center justify-between">
+                <p className="text-2xl font-extrabold text-[#D4AF37]">₦{(post.product.price_kobo / 100).toLocaleString()}</p>
+                <button className="bg-[#D4AF37] text-[#0F172A] font-bold px-5 py-2 rounded-xl hover:scale-105 transition">
+                  Buy Now
+                </button>
+              </div>
+
+              {/* LIKE / COMMENT / SHARE */}
+              <div className="flex gap-6 mt-4 pt-3 border-t border-[#D4AF37]/10">
+                <button className="text-gray-400 text-sm">❤️ {post.like_count}</button>
+                <button className="text-gray-400 text-sm">💬 {post.comment_count}</button>
+                <button className="text-gray-400 text-sm">📤 Share</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
-  )
-    }
-  
+  </div>
+)
