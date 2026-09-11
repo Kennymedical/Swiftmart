@@ -25,10 +25,11 @@ async function getFeedData() {
   let profile: { username: string; avatar_url: string | null } | null = null;
   let unreadNotifications = 0;
   let likedPostIds = new Set<string>();
+  let isVendor = false;
 
   if (user) {
     const postIds = (posts ?? []).map((p) => p.id);
-    const [{ data: profileRow }, { count }, { data: likes }] = await Promise.all([
+    const [{ data: profileRow }, { count }, { data: likes }, { data: vendorRow }] = await Promise.all([
       supabase.from('profiles').select('username, avatar_url').eq('id', user.id).single(),
       supabase
         .from('notifications')
@@ -38,17 +39,19 @@ async function getFeedData() {
       postIds.length
         ? supabase.from('likes').select('post_id').eq('user_id', user.id).in('post_id', postIds)
         : Promise.resolve({ data: [] }),
+      supabase.from('vendors').select('id').eq('user_id', user.id).single(),
     ]);
     profile = profileRow;
     unreadNotifications = count ?? 0;
     likedPostIds = new Set((likes ?? []).map((l) => l.post_id));
+    isVendor = !!vendorRow;
   }
 
-  return { feed: posts ?? [], profile, unreadNotifications, likedPostIds };
+  return { feed: posts ?? [], profile, unreadNotifications, likedPostIds, isVendor };
 }
 
 export default async function FeedPage() {
-  const { feed, profile, unreadNotifications, likedPostIds } = await getFeedData();
+  const { feed, profile, unreadNotifications, likedPostIds, isVendor } = await getFeedData();
 
   return (
     <div className="min-h-screen bg-[#0F172A] pb-24">
@@ -122,7 +125,7 @@ export default async function FeedPage() {
         )}
       </div>
 
-      <PostFab />
+      <PostFab isVendor={isVendor} />
 
       <BottomNav
         username={profile?.username}
@@ -131,5 +134,5 @@ export default async function FeedPage() {
       />
     </div>
   );
-           }
-      
+    }
+  
