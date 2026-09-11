@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { StoryBar } from '@/components/feed/story-bar';
 import { BottomNav } from '@/components/layout/bottom-nav';
 import { PostFab } from '@/components/feed/PostFab';
+import { PostActions } from '@/components/feed/PostActions';
 
 async function getFeedData() {
   const supabase = createClient();
@@ -23,25 +24,31 @@ async function getFeedData() {
 
   let profile: { username: string; avatar_url: string | null } | null = null;
   let unreadNotifications = 0;
+  let likedPostIds = new Set<string>();
 
   if (user) {
-    const [{ data: profileRow }, { count }] = await Promise.all([
+    const postIds = (posts ?? []).map((p) => p.id);
+    const [{ data: profileRow }, { count }, { data: likes }] = await Promise.all([
       supabase.from('profiles').select('username, avatar_url').eq('id', user.id).single(),
       supabase
         .from('notifications')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', user.id)
         .is('read_at', null),
+      postIds.length
+        ? supabase.from('likes').select('post_id').eq('user_id', user.id).in('post_id', postIds)
+        : Promise.resolve({ data: [] }),
     ]);
     profile = profileRow;
     unreadNotifications = count ?? 0;
+    likedPostIds = new Set((likes ?? []).map((l) => l.post_id));
   }
 
-  return { feed: posts ?? [], profile, unreadNotifications };
+  return { feed: posts ?? [], profile, unreadNotifications, likedPostIds };
 }
 
 export default async function FeedPage() {
-  const { feed, profile, unreadNotifications } = await getFeedData();
+  const { feed, profile, unreadNotifications, likedPostIds } = await getFeedData();
 
   return (
     <div className="min-h-screen bg-[#0F172A] pb-24">
@@ -62,7 +69,6 @@ export default async function FeedPage() {
                   key={post.id}
                   className="bg-[#1E293B] border border-[#D4AF37]/20 rounded-2xl p-4 shadow-[0_0_15px_rgba(212,175,55,0.1)]"
                 >
-                  {/* HEADER */}
                   <div className="flex items-center gap-3 mb-3">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
@@ -81,20 +87,17 @@ export default async function FeedPage() {
                     </div>
                   </div>
 
-                  {/* IMAGE (product photo if attached, else the post's own image) */}
                   {image && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={image} className="w-full rounded-xl mb-3" alt={post.product?.name ?? 'post image'} />
                   )}
 
-                  {/* PRODUCT INFO (only if a product is attached) */}
                   {post.product && (
                     <h2 className="text-lg font-bold text-white mb-1">{post.product.name}</h2>
                   )}
 
                   {post.content && <p className="text-sm text-gray-300 mb-3">{post.content}</p>}
 
-                  {/* PRICE + BUTTON (only if a product is attached) */}
                   {post.product && (
                     <div className="flex items-center justify-between">
                       <p className="text-2xl font-extrabold text-[#D4AF37]">
@@ -106,12 +109,12 @@ export default async function FeedPage() {
                     </div>
                   )}
 
-                  {/* LIKE / COMMENT / SHARE */}
-                  <div className="flex gap-6 mt-4 pt-3 border-t border-[#D4AF37]/10">
-                    <button className="text-gray-400 text-sm">❤️ {post.like_count}</button>
-                    <button className="text-gray-400 text-sm">💬 {post.comment_count}</button>
-                    <button className="text-gray-400 text-sm">📤 Share</button>
-                  </div>
+                  <PostActions
+                    postId={post.id}
+                    initialLiked={likedPostIds.has(post.id)}
+                    initialLikeCount={post.like_count}
+                    commentCount={post.comment_count}
+                  />
                 </div>
               );
             })}
@@ -128,5 +131,5 @@ export default async function FeedPage() {
       />
     </div>
   );
-      }
-    
+           }
+      
