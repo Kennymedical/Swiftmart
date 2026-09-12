@@ -27,6 +27,8 @@ export default function CartPage() {
   const [loading, setLoading] = useState(true);
   const [checkingOut, setCheckingOut] = useState(false);
   const [error, setError] = useState('');
+  const [insufficient, setInsufficient] = useState<{ required: number; balance: number } | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   async function loadCart() {
     const {
@@ -63,26 +65,28 @@ export default function CartPage() {
 
   async function handleCheckout() {
     setError('');
+    setInsufficient(null);
+    setSuccess(null);
     setCheckingOut(true);
-    try {
-      const { data: orderData, error: orderError } = await supabase.functions.invoke(
-        'create-order-from-cart',
-        { body: {} },
-      );
-      if (orderError) throw orderError;
-      if (orderData?.error) throw new Error(orderData.error);
 
-      const { data: payData, error: payError } = await supabase.functions.invoke('pay', {
-        body: { orderId: orderData.orderId },
-      });
-      if (payError) throw payError;
-      if (payData?.error) throw new Error(payData.error);
+    const { data, error: fnError } = await supabase.functions.invoke('checkout-cart', { body: {} });
+    setCheckingOut(false);
 
-      window.location.href = payData.authorizationUrl;
-    } catch (err: any) {
-      setError(err.message ?? 'Checkout failed');
-      setCheckingOut(false);
+    if (fnError) {
+      setError(fnError.message);
+      return;
     }
+    if (data?.error === 'insufficient_balance') {
+      setInsufficient({ required: data.requiredKobo, balance: data.balanceKobo });
+      return;
+    }
+    if (data?.error) {
+      setError(data.error);
+      return;
+    }
+
+    setSuccess(`Order #${data.orderNumber} placed!`);
+    setItems([]);
   }
 
   if (loading) {
@@ -104,7 +108,13 @@ export default function CartPage() {
         </p>
       </div>
 
-      {items.length === 0 ? (
+      {success && (
+        <div className="bg-green-50 text-green-700 text-sm p-4 m-3 rounded-xl text-center">
+          {success}
+        </div>
+      )}
+
+      {items.length === 0 && !success ? (
         <p className="text-center text-gray-500 py-20">Your cart is empty.</p>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 p-3">
@@ -158,20 +168,38 @@ export default function CartPage() {
       {items.length > 0 && (
         <div className="fixed bottom-16 inset-x-0 bg-white border-t border-gray-200 p-4">
           {error && <p className="text-sm text-red-600 mb-2">{error}</p>}
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-sm text-gray-500">Total</span>
-            <span className="text-xl font-bold text-[#0F172A]">{naira(total)}</span>
-          </div>
-          <button
-            onClick={handleCheckout}
-            disabled={checkingOut}
-            className="w-full bg-[#0F172A] text-[#D4AF37] font-bold py-3 rounded-xl border-2 border-[#D4AF37] disabled:opacity-50"
-          >
-            {checkingOut ? 'Preparing checkout...' : 'Place Order'}
-          </button>
+
+          {insufficient ? (
+            <div className="mb-3">
+              <p className="text-sm text-red-600 mb-2">
+                Insufficient balance — you have {naira(insufficient.balance)}, need{' '}
+                {naira(insufficient.required)}.
+              </p>
+              <button
+                onClick={() => router.push('/wallet/fund')}
+                className="w-full bg-[#0F172A] text-[#D4AF37] font-bold py-3 rounded-xl border-2 border-[#D4AF37]"
+              >
+                Top Up Wallet
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm text-gray-500">Total</span>
+                <span className="text-xl font-bold text-[#0F172A]">{naira(total)}</span>
+              </div>
+              <button
+                onClick={handleCheckout}
+                disabled={checkingOut}
+                className="w-full bg-[#0F172A] text-[#D4AF37] font-bold py-3 rounded-xl border-2 border-[#D4AF37] disabled:opacity-50"
+              >
+                {checkingOut ? 'Placing order...' : 'Place Order'}
+              </button>
+            </>
+          )}
         </div>
       )}
     </div>
   );
-  }
-    
+}
+  
