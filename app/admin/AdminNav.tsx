@@ -7,6 +7,7 @@ const TABS = [
   { href: '/admin', label: 'Overview' },
   { href: '/admin/vendors', label: 'Vendors' },
   { href: '/admin/products', label: 'Products' },
+  { href: '/admin/posts', label: 'Posts' },
   { href: '/admin/payouts', label: 'Payouts' },
 ];
 
@@ -36,4 +37,5 @@ export function AdminNav() {
       </div>
     </nav>
   );
-  }
+        }
+                  
