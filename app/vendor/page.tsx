@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
+import { VendorProductActions } from '@/components/VendorProductActions';
 
 function naira(kobo: number) {
   return `₦${(kobo / 100).toLocaleString('en-NG')}`;
@@ -102,6 +103,7 @@ export default async function VendorDashboardPage() {
                   <p className={`text-[10px] mt-1 capitalize ${p.status === 'active' ? 'text-green-600' : 'text-amber-600'}`}>
                     {p.status}
                   </p>
+                  <VendorProductActions productId={p.id} />
                 </div>
               </div>
             ))}
@@ -135,5 +137,4 @@ export default async function VendorDashboardPage() {
       </div>
     </div>
   );
-  }
-  
+    }
