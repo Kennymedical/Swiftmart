@@ -1,82 +1,94 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/server';
-import { LogoutButton } from '@/components/LogoutButton';
+import { createClient } from '@/lib/supabase/client';
+import LogoutButton from '@/components/LogoutButton';
 
-export default async function ProfilePage() {
+export default function ProfilePage() {
   const supabase = createClient();
+  const [email, setEmail] = useState<string | null>(null);
+  const [username, setUsername] = useState<string | null>(null);
+  const [vendor, setVendor] = useState<{ business_name: string; status: string } | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  useEffect(() => {
+    async function loadUser() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-  if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-        <p className="text-gray-500">Please log in.</p>
-      </div>
-    );
-  }
+      if (user) {
+        setEmail(user.email ?? null);
+        setUsername((user.user_metadata?.username as string) ?? null);
 
-  // 1. Fetch the user's profile to check their admin status
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id, username, full_name, is_admin') 
-    .eq('id', user.id)
-    .single();
+        const { data: vendorRow } = await supabase
+          .from('vendors')
+          .select('business_name, status')
+          .eq('user_id', user.id)
+          .single();
+        setVendor(vendorRow);
 
-  // 2. Check if they are a vendor
-  const { data: vendor } = await supabase
-    .from('vendors')
-    .select('id')
-    .eq('user_id', user.id)
-    .single();
-
-  const isAdmin = profile?.is_admin === true;
+        const { data: profileRow } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+        setIsAdmin(profileRow?.role === 'admin');
+      }
+      setLoading(false);
+    }
+    loadUser();
+  }, [supabase]);
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
-      <div className="bg-[#0F172A] px-4 py-8 text-center">
-        <h1 className="text-xl font-bold text-white mb-1">
-          {profile?.full_name || profile?.username || 'My Profile'}
-        </h1>
-        <p className="text-[#D4AF37] text-sm">{user.email}</p>
-      </div>
+    <div className="min-h-screen bg-gray-50 p-4">
+      <div className="max-w-md mx-auto bg-white rounded-2xl shadow-sm p-6 mt-6">
+        <h1 className="text-xl font-semibold text-[#0F172A] mb-6">Profile</h1>
 
-      <div className="p-4 max-w-md mx-auto space-y-3 mt-4">
-        {/* Vendor Dashboard Button */}
-        {vendor && (
-          <Link
-            href="/vendor"
-            className="block text-center bg-[#0F172A] text-[#D4AF37] font-bold py-3 rounded-xl border-2 border-[#D4AF37] shadow-sm hover:opacity-90 transition"
-          >
-            Go to Vendor Dashboard
-          </Link>
-        )}
-
-        {/* Become a Vendor Button */}
-        {!vendor && (
-          <Link
-            href="/vendor/register"
-            className="block text-center bg-white text-[#0F172A] font-bold py-3 rounded-xl border-2 border-[#0F172A] shadow-sm hover:bg-gray-50 transition"
-          >
-            Become a Vendor
-          </Link>
-        )}
-
-        {/* Admin Dashboard Button - Using SwiftMart Navy & Gold */}
-        {isAdmin && (
-          <Link
-            href="/admin"
-            className="block text-center bg-[#0F172A] text-[#D4AF37] font-bold py-3 rounded-xl border-2 border-[#D4AF37] shadow-sm hover:opacity-90 transition"
-          >
-            🛡️ Go to Admin Dashboard
-          </Link>
-        )}
-
-        <div className="pt-4">
-          <LogoutButton />
+        <div className="mb-2">
+          <p className="text-sm text-gray-500">Username</p>
+          <p className="text-base text-gray-900">{username ?? '—'}</p>
         </div>
+
+        <div className="mb-6">
+          <p className="text-sm text-gray-500">Email</p>
+          <p className="text-base text-gray-900">{email ?? '—'}</p>
+        </div>
+
+        {!loading && (
+          <div className="mb-4 space-y-2">
+            {isAdmin && (
+              <Link
+                href="/admin"
+                className="block text-center bg-[#D4AF37] text-[#0F172A] font-bold py-3 rounded-xl"
+              >
+                Admin Dashboard
+              </Link>
+            )}
+
+            {vendor ? (
+              <Link
+                href="/vendor"
+                className="block text-center bg-[#0F172A] text-[#D4AF37] font-bold py-3 rounded-xl border-2 border-[#D4AF37]"
+              >
+                Go to Vendor Dashboard
+              </Link>
+            ) : (
+              <Link
+                href="/vendor/register"
+                className="block text-center bg-white text-[#0F172A] font-bold py-3 rounded-xl border-2 border-[#0F172A]"
+              >
+                Become a Vendor
+              </Link>
+            )}
+          </div>
+        )}
+
+        <LogoutButton />
       </div>
     </div>
   );
-}
+    }
+    
