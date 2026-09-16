@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { VendorProductActions } from '@/components/VendorProductActions';
+import { MarkShippedButton } from '@/components/MarkShippedButton';
 
 function naira(kobo: number) {
   return `₦${(kobo / 100).toLocaleString('en-NG')}`;
@@ -124,11 +125,12 @@ export default async function VendorDashboardPage() {
                     <p className="text-sm font-bold text-[#0F172A]">{naira(item.line_total_kobo)}</p>
                   </div>
                   <p className="text-xs text-gray-500">
-                    Qty {item.quantity} · Order #{item.order?.order_number} · {item.order?.status}
+                    Qty {item.quantity} · Order #{item.order?.order_number}
                   </p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-gray-500 mb-1">
                     Buyer: {customer?.full_name ?? customer?.username ?? 'Unknown'}
                   </p>
+                  <MarkShippedButton orderId={item.order?.id} status={item.order?.status} />
                 </div>
               );
             })}
