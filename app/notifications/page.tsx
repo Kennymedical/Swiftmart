@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import { NotificationItem } from '@/components/NotificationItem';
+import { NotificationsList } from '@/components/NotificationsList';
 
 export default async function NotificationsPage() {
   const supabase = createClient();
@@ -18,7 +18,7 @@ export default async function NotificationsPage() {
 
   const { data: notifications } = await supabase
     .from('notifications')
-    .select('id, title, body, link, read_at, created_at')
+    .select('id, type, title, body, link, read_at, created_at')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
     .limit(50);
@@ -31,24 +31,8 @@ export default async function NotificationsPage() {
         </h1>
       </div>
 
-      {(!notifications || notifications.length === 0) ? (
-        <p className="text-center text-gray-500 py-20">No notifications yet.</p>
-      ) : (
-        <div className="bg-white mt-2">
-          {notifications.map((n) => (
-            <NotificationItem
-              key={n.id}
-              id={n.id}
-              title={n.title}
-              body={n.body}
-              link={n.link}
-              readAt={n.read_at}
-              createdAt={n.created_at}
-            />
-          ))}
-        </div>
-      )}
+      <NotificationsList notifications={notifications ?? []} />
     </div>
   );
-      }
-    
+           }
+                          
