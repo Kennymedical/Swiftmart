@@ -1,4 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
+import { CartOrdersTabs } from '@/components/CartOrdersTabs';
+import { CustomerMarkDeliveredButton } from '@/components/CustomerMarkDeliveredButton';
 import { ReportProblemButton } from '@/components/ReportProblemButton';
 
 function naira(kobo: number) {
@@ -45,6 +47,8 @@ export default async function OrdersPage() {
         </h1>
       </div>
 
+      <CartOrdersTabs />
+
       {(!orders || orders.length === 0) ? (
         <p className="text-center text-gray-500 py-20">No orders yet.</p>
       ) : (
@@ -62,6 +66,12 @@ export default async function OrdersPage() {
                 {new Date(o.created_at).toLocaleDateString()}
               </p>
 
+              {o.status === 'shipped' && (
+                <div className="mt-2">
+                  <CustomerMarkDeliveredButton orderId={o.id} />
+                </div>
+              )}
+
               {o.status === 'delivered' && (
                 <div className="mt-2">
                   <ReportProblemButton orderId={o.id} />
@@ -73,5 +83,5 @@ export default async function OrdersPage() {
       )}
     </div>
   );
-}
-
+  }
+  
