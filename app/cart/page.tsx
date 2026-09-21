@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { CartOrdersTabs } from '@/components/CartOrdersTabs';
 
 interface CartItem {
   id: string;
@@ -85,7 +86,7 @@ export default function CartPage() {
       return;
     }
 
-    setSuccess(`Order #${data.orderNumber} placed!`);
+    setSuccess(`Order #${data.orderNumber} placed! Track it under My Orders.`);
     setItems([]);
   }
 
@@ -107,6 +108,8 @@ export default function CartPage() {
           {items.length} item{items.length === 1 ? '' : 's'}
         </p>
       </div>
+
+      <CartOrdersTabs />
 
       {success && (
         <div className="bg-green-50 text-green-700 text-sm p-4 m-3 rounded-xl text-center">
@@ -201,5 +204,5 @@ export default function CartPage() {
       )}
     </div>
   );
-}
-  
+  }
+               
