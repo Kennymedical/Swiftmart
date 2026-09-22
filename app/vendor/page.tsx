@@ -139,4 +139,4 @@ export default async function VendorDashboardPage() {
       </div>
     </div>
   );
-    }
+  }
