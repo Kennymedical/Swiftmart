@@ -55,18 +55,27 @@ export default async function VendorDashboardPage() {
     .eq('vendor_id', vendor.id)
     .order('created_at', { ascending: false });
 
-  // Query order_items using standard 'orders(...)' relationship
+  // Query order_items with both products (images) and orders
   const { data: orderItems, error: itemsError } = await supabase
     .from('order_items')
-    .select('id, order_id, product_name, quantity, line_total_kobo, orders(id, order_number, status, created_at, customer_id)')
+    .select(`
+      id,
+      order_id,
+      product_name,
+      quantity,
+      line_total_kobo,
+      products (id, images),
+      orders (id, order_number, status, created_at, customer_id)
+    `)
     .eq('vendor_id', vendor.id)
+    .order('id', { ascending: false })
     .limit(30);
 
   if (itemsError) {
     console.error('Failed to load vendor order items:', itemsError);
   }
 
-  // Safely extract customer IDs whether PostgREST returns orders as object or array
+  // Safely extract customer IDs
   const customerIds = [
     ...new Set(
       (orderItems ?? [])
@@ -91,6 +100,7 @@ export default async function VendorDashboardPage() {
       </div>
 
       <div className="p-4">
+        {/* Products Section */}
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-sm font-semibold text-gray-500">My Products</h2>
           <Link
@@ -101,7 +111,7 @@ export default async function VendorDashboardPage() {
           </Link>
         </div>
 
-        {(!products || products.length === 0) ? (
+        {!products || products.length === 0 ? (
           <p className="text-center text-gray-400 text-sm py-8">No products yet.</p>
         ) : (
           <div className="grid grid-cols-3 gap-2 mb-8">
@@ -126,31 +136,66 @@ export default async function VendorDashboardPage() {
           </div>
         )}
 
+        {/* Orders to Fulfill Section */}
         <h2 className="text-sm font-semibold text-gray-500 mb-3">Orders to Fulfill</h2>
-        {(!orderItems || orderItems.length === 0) ? (
+        {!orderItems || orderItems.length === 0 ? (
           <p className="text-center text-gray-400 text-sm py-8">No orders yet.</p>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-3">
             {orderItems.map((item: any) => {
               const order = Array.isArray(item.orders) ? item.orders[0] : item.orders;
+              const product = Array.isArray(item.products) ? item.products[0] : item.products;
+              const imageUrl = product?.images?.[0];
+
               const customer = customerMap.get(order?.customer_id);
               const orderId = order?.id ?? item.order_id;
               const orderNumber = order?.order_number ?? 'N/A';
               const orderStatus = order?.status ?? 'paid';
 
               return (
-                <div key={item.id} className="bg-white rounded-xl shadow-sm p-3">
-                  <div className="flex justify-between items-start mb-1">
-                    <p className="text-sm font-medium text-gray-900">{item.product_name}</p>
-                    <p className="text-sm font-bold text-[#0F172A]">{naira(item.line_total_kobo)}</p>
+                <div key={item.id} className="bg-white rounded-xl shadow-sm p-3 border border-gray-100">
+                  <div className="flex gap-3 items-center">
+                    {/* Product Image Thumbnail */}
+                    <div className="w-16 h-16 rounded-xl bg-gray-100 flex-shrink-0 overflow-hidden border border-gray-100">
+                      {imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={imageUrl}
+                          alt={item.product_name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-400 text-[10px]">
+                          No image
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Order Details */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-start">
+                        <p className="text-sm font-semibold text-gray-900 truncate">
+                          {item.product_name}
+                        </p>
+                        <p className="text-sm font-bold text-[#0F172A] ml-2">
+                          {naira(item.line_total_kobo)}
+                        </p>
+                      </div>
+
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        Qty: <span className="font-semibold text-gray-800">{item.quantity}</span> · Order #{orderNumber}
+                      </p>
+
+                      <p className="text-xs text-gray-500">
+                        Buyer: <span className="font-medium text-gray-700">{customer?.full_name ?? customer?.username ?? 'Customer'}</span>
+                      </p>
+                    </div>
                   </div>
-                  <p className="text-xs text-gray-500">
-                    Qty {item.quantity} · Order #{orderNumber}
-                  </p>
-                  <p className="text-xs text-gray-500 mb-1">
-                    Buyer: {customer?.full_name ?? customer?.username ?? 'Customer'}
-                  </p>
-                  <MarkShippedButton orderId={orderId} status={orderStatus} />
+
+                  {/* Mark Shipped Action */}
+                  <div className="mt-2 pt-2 border-t border-gray-50 flex justify-end">
+                    <MarkShippedButton orderId={orderId} status={orderStatus} />
+                  </div>
                 </div>
               );
             })}
@@ -159,5 +204,5 @@ export default async function VendorDashboardPage() {
       </div>
     </div>
   );
-         }
-    
+    }
+        
