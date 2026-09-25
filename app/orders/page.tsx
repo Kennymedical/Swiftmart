@@ -1,4 +1,3 @@
-// app/orders/page.tsx
 import { createClient } from '@/lib/supabase/server';
 import { CartOrdersTabs } from '@/components/CartOrdersTabs';
 import { CustomerMarkDeliveredButton } from '@/components/CustomerMarkDeliveredButton';
@@ -34,7 +33,7 @@ export default async function OrdersPage() {
     );
   }
 
-  // Fetch orders along with their individual order items
+  // Fetch orders along with their individual order items using product_name
   const { data: orders, error } = await supabase
     .from('orders')
     .select(`
@@ -45,7 +44,7 @@ export default async function OrdersPage() {
       created_at,
       order_items (
         id,
-        product_title,
+        product_name,
         quantity,
         unit_price_kobo
       )
@@ -93,7 +92,7 @@ export default async function OrdersPage() {
                   {o.order_items.map((item) => (
                     <div key={item.id} className="flex justify-between items-center text-xs text-gray-700">
                       <span>
-                        {item.product_title} <span className="text-gray-400">× {item.quantity}</span>
+                        {item.product_name} <span className="text-gray-400">× {item.quantity}</span>
                       </span>
                       <span className="font-medium text-gray-600">
                         {naira(item.unit_price_kobo * item.quantity)}
@@ -120,5 +119,4 @@ export default async function OrdersPage() {
       )}
     </div>
   );
-    }
-  
+  }
