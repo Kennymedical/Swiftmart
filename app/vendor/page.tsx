@@ -55,14 +55,29 @@ export default async function VendorDashboardPage() {
     .eq('vendor_id', vendor.id)
     .order('created_at', { ascending: false });
 
-  const { data: orderItems } = await supabase
+  // Query order_items using standard 'orders(...)' relationship
+  const { data: orderItems, error: itemsError } = await supabase
     .from('order_items')
-    .select('id, product_name, quantity, line_total_kobo, order:orders(id, order_number, status, created_at, customer_id)')
+    .select('id, order_id, product_name, quantity, line_total_kobo, orders(id, order_number, status, created_at, customer_id)')
     .eq('vendor_id', vendor.id)
-    .order('id', { ascending: false })
     .limit(30);
 
-  const customerIds = [...new Set((orderItems ?? []).map((i: any) => i.order?.customer_id).filter(Boolean))];
+  if (itemsError) {
+    console.error('Failed to load vendor order items:', itemsError);
+  }
+
+  // Safely extract customer IDs whether PostgREST returns orders as object or array
+  const customerIds = [
+    ...new Set(
+      (orderItems ?? [])
+        .map((i: any) => {
+          const ord = Array.isArray(i.orders) ? i.orders[0] : i.orders;
+          return ord?.customer_id;
+        })
+        .filter(Boolean),
+    ),
+  ];
+
   const { data: customers } = customerIds.length
     ? await supabase.from('profiles').select('id, username, full_name').in('id', customerIds)
     : { data: [] };
@@ -117,7 +132,12 @@ export default async function VendorDashboardPage() {
         ) : (
           <div className="space-y-2">
             {orderItems.map((item: any) => {
-              const customer = customerMap.get(item.order?.customer_id);
+              const order = Array.isArray(item.orders) ? item.orders[0] : item.orders;
+              const customer = customerMap.get(order?.customer_id);
+              const orderId = order?.id ?? item.order_id;
+              const orderNumber = order?.order_number ?? 'N/A';
+              const orderStatus = order?.status ?? 'paid';
+
               return (
                 <div key={item.id} className="bg-white rounded-xl shadow-sm p-3">
                   <div className="flex justify-between items-start mb-1">
@@ -125,12 +145,12 @@ export default async function VendorDashboardPage() {
                     <p className="text-sm font-bold text-[#0F172A]">{naira(item.line_total_kobo)}</p>
                   </div>
                   <p className="text-xs text-gray-500">
-                    Qty {item.quantity} · Order #{item.order?.order_number}
+                    Qty {item.quantity} · Order #{orderNumber}
                   </p>
                   <p className="text-xs text-gray-500 mb-1">
-                    Buyer: {customer?.full_name ?? customer?.username ?? 'Unknown'}
+                    Buyer: {customer?.full_name ?? customer?.username ?? 'Customer'}
                   </p>
-                  <MarkShippedButton orderId={item.order?.id} status={item.order?.status} />
+                  <MarkShippedButton orderId={orderId} status={orderStatus} />
                 </div>
               );
             })}
@@ -139,4 +159,5 @@ export default async function VendorDashboardPage() {
       </div>
     </div>
   );
-  }
+         }
+    
