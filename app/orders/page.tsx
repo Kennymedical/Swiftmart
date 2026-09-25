@@ -1,3 +1,4 @@
+// app/orders/page.tsx
 import { createClient } from '@/lib/supabase/server';
 import { CartOrdersTabs } from '@/components/CartOrdersTabs';
 import { CustomerMarkDeliveredButton } from '@/components/CustomerMarkDeliveredButton';
@@ -33,11 +34,28 @@ export default async function OrdersPage() {
     );
   }
 
-  const { data: orders } = await supabase
+  // Fetch orders along with their individual order items
+  const { data: orders, error } = await supabase
     .from('orders')
-    .select('id, order_number, status, total_kobo, created_at')
+    .select(`
+      id,
+      order_number,
+      status,
+      total_kobo,
+      created_at,
+      order_items (
+        id,
+        product_title,
+        quantity,
+        unit_price_kobo
+      )
+    `)
     .eq('customer_id', user.id)
     .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching customer orders:', error);
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
@@ -49,31 +67,50 @@ export default async function OrdersPage() {
 
       <CartOrdersTabs />
 
-      {(!orders || orders.length === 0) ? (
+      {!orders || orders.length === 0 ? (
         <p className="text-center text-gray-500 py-20">No orders yet.</p>
       ) : (
-        <div className="p-3 space-y-2">
+        <div className="p-3 space-y-3">
           {orders.map((o) => (
-            <div key={o.id} className="bg-white rounded-2xl shadow-sm p-4">
+            <div key={o.id} className="bg-white rounded-2xl shadow-sm p-4 border border-gray-100">
               <div className="flex justify-between items-start mb-1">
                 <p className="font-semibold text-[#0F172A]">#{o.order_number}</p>
                 <p className="font-bold text-[#0F172A]">{naira(o.total_kobo)}</p>
               </div>
-              <p className={`text-xs font-medium capitalize ${statusColors[o.status] ?? 'text-gray-500'}`}>
-                {o.status.replace('_', ' ')}
-              </p>
-              <p className="text-xs text-gray-400 mt-1">
-                {new Date(o.created_at).toLocaleDateString()}
-              </p>
+
+              <div className="flex justify-between items-center text-xs">
+                <span className={`font-medium capitalize ${statusColors[o.status] ?? 'text-gray-500'}`}>
+                  {o.status.replace('_', ' ')}
+                </span>
+                <span className="text-gray-400">
+                  {new Date(o.created_at).toLocaleDateString()}
+                </span>
+              </div>
+
+              {/* Items List */}
+              {o.order_items && o.order_items.length > 0 && (
+                <div className="mt-3 pt-2 border-t border-gray-100 space-y-1">
+                  {o.order_items.map((item) => (
+                    <div key={item.id} className="flex justify-between items-center text-xs text-gray-700">
+                      <span>
+                        {item.product_title} <span className="text-gray-400">× {item.quantity}</span>
+                      </span>
+                      <span className="font-medium text-gray-600">
+                        {naira(item.unit_price_kobo * item.quantity)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               {o.status === 'shipped' && (
-                <div className="mt-2">
+                <div className="mt-3">
                   <CustomerMarkDeliveredButton orderId={o.id} />
                 </div>
               )}
 
               {o.status === 'delivered' && (
-                <div className="mt-2">
+                <div className="mt-3">
                   <ReportProblemButton orderId={o.id} />
                 </div>
               )}
@@ -83,5 +120,5 @@ export default async function OrdersPage() {
       )}
     </div>
   );
-  }
+    }
   
