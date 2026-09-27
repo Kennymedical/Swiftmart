@@ -55,7 +55,7 @@ export default async function VendorDashboardPage() {
     .eq('vendor_id', vendor.id)
     .order('created_at', { ascending: false });
 
-  // Query order_items with both products (images) and orders
+  // Query order_items with both products and orders
   const { data: orderItems, error: itemsError } = await supabase
     .from('order_items')
     .select(`
@@ -65,7 +65,7 @@ export default async function VendorDashboardPage() {
       quantity,
       line_total_kobo,
       products (id, images),
-      orders (id, order_number, status, created_at, customer_id)
+      orders (id, order_number, status, created_at, customer_id, shipping_kobo)
     `)
     .eq('vendor_id', vendor.id)
     .order('id', { ascending: false })
@@ -88,7 +88,7 @@ export default async function VendorDashboardPage() {
   ];
 
   const { data: customers } = customerIds.length
-    ? await supabase.from('profiles').select('id, username, full_name').in('id', customerIds)
+    ? await supabase.from('profiles').select('id, username, full_name, phone').in('id', customerIds)
     : { data: [] };
   const customerMap = new Map((customers ?? []).map((c) => [c.id, c]));
 
@@ -151,9 +151,11 @@ export default async function VendorDashboardPage() {
               const orderId = order?.id ?? item.order_id;
               const orderNumber = order?.order_number ?? 'N/A';
               const orderStatus = order?.status ?? 'paid';
+              const customerName = customer?.full_name ?? customer?.username ?? 'Customer';
+              const customerPhone = customer?.phone ? ` · 📞 ${customer.phone}` : '';
 
               return (
-                <div key={item.id} className="bg-white rounded-xl shadow-sm p-3 border border-gray-100">
+                <div key={item.id} className="bg-white rounded-xl shadow-sm p-3.5 border border-gray-100">
                   <div className="flex gap-3 items-center">
                     {/* Product Image Thumbnail */}
                     <div className="w-16 h-16 rounded-xl bg-gray-100 flex-shrink-0 overflow-hidden border border-gray-100">
@@ -186,15 +188,23 @@ export default async function VendorDashboardPage() {
                         Qty: <span className="font-semibold text-gray-800">{item.quantity}</span> · Order #{orderNumber}
                       </p>
 
-                      <p className="text-xs text-gray-500">
-                        Buyer: <span className="font-medium text-gray-700">{customer?.full_name ?? customer?.username ?? 'Customer'}</span>
+                      <p className="text-xs text-gray-600 mt-0.5">
+                        Buyer: <span className="font-medium text-gray-900">{customerName}</span>
+                        <span className="text-gray-500">{customerPhone}</span>
                       </p>
                     </div>
                   </div>
 
-                  {/* Mark Shipped Action */}
-                  <div className="mt-2 pt-2 border-t border-gray-50 flex justify-end">
-                    <MarkShippedButton orderId={orderId} status={orderStatus} />
+                  {/* Dual Dispatch / Waybill Action */}
+                  <div className="mt-3 pt-2.5 border-t border-gray-100 flex items-center justify-between">
+                    <span className="text-[11px] text-gray-500">
+                      Waybill: <span className="font-semibold text-gray-800">{order?.shipping_kobo ? naira(order.shipping_kobo) : 'Paid'}</span>
+                    </span>
+                    <MarkShippedButton
+                      orderId={orderId}
+                      status={orderStatus}
+                      customerAddress={`${customerName}${customerPhone ? ` (${customerPhone})` : ''}`}
+                    />
                   </div>
                 </div>
               );
@@ -204,5 +214,4 @@ export default async function VendorDashboardPage() {
       </div>
     </div>
   );
-    }
-        
+}

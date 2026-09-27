@@ -17,6 +17,13 @@ interface CartItem {
   };
 }
 
+const NIGERIAN_STATES = [
+  'Abia', 'Abuja (FCT)', 'Adamawa', 'Akwa Ibom', 'Anambra', 'Bauchi', 'Bayelsa', 'Benue', 'Borno',
+  'Cross River', 'Delta', 'Ebonyi', 'Edo', 'Ekiti', 'Enugu', 'Gombe', 'Imo', 'Jigawa', 'Kaduna',
+  'Kano', 'Katsina', 'Kebbi', 'Kogi', 'Kwara', 'Lagos', 'Nasarawa', 'Niger', 'Ogun', 'Ondo',
+  'Osun', 'Oyo', 'Plateau', 'Rivers', 'Sokoto', 'Taraba', 'Yobe', 'Zamfara'
+];
+
 function naira(kobo: number) {
   return `₦${(kobo / 100).toLocaleString('en-NG')}`;
 }
@@ -31,7 +38,19 @@ export default function CartPage() {
   const [insufficient, setInsufficient] = useState<{ required: number; balance: number } | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  async function loadCart() {
+  // Delivery Form State
+  const [fullName, setFullName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [address, setAddress] = useState('');
+  const [state, setState] = useState('Lagos');
+  const [city, setCity] = useState('');
+
+  // Shipping Fee State
+  const [shippingKobo, setShippingKobo] = useState<number>(300000); // default ₦3,000 (₦2,500 base + ₦500 profit)
+  const [shippingName, setShippingName] = useState('SwiftMart Express Dispatch');
+  const [calcLoading, setCalcLoading] = useState(false);
+
+  async function loadCartAndProfile() {
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -39,17 +58,67 @@ export default function CartPage() {
       setLoading(false);
       return;
     }
-    const { data } = await supabase
+
+    // Load cart items
+    const { data: cartData } = await supabase
       .from('cart_items')
       .select('id, quantity, product:products(id, name, price_kobo, images, stock)')
       .eq('user_id', user.id);
-    setItems((data as any) ?? []);
+    setItems((cartData as any) ?? []);
+
+    // Load existing profile details for fast delivery prefill
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('full_name, phone')
+      .eq('id', user.id)
+      .single();
+
+    if (profile) {
+      if (profile.full_name) setFullName(profile.full_name);
+      if (profile.phone) setPhone(profile.phone);
+    }
+
     setLoading(false);
   }
 
   useEffect(() => {
-    loadCart();
+    loadCartAndProfile();
   }, []);
+
+  // Recalculate shipping rate when destination state changes
+  useEffect(() => {
+    if (!state) return;
+
+    let isMounted = true;
+    async function fetchShippingRate() {
+      setCalcLoading(true);
+      try {
+        const { data, error: fnErr } = await supabase.functions.invoke('calculate-shipping', {
+          body: {
+            senderState: 'Lagos',
+            receiverState: state,
+            receiverCity: city || state,
+            itemsCount: items.length || 1,
+          },
+        });
+
+        if (!fnErr && data?.totalShippingKobo && isMounted) {
+          setShippingKobo(data.totalShippingKobo);
+          if (data.courierName) setShippingName(data.courierName);
+        }
+      } catch (e) {
+        console.warn('Shipping calc error:', e);
+      } finally {
+        if (isMounted) setCalcLoading(false);
+      }
+    }
+
+    fetchShippingRate();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [state, city, items.length]);
 
   async function updateQuantity(itemId: string, newQty: number) {
     if (newQty < 1) return;
@@ -62,15 +131,34 @@ export default function CartPage() {
     setItems((prev) => prev.filter((i) => i.id !== itemId));
   }
 
-  const total = items.reduce((sum, i) => sum + i.product.price_kobo * i.quantity, 0);
+  const subtotal = items.reduce((sum, i) => sum + i.product.price_kobo * i.quantity, 0);
+  const total = subtotal + shippingKobo;
 
   async function handleCheckout() {
     setError('');
     setInsufficient(null);
     setSuccess(null);
+
+    if (!fullName.trim() || !phone.trim() || !address.trim() || !city.trim()) {
+      setError('Please provide your complete delivery address, city, and phone number.');
+      return;
+    }
+
     setCheckingOut(true);
 
-    const { data, error: fnError } = await supabase.functions.invoke('checkout-cart', { body: {} });
+    const { data, error: fnError } = await supabase.functions.invoke('checkout-cart', {
+      body: {
+        shippingAddress: {
+          fullName,
+          phone,
+          street: address,
+          city,
+          state,
+        },
+        shippingKobo,
+      },
+    });
+
     setCheckingOut(false);
 
     if (fnError) {
@@ -99,7 +187,7 @@ export default function CartPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-32">
+    <div className="min-h-screen bg-gray-50 pb-44">
       <div className="bg-[#0F172A] px-4 py-5">
         <h1 className="text-xl font-bold text-white">
           Your <span className="text-[#D4AF37]">Cart</span>
@@ -112,7 +200,7 @@ export default function CartPage() {
       <CartOrdersTabs />
 
       {success && (
-        <div className="bg-green-50 text-green-700 text-sm p-4 m-3 rounded-xl text-center">
+        <div className="bg-green-50 text-green-700 text-sm p-4 m-3 rounded-xl text-center font-medium">
           {success}
         </div>
       )}
@@ -120,61 +208,136 @@ export default function CartPage() {
       {items.length === 0 && !success ? (
         <p className="text-center text-gray-500 py-20">Your cart is empty.</p>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 p-3">
-          {items.map((item) => (
-            <div key={item.id} className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100">
-              <div className="relative aspect-square bg-gray-100">
-                {item.product.images?.[0] && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={item.product.images[0]}
-                    alt={item.product.name}
-                    className="w-full h-full object-cover"
-                  />
-                )}
-                <button
-                  onClick={() => removeItem(item.id)}
-                  className="absolute top-1 right-1 bg-white/90 text-red-600 rounded-full h-6 w-6 flex items-center justify-center text-xs font-bold"
-                  aria-label="Remove"
-                >
-                  ×
-                </button>
-              </div>
-              <div className="p-2">
-                <p className="text-xs text-gray-900 font-medium line-clamp-1 mb-1">
-                  {item.product.name}
-                </p>
-                <p className="text-[#0F172A] font-bold text-sm mb-2">
-                  {naira(item.product.price_kobo)}
-                </p>
-                <div className="flex items-center justify-between bg-gray-50 rounded-lg px-1">
+        <div className="p-3 space-y-4">
+          {/* Cart Products Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {items.map((item) => (
+              <div key={item.id} className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100">
+                <div className="relative aspect-square bg-gray-100">
+                  {item.product.images?.[0] && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={item.product.images[0]}
+                      alt={item.product.name}
+                      className="w-full h-full object-cover"
+                    />
+                  )}
                   <button
-                    onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                    className="px-2 py-1 text-[#0F172A] font-bold"
+                    onClick={() => removeItem(item.id)}
+                    className="absolute top-1 right-1 bg-white/90 text-red-600 rounded-full h-6 w-6 flex items-center justify-center text-xs font-bold shadow-sm"
+                    aria-label="Remove"
                   >
-                    −
-                  </button>
-                  <span className="text-xs font-medium">{item.quantity}</span>
-                  <button
-                    onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                    className="px-2 py-1 text-[#0F172A] font-bold"
-                  >
-                    +
+                    ×
                   </button>
                 </div>
+                <div className="p-2">
+                  <p className="text-xs text-gray-900 font-medium line-clamp-1 mb-1">
+                    {item.product.name}
+                  </p>
+                  <p className="text-[#0F172A] font-bold text-sm mb-2">
+                    {naira(item.product.price_kobo)}
+                  </p>
+                  <div className="flex items-center justify-between bg-gray-50 rounded-lg px-1">
+                    <button
+                      onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                      className="px-2 py-1 text-[#0F172A] font-bold"
+                    >
+                      −
+                    </button>
+                    <span className="text-xs font-medium">{item.quantity}</span>
+                    <button
+                      onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                      className="px-2 py-1 text-[#0F172A] font-bold"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Delivery & Waybill Destination Form */}
+          <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500">
+                📍 Delivery Destination
+              </h2>
+              <span className="text-[11px] text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full">
+                {calcLoading ? 'Calculating rate...' : shippingName}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-[11px] font-medium text-gray-600 mb-1">Recipient Name</label>
+                <input
+                  type="text"
+                  placeholder="Full Name"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  className="w-full text-xs border border-gray-200 rounded-xl px-3 py-2 text-gray-900 focus:outline-none focus:border-[#D4AF37]"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-medium text-gray-600 mb-1">Phone Number</label>
+                <input
+                  type="tel"
+                  placeholder="08012345678"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="w-full text-xs border border-gray-200 rounded-xl px-3 py-2 text-gray-900 focus:outline-none focus:border-[#D4AF37]"
+                />
               </div>
             </div>
-          ))}
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-[11px] font-medium text-gray-600 mb-1">State</label>
+                <select
+                  value={state}
+                  onChange={(e) => setState(e.target.value)}
+                  className="w-full text-xs border border-gray-200 rounded-xl px-3 py-2 text-gray-900 bg-white focus:outline-none focus:border-[#D4AF37]"
+                >
+                  {NIGERIAN_STATES.map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[11px] font-medium text-gray-600 mb-1">City / Town</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Ikeja, Lekki, Wuse"
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  className="w-full text-xs border border-gray-200 rounded-xl px-3 py-2 text-gray-900 focus:outline-none focus:border-[#D4AF37]"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-medium text-gray-600 mb-1">Street Address</label>
+              <input
+                type="text"
+                placeholder="House No, Street, Landmark"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                className="w-full text-xs border border-gray-200 rounded-xl px-3 py-2 text-gray-900 focus:outline-none focus:border-[#D4AF37]"
+              />
+            </div>
+          </div>
         </div>
       )}
 
+      {/* Checkout Floating Bar */}
       {items.length > 0 && (
-        <div className="fixed bottom-16 inset-x-0 bg-white border-t border-gray-200 p-4">
-          {error && <p className="text-sm text-red-600 mb-2">{error}</p>}
+        <div className="fixed bottom-16 inset-x-0 bg-white/95 backdrop-blur-md border-t border-gray-200 p-4 shadow-lg z-40">
+          {error && <p className="text-xs text-red-600 mb-2 font-medium">{error}</p>}
 
           {insufficient ? (
-            <div className="mb-3">
-              <p className="text-sm text-red-600 mb-2">
+            <div className="mb-2">
+              <p className="text-xs text-red-600 mb-2">
                 Insufficient balance — you have {naira(insufficient.balance)}, need{' '}
                 {naira(insufficient.required)}.
               </p>
@@ -187,16 +350,26 @@ export default function CartPage() {
             </div>
           ) : (
             <>
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-sm text-gray-500">Total</span>
-                <span className="text-xl font-bold text-[#0F172A]">{naira(total)}</span>
+              <div className="space-y-1 mb-3">
+                <div className="flex items-center justify-between text-xs text-gray-500">
+                  <span>Goods Subtotal</span>
+                  <span>{naira(subtotal)}</span>
+                </div>
+                <div className="flex items-center justify-between text-xs text-gray-500">
+                  <span>Waybill / Logistics (incl. platform fee)</span>
+                  <span className="font-medium text-gray-800">{naira(shippingKobo)}</span>
+                </div>
+                <div className="flex items-center justify-between text-base font-bold text-[#0F172A] pt-1 border-t border-gray-100">
+                  <span>Total Payable</span>
+                  <span className="text-[#0F172A]">{naira(total)}</span>
+                </div>
               </div>
               <button
                 onClick={handleCheckout}
                 disabled={checkingOut}
-                className="w-full bg-[#0F172A] text-[#D4AF37] font-bold py-3 rounded-xl border-2 border-[#D4AF37] disabled:opacity-50"
+                className="w-full bg-[#0F172A] text-[#D4AF37] font-bold py-3 rounded-xl border-2 border-[#D4AF37] disabled:opacity-50 transition shadow-sm"
               >
-                {checkingOut ? 'Placing order...' : 'Place Order'}
+                {checkingOut ? 'Placing order...' : `Pay ${naira(total)} & Order`}
               </button>
             </>
           )}
@@ -204,5 +377,4 @@ export default function CartPage() {
       )}
     </div>
   );
-  }
-               
+}
