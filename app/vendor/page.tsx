@@ -55,7 +55,7 @@ export default async function VendorDashboardPage() {
     .eq('vendor_id', vendor.id)
     .order('created_at', { ascending: false });
 
-  // Query order_items with both products and orders
+  // Query order_items with products, orders, and delivery address
   const { data: orderItems, error: itemsError } = await supabase
     .from('order_items')
     .select(`
@@ -65,7 +65,23 @@ export default async function VendorDashboardPage() {
       quantity,
       line_total_kobo,
       products (id, images),
-      orders (id, order_number, status, created_at, customer_id, shipping_kobo)
+      orders (
+        id,
+        order_number,
+        status,
+        created_at,
+        customer_id,
+        shipping_kobo,
+        shipping_address_id,
+        addresses:shipping_address_id (
+          id,
+          full_name,
+          phone,
+          line1,
+          city,
+          state
+        )
+      )
     `)
     .eq('vendor_id', vendor.id)
     .order('id', { ascending: false })
@@ -141,7 +157,7 @@ export default async function VendorDashboardPage() {
         {!orderItems || orderItems.length === 0 ? (
           <p className="text-center text-gray-400 text-sm py-8">No orders yet.</p>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {orderItems.map((item: any) => {
               const order = Array.isArray(item.orders) ? item.orders[0] : item.orders;
               const product = Array.isArray(item.products) ? item.products[0] : item.products;
@@ -154,8 +170,16 @@ export default async function VendorDashboardPage() {
               const customerName = customer?.full_name ?? customer?.username ?? 'Customer';
               const customerPhone = customer?.phone ? ` · 📞 ${customer.phone}` : '';
 
+              const addressObj = Array.isArray(order?.addresses) ? order.addresses[0] : order?.addresses;
+
+              const displayRecipient = addressObj?.full_name || customerName;
+              const displayPhone = addressObj?.phone || customer?.phone || 'No phone provided';
+              const displayDestination = addressObj
+                ? `${addressObj.line1}, ${addressObj.city}, ${addressObj.state}`
+                : 'Address not saved on this order';
+
               return (
-                <div key={item.id} className="bg-white rounded-xl shadow-sm p-3.5 border border-gray-100">
+                <div key={item.id} className="bg-white rounded-xl shadow-sm p-4 border border-gray-100">
                   <div className="flex gap-3 items-center">
                     {/* Product Image Thumbnail */}
                     <div className="w-16 h-16 rounded-xl bg-gray-100 flex-shrink-0 overflow-hidden border border-gray-100">
@@ -195,15 +219,28 @@ export default async function VendorDashboardPage() {
                     </div>
                   </div>
 
+                  {/* Delivery Location & Waybill Details */}
+                  <div className="mt-3 bg-amber-50/60 border border-amber-200/60 rounded-xl p-3 text-xs space-y-1">
+                    <div className="flex items-center justify-between font-bold text-[#0F172A] mb-1">
+                      <span className="flex items-center gap-1">📍 Delivery Location</span>
+                      <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-100/60 px-2 py-0.5 rounded-md">
+                        Waybill Paid: {order?.shipping_kobo ? naira(order.shipping_kobo) : '₦0'}
+                      </span>
+                    </div>
+                    <p className="text-gray-900 font-medium">
+                      Recipient: {displayRecipient} (📞 {displayPhone})
+                    </p>
+                    <p className="text-gray-700">
+                      Address: <span className="font-medium text-gray-900">{displayDestination}</span>
+                    </p>
+                  </div>
+
                   {/* Dual Dispatch / Waybill Action */}
-                  <div className="mt-3 pt-2.5 border-t border-gray-100 flex items-center justify-between">
-                    <span className="text-[11px] text-gray-500">
-                      Waybill: <span className="font-semibold text-gray-800">{order?.shipping_kobo ? naira(order.shipping_kobo) : 'Paid'}</span>
-                    </span>
+                  <div className="mt-3 pt-2.5 border-t border-gray-100 flex items-center justify-end">
                     <MarkShippedButton
                       orderId={orderId}
                       status={orderStatus}
-                      customerAddress={`${customerName}${customerPhone ? ` (${customerPhone})` : ''}`}
+                      customerAddress={`${displayRecipient} (${displayPhone}) - ${displayDestination}`}
                     />
                   </div>
                 </div>

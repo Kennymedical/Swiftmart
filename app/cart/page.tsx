@@ -85,7 +85,7 @@ export default function CartPage() {
     loadCartAndProfile();
   }, []);
 
-  // Recalculate shipping rate when destination state changes
+  // Recalculate shipping rate when destination changes
   useEffect(() => {
     if (!state) return;
 
@@ -98,6 +98,7 @@ export default function CartPage() {
             senderState: 'Lagos',
             receiverState: state,
             receiverCity: city || state,
+            receiverAddress: address ? `${address}, ${city || state}, ${state}` : `${city || state}, ${state}`,
             itemsCount: items.length || 1,
           },
         });
@@ -113,12 +114,13 @@ export default function CartPage() {
       }
     }
 
-    fetchShippingRate();
+    const timer = setTimeout(fetchShippingRate, 400);
 
     return () => {
       isMounted = false;
+      clearTimeout(timer);
     };
-  }, [state, city, items.length]);
+  }, [state, city, address, items.length]);
 
   async function updateQuantity(itemId: string, newQty: number) {
     if (newQty < 1) return;
