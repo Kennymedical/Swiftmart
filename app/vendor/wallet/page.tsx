@@ -13,10 +13,8 @@ import {
   User, 
   ArrowUpRight, 
   PlusCircle, 
-  QrCode, 
   Building2, 
   History, 
-  MessageSquare, 
   Sparkles, 
   Home, 
   ArrowLeftRight, 
@@ -49,70 +47,119 @@ function VendorWalletContent() {
           return;
         }
 
-        const { data: vendor } = await supabase
-          .from('vendors')
-          .select('id')
-          .eq('user_id', user.id)
-          .maybeSingle();
+        // 1. Fetch wallet directly (independent of vendor table)
+        let walletBalance = 0;
+        let walletId = null;
+        try {
+          const { data: wallet } = await supabase
+            .from('wallets')
+            .select('id, balance_kobo')
+            .eq('user_id', user.id)
+            .maybeSingle();
 
-        const { data: wallet } = await supabase
-          .from('wallets')
-          .select('id, balance_kobo')
-          .eq('user_id', user.id)
-          .maybeSingle();
+          if (wallet) {
+            walletId = wallet.id;
+            walletBalance = (wallet.balance_kobo || 0) / 100;
+          }
+        } catch (wErr) {
+          console.warn('Wallet fetch error:', wErr);
+        }
 
+        // 2. Fetch vendor record
+        let vendorId = null;
+        try {
+          const { data: vendor } = await supabase
+            .from('vendors')
+            .select('id')
+            .eq('user_id', user.id)
+            .maybeSingle();
+
+          if (vendor) vendorId = vendor.id;
+        } catch (vErr) {
+          console.warn('Vendor fetch error:', vErr);
+        }
+
+        // 3. Compute Escrow & Sales safely
         let escrow = 0;
         let escrowOrders = 0;
         let sales = 0;
         let monthSales = 0;
 
-        if (vendor) {
-          const { data: items } = await supabase
-            .from('order_items')
-            .select('price_kobo, quantity, created_at, orders(status)')
-            .eq('vendor_id', vendor.id);
+        if (vendorId) {
+          try {
+            // First try fetching order items for this vendor
+            const { data: items } = await supabase
+              .from('order_items')
+              .select('id, order_id, price_kobo, quantity, created_at')
+              .eq('vendor_id', vendorId);
 
-          const startOfMonth = new Date();
-          startOfMonth.setDate(1);
-          startOfMonth.setHours(0, 0, 0, 0);
+            if (items && items.length > 0) {
+              const startOfMonth = new Date();
+              startOfMonth.setDate(1);
+              startOfMonth.setHours(0, 0, 0, 0);
 
-          (items || []).forEach((item: any) => {
-            const total = (item.price_kobo || 0) * (item.quantity || 1);
-            const st = Array.isArray(item.orders) ? item.orders[0]?.status : item.orders?.status;
-            if (st === 'paid' || st === 'shipped') {
-              escrow += total;
-              escrowOrders += 1;
-            }
-            if (['paid', 'shipped', 'delivered'].includes(st)) {
-              sales += total;
-              if (new Date(item.created_at) >= startOfMonth) {
-                monthSales += total;
+              // Get order statuses for these items
+              const orderIds = Array.from(new Set(items.map((it: any) => it.order_id).filter(Boolean)));
+              let ordersMap: Record<string, string> = {};
+
+              if (orderIds.length > 0) {
+                const { data: ordersData } = await supabase
+                  .from('orders')
+                  .select('id, status')
+                  .in('id', orderIds);
+
+                (ordersData || []).forEach((o: any) => {
+                  ordersMap[o.id] = o.status;
+                });
               }
+
+              items.forEach((item: any) => {
+                const total = (item.price_kobo || 0) * (item.quantity || 1);
+                const st = ordersMap[item.order_id];
+
+                if (st === 'paid' || st === 'shipped') {
+                  escrow += total;
+                  escrowOrders += 1;
+                }
+                if (['paid', 'shipped', 'delivered', 'completed'].includes(st)) {
+                  sales += total;
+                  if (new Date(item.created_at) >= startOfMonth) {
+                    monthSales += total;
+                  }
+                }
+              });
             }
-          });
+          } catch (itemErr) {
+            console.warn('Order items computation error:', itemErr);
+          }
         }
 
         if (isMounted) {
           setMetrics({
-            available: wallet?.balance_kobo ? wallet.balance_kobo / 100 : 0,
+            available: walletBalance,
             escrow: escrow / 100,
             escrowOrders,
             totalSales: sales / 100,
             thisMonth: monthSales / 100,
           });
 
-          if (wallet) {
-            const { data: tx } = await supabase
-              .from('transactions')
-              .select('*')
-              .eq('wallet_id', wallet.id)
-              .order('created_at', { ascending: false })
-              .limit(20);
-            if (tx) setTransactions(tx);
+          // 4. Fetch transactions
+          if (walletId) {
+            try {
+              const { data: tx } = await supabase
+                .from('transactions')
+                .select('*')
+                .eq('wallet_id', walletId)
+                .order('created_at', { ascending: false })
+                .limit(20);
+              if (tx) setTransactions(tx);
+            } catch (txErr) {
+              console.warn('Transactions fetch error:', txErr);
+            }
           }
         }
       } catch (err) {
-        console.error('Error loading vendor wallet:', err);
+        console.error('General vendor wallet load error:', err);
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -130,7 +177,7 @@ function VendorWalletContent() {
 
   return (
     <div className="w-full min-h-screen bg-[#0A1028] text-white flex flex-col font-sans pb-24">
-      {/* Header with VENDOR WALLET centered boldly */}
+      {/* Header */}
       <header className="sticky top-0 z-40 bg-[#0A1028]/95 backdrop-blur-md px-4 py-3.5 border-b border-[#D4AF37]/20 flex items-center justify-between">
         <Link href="/profile" className="p-2 rounded-full bg-[#151B3D] border border-[#D4AF37]/30 text-[#D4AF37]">
           <User size={18} />
@@ -142,12 +189,12 @@ function VendorWalletContent() {
       </header>
 
       <main className="flex-1 max-w-xl mx-auto w-full px-4 py-5 space-y-6">
-        {/* Balances */}
+        {/* 3 Balances: Available Balance, Escrow, and Total Sales */}
         <section className="space-y-3">
           <div className="bg-[#151B3D] border border-[#D4AF37]/50 rounded-2xl p-5 shadow-xl shadow-[#D4AF37]/5">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-[#D4AF37] uppercase">Available Balance</span>
-              <button onClick={() => setShowBalance(!showBalance)} className="text-[#A0A3B1]">
+              <span className="text-xs font-semibold text-[#D4AF37] uppercase tracking-wide">Available Balance</span>
+              <button onClick={() => setShowBalance(!showBalance)} className="text-[#A0A3B1] hover:text-white">
                 {showBalance ? <Eye size={18} /> : <EyeOff size={18} />}
               </button>
             </div>
@@ -161,10 +208,10 @@ function VendorWalletContent() {
               )}
             </h2>
             <div className="mt-4 pt-3 border-t border-[#D4AF37]/20 flex items-center justify-between text-xs">
-              <span className="text-emerald-400 font-bold">● Ready for payout</span>
+              <span className="text-emerald-400 font-bold">● Ready for withdrawal</span>
               <Link
                 href="/wallet/send?mode=bank"
-                className="px-5 py-2 rounded-full bg-[#F5C445] text-black font-extrabold flex items-center gap-1 hover:brightness-110 active:scale-95 transition-all"
+                className="px-5 py-2 rounded-full bg-[#F5C445] text-black font-extrabold flex items-center gap-1 hover:brightness-110 active:scale-95 transition-all shadow-md"
               >
                 Withdraw <ArrowUpRight size={14} />
               </Link>
@@ -292,7 +339,7 @@ function VendorWalletContent() {
         </section>
       </main>
 
-      {/* DEDICATED FINTECH BOTTOM NAV */}
+      {/* Fintech Bottom Nav */}
       <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[#0A1028]/95 backdrop-blur-md border-t border-[#D4AF37]/25 px-4 py-2 flex items-center justify-around">
         <Link href="/" className="flex flex-col items-center text-[#A0A3B1] hover:text-[#D4AF37]">
           <Home size={20} />

@@ -42,6 +42,18 @@ async function hashPin(code: string): Promise<string> {
     .join('');
 }
 
+async function extractEdgeError(error: any, fallback: string): Promise<string> {
+  if (!error) return fallback;
+  try {
+    if (error.context && typeof error.context.json === 'function') {
+      const body = await error.context.json();
+      if (body?.error) return body.error;
+      if (body?.message) return body.message;
+    }
+  } catch (_) {}
+  return error.message || fallback;
+}
+
 interface ToastNotice {
   message: string;
   type: 'error' | 'success';
@@ -141,16 +153,23 @@ function SendTransferContent() {
           const { data, error } = await supabase.functions.invoke('resolve-account', {
             body: { bankCode, accountNumber },
           });
-          if (error || data?.error) {
-            showToast(error?.message || data?.error || 'Account resolution failed', 'error');
+
+          if (error) {
+            const realError = await extractEdgeError(error, 'Bank resolution service error');
+            showToast(realError, 'error');
+          } else if (data?.error) {
+            showToast(data.error, 'error');
           } else if (data?.accountName) {
             setBeneficiary({
               name: data.accountName,
             });
             showToast('Account resolved: ' + data.accountName, 'success');
+          } else {
+            showToast('Could not resolve account name. Verify bank and account number.', 'error');
           }
         } catch (err: any) {
-          showToast(err.message || 'Verification service error', 'error');
+          const msg = await extractEdgeError(err, 'Verification service error');
+          showToast(msg, 'error');
         } finally {
           setIsResolving(false);
         }
@@ -191,7 +210,10 @@ function SendTransferContent() {
           isVendor: !!vendorData?.business_name,
           shopName: vendorData?.business_name || null,
         });
-        showToast(`Found: ${profile.full_name || profile.username}${vendorData?.business_name ? ` (${vendorData.business_name})` : ''}`, 'success');
+        showToast(
+          `Found: ${profile.full_name || profile.username}${vendorData?.business_name ? ` (Store: ${vendorData.business_name})` : ''}`,
+          'success'
+        );
       }
     } catch (err: any) {
       if (!silent) showToast(err.message || 'Error looking up username', 'error');
@@ -277,10 +299,11 @@ function SendTransferContent() {
   const executeTransfer = async () => {
     setIsSubmitting(true);
     try {
+      const targetUsername = (beneficiary?.username || username).replace(/^@/, '').trim().toLowerCase();
       const body =
         mode === 'user'
           ? {
-              recipientUsername: username.replace(/^@/, '').trim(),
+              recipientUsername: targetUsername,
               amountKobo: Math.round(numAmt * 100),
             }
           : {
@@ -292,12 +315,18 @@ function SendTransferContent() {
             };
 
       const { data, error } = await supabase.functions.invoke('wallet-transfer', { body });
-      if (error || data?.error) throw new Error(data?.message || data?.error || 'Transfer failed');
+      if (error) {
+        const errorMsg = await extractEdgeError(error, 'Transfer failed');
+        throw new Error(errorMsg);
+      }
+      if (data?.error) {
+        throw new Error(data.error);
+      }
 
       setTxReceipt({
         id: data?.reference || `TRX-${Date.now()}`,
         recipientName: beneficiary?.name,
-        accountNumber: mode === 'user' ? `@${username.replace(/^@/, '')}` : `${accountNumber} • ${bankName}`,
+        accountNumber: mode === 'user' ? `@${targetUsername}` : `${accountNumber} • ${bankName}`,
         amount: numAmt,
         fee,
         total: totalDebit,
@@ -318,7 +347,7 @@ function SendTransferContent() {
 
   return (
     <div className="w-full min-h-screen bg-[#0A1028] text-white flex flex-col font-sans relative">
-      {/* 1. FLOATING TOAST NOTIFICATION ON TOP OF SCREEN (DOES NOT PUSH DOWN CONTENT) */}
+      {/* FLOATING TOAST NOTIFICATION ON TOP OF SCREEN (DOES NOT PUSH DOWN CONTENT) */}
       {toast && (
         <div className="fixed top-4 left-4 right-4 z-50 max-w-md mx-auto pointer-events-auto animate-in slide-in-from-top-3 duration-200">
           <div
@@ -655,7 +684,7 @@ function SendTransferContent() {
           </div>
         )}
 
-        {/* 2. EXPANDED PIN KEYPAD & SETUP / VERIFICATION FLOW */}
+        {/* EXPANDED PIN KEYPAD & SETUP / VERIFICATION FLOW */}
         {step === 5 && (
           <div className="space-y-6 flex flex-col justify-between flex-1 py-2">
             <div className="text-center pt-2">
