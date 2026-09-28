@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { VendorProductActions } from '@/components/VendorProductActions';
-import { MarkShippedButton } from '@/components/MarkShippedButton';
+import { VendorOrdersList } from '@/components/VendorOrdersList';
 
 function naira(kobo: number) {
   return `₦${(kobo / 100).toLocaleString('en-NG')}`;
@@ -64,6 +64,7 @@ export default async function VendorDashboardPage() {
       product_name,
       quantity,
       line_total_kobo,
+      vendor_payout_kobo,
       products (id, images),
       orders (
         id,
@@ -85,7 +86,7 @@ export default async function VendorDashboardPage() {
     `)
     .eq('vendor_id', vendor.id)
     .order('id', { ascending: false })
-    .limit(30);
+    .limit(50);
 
   if (itemsError) {
     console.error('Failed to load vendor order items:', itemsError);
@@ -107,6 +108,49 @@ export default async function VendorDashboardPage() {
     ? await supabase.from('profiles').select('id, username, full_name, phone').in('id', customerIds)
     : { data: [] };
   const customerMap = new Map((customers ?? []).map((c) => [c.id, c]));
+
+  // Format orders for the interactive list and full details modal
+  const formattedItems = (orderItems ?? []).map((item: any) => {
+    const order = Array.isArray(item.orders) ? item.orders[0] : item.orders;
+    const product = Array.isArray(item.products) ? item.products[0] : item.products;
+    const imageUrl = product?.images?.[0];
+    const allImages = product?.images ?? [];
+
+    const customer = customerMap.get(order?.customer_id);
+    const orderId = order?.id ?? item.order_id;
+    const orderNumber = order?.order_number ?? 'N/A';
+    const orderStatus = order?.status ?? 'paid';
+    const customerName = customer?.full_name ?? customer?.username ?? 'Customer';
+    const customerPhone = customer?.phone || '';
+
+    const addressObj = Array.isArray(order?.addresses) ? order.addresses[0] : order?.addresses;
+
+    const displayRecipient = addressObj?.full_name || customerName;
+    const displayPhone = addressObj?.phone || customerPhone || 'No phone provided';
+    const displayDestination = addressObj
+      ? `${addressObj.line1}, ${addressObj.city}, ${addressObj.state}`
+      : 'Address not saved on this order';
+
+    return {
+      id: item.id,
+      order_id: orderId,
+      product_name: item.product_name,
+      quantity: item.quantity,
+      line_total_kobo: item.line_total_kobo,
+      vendor_payout_kobo: item.vendor_payout_kobo || item.line_total_kobo,
+      imageUrl,
+      allImages,
+      orderNumber,
+      orderStatus,
+      orderDate: order?.created_at,
+      customerName,
+      customerPhone,
+      shippingKobo: order?.shipping_kobo || 0,
+      recipientName: displayRecipient,
+      recipientPhone: displayPhone,
+      deliveryAddress: displayDestination,
+    };
+  });
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
@@ -154,100 +198,7 @@ export default async function VendorDashboardPage() {
 
         {/* Orders to Fulfill Section */}
         <h2 className="text-sm font-semibold text-gray-500 mb-3">Orders to Fulfill</h2>
-        {!orderItems || orderItems.length === 0 ? (
-          <p className="text-center text-gray-400 text-sm py-8">No orders yet.</p>
-        ) : (
-          <div className="space-y-4">
-            {orderItems.map((item: any) => {
-              const order = Array.isArray(item.orders) ? item.orders[0] : item.orders;
-              const product = Array.isArray(item.products) ? item.products[0] : item.products;
-              const imageUrl = product?.images?.[0];
-
-              const customer = customerMap.get(order?.customer_id);
-              const orderId = order?.id ?? item.order_id;
-              const orderNumber = order?.order_number ?? 'N/A';
-              const orderStatus = order?.status ?? 'paid';
-              const customerName = customer?.full_name ?? customer?.username ?? 'Customer';
-              const customerPhone = customer?.phone ? ` · 📞 ${customer.phone}` : '';
-
-              const addressObj = Array.isArray(order?.addresses) ? order.addresses[0] : order?.addresses;
-
-              const displayRecipient = addressObj?.full_name || customerName;
-              const displayPhone = addressObj?.phone || customer?.phone || 'No phone provided';
-              const displayDestination = addressObj
-                ? `${addressObj.line1}, ${addressObj.city}, ${addressObj.state}`
-                : 'Address not saved on this order';
-
-              return (
-                <div key={item.id} className="bg-white rounded-xl shadow-sm p-4 border border-gray-100">
-                  <div className="flex gap-3 items-center">
-                    {/* Product Image Thumbnail */}
-                    <div className="w-16 h-16 rounded-xl bg-gray-100 flex-shrink-0 overflow-hidden border border-gray-100">
-                      {imageUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={imageUrl}
-                          alt={item.product_name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-gray-400 text-[10px]">
-                          No image
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Order Details */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-start">
-                        <p className="text-sm font-semibold text-gray-900 truncate">
-                          {item.product_name}
-                        </p>
-                        <p className="text-sm font-bold text-[#0F172A] ml-2">
-                          {naira(item.line_total_kobo)}
-                        </p>
-                      </div>
-
-                      <p className="text-xs text-gray-500 mt-0.5">
-                        Qty: <span className="font-semibold text-gray-800">{item.quantity}</span> · Order #{orderNumber}
-                      </p>
-
-                      <p className="text-xs text-gray-600 mt-0.5">
-                        Buyer: <span className="font-medium text-gray-900">{customerName}</span>
-                        <span className="text-gray-500">{customerPhone}</span>
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Delivery Location & Waybill Details */}
-                  <div className="mt-3 bg-amber-50/60 border border-amber-200/60 rounded-xl p-3 text-xs space-y-1">
-                    <div className="flex items-center justify-between font-bold text-[#0F172A] mb-1">
-                      <span className="flex items-center gap-1">📍 Delivery Location</span>
-                      <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-100/60 px-2 py-0.5 rounded-md">
-                        Waybill Paid: {order?.shipping_kobo ? naira(order.shipping_kobo) : '₦0'}
-                      </span>
-                    </div>
-                    <p className="text-gray-900 font-medium">
-                      Recipient: {displayRecipient} (📞 {displayPhone})
-                    </p>
-                    <p className="text-gray-700">
-                      Address: <span className="font-medium text-gray-900">{displayDestination}</span>
-                    </p>
-                  </div>
-
-                  {/* Dual Dispatch / Waybill Action */}
-                  <div className="mt-3 pt-2.5 border-t border-gray-100 flex items-center justify-end">
-                    <MarkShippedButton
-                      orderId={orderId}
-                      status={orderStatus}
-                      customerAddress={`${displayRecipient} (${displayPhone}) - ${displayDestination}`}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+        <VendorOrdersList items={formattedItems} />
       </div>
     </div>
   );
