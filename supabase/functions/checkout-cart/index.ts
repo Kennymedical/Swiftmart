@@ -1,7 +1,8 @@
 // supabase/functions/checkout-cart/index.ts
 //
-// Debits the buyer's wallet for goods + waybill fee, saves the delivery address,
-// and creates a paid order with all items and escrow holds for vendors.
+// Debits the buyer's wallet for goods (with 20% platform markup) + waybill fee,
+// saves delivery address, creates paid order, deposits vendor payout in escrow,
+// and credits Swiftmart Treasury with markup + commission + logistics profits.
 
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -44,7 +45,6 @@ serve(async (req) => {
       return json({ error: 'Invalid session' }, 401);
     }
 
-    // Parse checkout request body
     const reqBody = await req.json().catch(() => ({}));
     const shippingAddress = reqBody.shippingAddress;
     const shippingKobo = Number(reqBody.shippingKobo) || 0;
@@ -81,8 +81,8 @@ serve(async (req) => {
 
     const vendorById = new Map((vendors ?? []).map((v) => [v.id, v]));
 
-    let subtotalKobo = 0;
-    let commissionKobo = 0;
+    let customerSubtotalKobo = 0;
+    let totalPlatformGoodsProfitKobo = 0;
     const orderItemRows: any[] = [];
     const payoutByVendor = new Map<string, number>();
 
@@ -90,14 +90,26 @@ serve(async (req) => {
       const product = item.product;
       if (!product) continue;
 
-      const lineTotal = product.price_kobo * item.quantity;
-      const vendor = vendorById.get(product.vendor_id);
-      const rate = vendor ? Number(vendor.commission_rate) : 10;
-      const lineCommission = Math.round((lineTotal * rate) / 100);
-      const vendorPayout = lineTotal - lineCommission;
+      const vendorBaseUnitPrice = Number(product.price_kobo) || 0;
+      const vendorBaseLineTotal = vendorBaseUnitPrice * item.quantity;
 
-      subtotalKobo += lineTotal;
-      commissionKobo += lineCommission;
+      // Swiftmart 20% Markup inserted on top for customer
+      const customerUnitPrice = Math.round(vendorBaseUnitPrice * 1.2);
+      const customerLineTotal = customerUnitPrice * item.quantity;
+      const markupProfit = customerLineTotal - vendorBaseLineTotal;
+
+      // 10% commission on vendor base price
+      const vendor = vendorById.get(product.vendor_id);
+      const commissionRate = vendor ? Number(vendor.commission_rate) : 10;
+      const commissionKobo = Math.round((vendorBaseLineTotal * commissionRate) / 100);
+
+      // Vendor receives the rest (base price minus 10% commission)
+      const vendorPayout = vendorBaseLineTotal - commissionKobo;
+      const totalItemProfit = markupProfit + commissionKobo;
+
+      customerSubtotalKobo += customerLineTotal;
+      totalPlatformGoodsProfitKobo += totalItemProfit;
+
       payoutByVendor.set(
         product.vendor_id,
         (payoutByVendor.get(product.vendor_id) ?? 0) + vendorPayout,
@@ -107,16 +119,15 @@ serve(async (req) => {
         product_id: product.id,
         vendor_id: product.vendor_id,
         product_name: product.name,
-        unit_price_kobo: product.price_kobo,
+        unit_price_kobo: customerUnitPrice,
         quantity: item.quantity,
-        line_total_kobo: lineTotal,
-        commission_kobo: lineCommission,
+        line_total_kobo: customerLineTotal,
+        commission_kobo: totalItemProfit,
         vendor_payout_kobo: vendorPayout,
       });
     }
 
-    // Total = goods subtotal + waybill logistics fee
-    const totalKobo = subtotalKobo + shippingKobo;
+    const totalKobo = customerSubtotalKobo + shippingKobo;
 
     if (orderItemRows.length === 0) {
       return json({ error: 'No valid products in cart' }, 400);
@@ -131,7 +142,7 @@ serve(async (req) => {
       });
     }
 
-    // 5. Save shipping address if provided
+    // 5. Save shipping address
     let shippingAddressId: string | null = null;
     if (shippingAddress?.street && shippingAddress?.city && shippingAddress?.state) {
       const { data: addressRow, error: addrError } = await admin
@@ -150,8 +161,6 @@ serve(async (req) => {
 
       if (!addrError && addressRow) {
         shippingAddressId = addressRow.id;
-      } else {
-        console.warn('Address insert warning:', addrError);
       }
     }
 
@@ -166,7 +175,7 @@ serve(async (req) => {
       return json({ error: 'Failed to debit wallet' }, 500);
     }
 
-    // 7. Create order record with delivery address & shipping fee
+    // 7. Create order record
     const orderNumber = `SM-${Date.now().toString(36).toUpperCase()}`;
     const { data: order, error: orderError } = await admin
       .from('orders')
@@ -174,10 +183,10 @@ serve(async (req) => {
         order_number: orderNumber,
         customer_id: user.id,
         status: 'paid',
-        subtotal_kobo: subtotalKobo,
+        subtotal_kobo: customerSubtotalKobo,
         shipping_kobo: shippingKobo,
         total_kobo: totalKobo,
-        commission_kobo: commissionKobo,
+        commission_kobo: totalPlatformGoodsProfitKobo,
         shipping_address_id: shippingAddressId,
         paid_with_wallet: true,
       })
@@ -185,19 +194,15 @@ serve(async (req) => {
       .single();
 
     if (orderError || !order) {
-      // Roll back debit
       await admin.from('wallets').update({ balance_kobo: buyerWallet.balance_kobo }).eq('id', buyerWallet.id);
       return json({ error: orderError?.message ?? 'Failed to create order' }, 500);
     }
 
     // 8. Insert order items
     const itemsWithOrderId = orderItemRows.map((row) => ({ ...row, order_id: order.id }));
-    const { error: itemsError } = await admin
-      .from('order_items')
-      .insert(itemsWithOrderId);
+    const { error: itemsError } = await admin.from('order_items').insert(itemsWithOrderId);
 
     if (itemsError) {
-      console.error('Failed to insert order items:', itemsError);
       await admin.from('wallets').update({ balance_kobo: buyerWallet.balance_kobo }).eq('id', buyerWallet.id);
       await admin.from('orders').delete().eq('id', order.id);
       return json({ error: `Failed to create order items: ${itemsError.message}` }, 500);
@@ -211,10 +216,32 @@ serve(async (req) => {
       status: 'success',
       amount_kobo: totalKobo,
       balance_after_kobo: newBuyerBalance,
-      description: `Order #${orderNumber} (Goods: ₦${(subtotalKobo / 100).toLocaleString('en-NG')} + Waybill: ₦${(shippingKobo / 100).toLocaleString('en-NG')})`,
+      description: `Order #${orderNumber} (Goods: ₦${(customerSubtotalKobo / 100).toLocaleString('en-NG')} + Waybill: ₦${(shippingKobo / 100).toLocaleString('en-NG')})`,
     });
 
-    // 10. Record escrow holds per vendor + notify vendor
+    // 10. Credit Swiftmart Treasury Profit Wallet
+    // Goods Profit (20% Markup + 10% Commission)
+    if (totalPlatformGoodsProfitKobo > 0) {
+      await admin.rpc('credit_platform_revenue', {
+        p_order_id: order.id,
+        p_source: 'commission',
+        p_amount_kobo: totalPlatformGoodsProfitKobo,
+        p_description: `Order #${orderNumber} 20% markup & 10% sales commission`,
+      }).catch((e: any) => console.warn('Treasury credit warning:', e));
+    }
+
+    // Logistics Profit (if shipping was charged, default ₦500 profit markup)
+    if (shippingKobo > 0) {
+      const shippingMarginKobo = Math.min(shippingKobo, 50000); // ₦500 margin
+      await admin.rpc('credit_platform_revenue', {
+        p_order_id: order.id,
+        p_source: 'logistics_margin',
+        p_amount_kobo: shippingMarginKobo,
+        p_description: `Order #${orderNumber} Shipbubble logistics margin`,
+      }).catch((e: any) => console.warn('Logistics treasury credit warning:', e));
+    }
+
+    // 11. Record escrow holds per vendor + notify vendor
     for (const [vendorId, payoutKobo] of payoutByVendor.entries()) {
       const vendor = vendorById.get(vendorId);
       if (!vendor) continue;
@@ -246,7 +273,7 @@ serve(async (req) => {
       });
     }
 
-    // 11. Clear buyer's cart
+    // 12. Clear buyer's cart
     await admin.from('cart_items').delete().eq('user_id', user.id);
 
     return json({ success: true, orderId: order.id, orderNumber });

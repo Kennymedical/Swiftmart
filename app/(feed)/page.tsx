@@ -104,7 +104,7 @@ export default async function FeedPage() {
                   {post.product && (
                     <div className="flex items-center justify-between">
                       <p className="text-2xl font-extrabold text-[#D4AF37]">
-                        ₦{(post.product.price_kobo / 100).toLocaleString()}
+                        ₦{(Math.round(post.product.price_kobo * 1.2) / 100).toLocaleString()}
                       </p>
                       <button className="bg-[#D4AF37] text-[#0F172A] font-bold px-5 py-2 rounded-xl hover:scale-105 transition">
                         Buy Now

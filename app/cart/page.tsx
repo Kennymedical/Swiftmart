@@ -133,7 +133,7 @@ export default function CartPage() {
     setItems((prev) => prev.filter((i) => i.id !== itemId));
   }
 
-  const subtotal = items.reduce((sum, i) => sum + i.product.price_kobo * i.quantity, 0);
+  const subtotal = items.reduce((sum, i) => sum + Math.round(i.product.price_kobo * 1.2) * i.quantity, 0);
   const total = subtotal + shippingKobo;
 
   async function handleCheckout() {
@@ -237,7 +237,7 @@ export default function CartPage() {
                     {item.product.name}
                   </p>
                   <p className="text-[#0F172A] font-bold text-sm mb-2">
-                    {naira(item.product.price_kobo)}
+                    {naira(Math.round(item.product.price_kobo * 1.2))}
                   </p>
                   <div className="flex items-center justify-between bg-gray-50 rounded-lg px-1">
                     <button

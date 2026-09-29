@@ -188,7 +188,7 @@ export default function EditProductPage() {
 
           <div className="flex gap-3">
             <div className="flex-1">
-              <label className="text-sm font-medium text-gray-700 mb-1 block">Price (₦)</label>
+              <label className="text-sm font-medium text-gray-700 mb-1 block">Your Vendor Price (₦)</label>
               <input
                 type="number"
                 required
@@ -197,6 +197,11 @@ export default function EditProductPage() {
                 onChange={(e) => setPriceNaira(e.target.value ? Number(e.target.value) : '')}
                 className="w-full rounded-xl border-2 border-gray-200 p-3 focus:border-[#D4AF37] outline-none"
               />
+              {priceNaira ? (
+                <p className="text-xs text-emerald-700 font-bold mt-1">
+                  Customer Cart Price (+20%): ₦{(Number(priceNaira) * 1.2).toLocaleString()}
+                </p>
+              ) : null}
             </div>
             <div className="flex-1">
               <label className="text-sm font-medium text-gray-700 mb-1 block">

@@ -73,11 +73,11 @@ export default async function ProductsPage() {
 
                   <div className="flex flex-col gap-0.5 mb-1">
                     <span className="text-[#0F172A] font-bold text-sm">
-                      {formatNaira(product.price_kobo)}
+                      {formatNaira(displayPriceKobo)}
                     </span>
                     {hasDiscount && (
                       <span className="text-[10px] text-gray-400 line-through">
-                        {formatNaira(product.compare_at_kobo)}
+                        {formatNaira(compareAtKobo!)}
                       </span>
                     )}
                   </div>

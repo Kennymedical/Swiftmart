@@ -171,7 +171,7 @@ export function PostCard({ post, currentUserId }: { post: PostCardData; currentU
           </div>
           <div className="min-w-0">
             <p className="truncate text-sm font-medium">{post.product.name}</p>
-            <p className="text-sm font-semibold">{formatNaira(post.product.price_kobo)}</p>
+            <p className="text-sm font-semibold">{formatNaira(Math.round(post.product.price_kobo * 1.2))}</p>
           </div>
         </Link>
       )}
