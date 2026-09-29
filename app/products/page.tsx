@@ -34,9 +34,11 @@ export default async function ProductsPage() {
       ) : (
         <div className="grid grid-cols-3 gap-2 p-3">
           {products.map((product) => {
+            const displayPriceKobo = Math.round(product.price_kobo * 1.2);
+            const compareAtKobo = product.compare_at_kobo ? Math.round(product.compare_at_kobo * 1.2) : null;
             const hasDiscount =
-              product.compare_at_kobo &&
-              product.compare_at_kobo > product.price_kobo;
+              compareAtKobo &&
+              compareAtKobo > displayPriceKobo;
             const discountPercent = hasDiscount
               ? Math.round(
                   ((product.compare_at_kobo - product.price_kobo) /
