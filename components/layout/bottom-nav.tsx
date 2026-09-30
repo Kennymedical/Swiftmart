@@ -2,91 +2,64 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { Home, ShoppingBag, Wallet, Bell, User } from 'lucide-react';
 
 interface BottomNavProps {
-  username?: string | null;
-  avatarUrl?: string | null;
   unreadNotifications?: number;
 }
 
-export function BottomNav({ username, avatarUrl, unreadNotifications = 0 }: BottomNavProps) {
+export function BottomNav({ unreadNotifications = 0 }: BottomNavProps) {
   const pathname = usePathname();
 
+  // Hide on auth pages or admin if desired, or keep everywhere
+  if (pathname?.startsWith('/login') || pathname?.startsWith('/signup')) {
+    return null;
+  }
+
   const items = [
-    { href: '/', label: 'Home', icon: HomeIcon },
-    { href: '/products', label: 'Shop', icon: ShopIcon },
-    { href: '/wallet', label: 'Wallet', icon: WalletIcon },
-    {
-      href: '/notifications',
-      label: 'Alerts',
-      icon: BellIcon,
-      badge: unreadNotifications,
-    },
-    { href: username ? '/profile' : '/login', label: 'Profile', icon: null, avatarUrl },
+    { href: '/', label: 'Home', icon: Home, matchExact: true },
+    { href: '/products', label: 'Shop', icon: ShoppingBag, matchExact: false },
+    { href: '/wallet', label: 'Wallet', icon: Wallet, matchExact: false },
+    { href: '/notifications', label: 'Alerts', icon: Bell, badge: unreadNotifications, matchExact: false },
+    { href: '/profile', label: 'Profile', icon: User, matchExact: false },
   ];
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 flex border-t bg-white sm:hidden">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[#0A1028]/95 backdrop-blur-md border-t border-[#D4AF37]/25 px-2 py-2 flex items-center justify-around sm:hidden">
       {items.map((item) => {
-        const active = pathname === item.href;
+        const Icon = item.icon;
+        const isActive = item.matchExact
+          ? pathname === item.href
+          : pathname === item.href || (item.href !== '/' && pathname?.startsWith(item.href));
+
         return (
           <Link
             key={item.label}
             href={item.href}
-            className="relative flex flex-1 flex-col items-center gap-0.5 py-2"
+            className={`flex flex-col items-center relative transition-colors ${
+              isActive ? 'text-[#F5C445]' : 'text-[#A0A3B1] hover:text-white'
+            }`}
           >
-            {item.avatarUrl !== undefined ? (
-              <div className="h-6 w-6 overflow-hidden rounded-full bg-gray-200">
-                {item.avatarUrl && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={item.avatarUrl} alt="Profile" className="h-full w-full object-cover" />
-                )}
-              </div>
-            ) : (
-              item.icon && <item.icon active={active} />
-            )}
-            {!!item.badge && (
-              <span className="absolute right-4 top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white">
+            <div
+              className={`p-1 rounded-full transition-all ${
+                isActive
+                  ? 'bg-[#D4AF37]/20 border border-[#D4AF37]'
+                  : 'bg-transparent border border-transparent'
+              }`}
+            >
+              <Icon size={20} className={isActive ? 'text-[#F5C445]' : 'text-[#A0A3B1]'} />
+            </div>
+            {item.badge && item.badge > 0 ? (
+              <span className="absolute -top-1 right-2 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-600 px-1 text-[9px] font-bold text-white">
                 {item.badge > 9 ? '9+' : item.badge}
               </span>
-            )}
+            ) : null}
+            <span className={`text-[10px] mt-0.5 ${isActive ? 'font-bold text-[#F5C445]' : 'font-medium'}`}>
+              {item.label}
+            </span>
           </Link>
         );
       })}
     </nav>
   );
 }
-
-function HomeIcon({ active }: { active: boolean }) {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? '#D4AF37' : '#6b7280'} strokeWidth="2">
-      <path d="M3 9l9-7 9 7v11a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z" strokeLinejoin="round" />
-    </svg>
-  );
-}
-function ShopIcon({ active }: { active: boolean }) {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? '#D4AF37' : '#6b7280'} strokeWidth="2">
-      <path d="M4 8h16l-1.5 11a1 1 0 0 1-1 1H6.5a1 1 0 0 1-1-1z" />
-      <path d="M8 8V6a4 4 0 1 1 8 0v2" />
-    </svg>
-  );
-}
-function WalletIcon({ active }: { active: boolean }) {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? '#D4AF37' : '#6b7280'} strokeWidth="2">
-      <rect x="3" y="6" width="18" height="13" rx="2" />
-      <path d="M3 10h18" />
-      <circle cx="16.5" cy="14.5" r="1" fill={active ? '#D4AF37' : '#6b7280'} />
-    </svg>
-  );
-}
-function BellIcon({ active }: { active: boolean }) {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? '#D4AF37' : '#6b7280'} strokeWidth="2">
-      <path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" strokeLinejoin="round" />
-      <path d="M13.7 21a2 2 0 0 1-3.4 0" />
-    </svg>
-  );
-     }
-      
