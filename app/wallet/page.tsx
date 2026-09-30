@@ -151,14 +151,7 @@ export default function UserWalletPage() {
         </section>
       </main>
 
-      {/* 2. DEDICATED FINTECH BOTTOM NAV */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[#0A1028]/95 backdrop-blur-md border-t border-[#D4AF37]/25 px-4 py-2 flex items-center justify-around">
-        <Link href="/" className="flex flex-col items-center text-[#A0A3B1] hover:text-white"><Home size={20} /><span className="text-[10px]">Home</span></Link>
-        <Link href="/wallet/send?mode=user" className="flex flex-col items-center text-[#A0A3B1] hover:text-white"><ArrowLeftRight size={20} /><span className="text-[10px]">P2P</span></Link>
-        <Link href="/wallet" className="flex flex-col items-center text-[#F5C445]"><div className="p-1 rounded-full bg-[#D4AF37]/20 border border-[#D4AF37]"><Wallet size={18} /></div><span className="text-[10px] font-bold">Wallet</span></Link>
-        <Link href="/wallet/history" className="flex flex-col items-center text-[#A0A3B1] hover:text-white"><History size={20} /><span className="text-[10px]">Activity</span></Link>
-        <Link href="/profile" className="flex flex-col items-center text-[#A0A3B1] hover:text-white"><CreditCard size={20} /><span className="text-[10px]">Cards</span></Link>
-      </nav>
+
     </div>
   );
 }
