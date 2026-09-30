@@ -1,22 +1,26 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useState as useMenuState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { ShoppingCart, Menu, X, Home, ShoppingBag, Wallet, Bell, User, PlusCircle, Store, Shield } from 'lucide-react';
 
 const MENU_ITEMS = [
-  { href: '/', label: 'Home' },
-  { href: '/products', label: 'Shop' },
-  { href: '/cart', label: 'Cart' },
-  { href: '/post/create', label: 'Create Post' },
-  { href: '/notifications', label: 'Notifications' },
-  { href: '/wallet', label: 'Wallet' },
-  { href: '/profile', label: 'Profile' },
+  { href: '/', label: 'Home Feed', icon: Home },
+  { href: '/products', label: 'Shop / Marketplace', icon: ShoppingBag },
+  { href: '/cart', label: 'Cart', icon: ShoppingCart },
+  { href: '/wallet', label: 'Fintech Wallet', icon: Wallet },
+  { href: '/post/create', label: 'Create Post', icon: PlusCircle },
+  { href: '/notifications', label: 'Notifications', icon: Bell },
+  { href: '/profile', label: 'My Profile', icon: User },
+  { href: '/vendor/orders', label: 'Vendor Dashboard', icon: Store },
+  { href: '/admin/wallet', label: 'Admin Profit Wallet', icon: Shield },
 ];
 
 export function Header() {
   const supabase = createClient();
+  const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [cartCount, setCartCount] = useState(0);
 
@@ -37,56 +41,121 @@ export function Header() {
     loadCartCount();
   }, []);
 
-  return (
-    <header className="sticky top-0 z-50 w-full bg-[#0F172A] shadow-lg">
-      <div className="flex items-center justify-between px-4 py-3">
-        <h1 className="text-2xl font-bold">
-          <span className="text-white">Swift</span>
-          <span className="text-[#D4AF37]">Mart</span>
-        </h1>
-
-        <div className="flex items-center gap-2">
-          <Link href="/cart" className="relative p-2" aria-label="Cart">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#D4AF37" strokeWidth="2">
-              <path d="M4 8h16l-1.5 11a1 1 0 0 1-1 1H6.5a1 1 0 0 1-1-1z" />
-              <path d="M8 8V6a4 4 0 1 1 8 0v2" />
-            </svg>
-            {cartCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white">
-                {cartCount > 9 ? '9+' : cartCount}
-              </span>
-            )}
-          </Link>
-
-          <button
-            onClick={() => setMenuOpen(!menuOpen)}
-            aria-label="Menu"
-            className="flex flex-col gap-1.5 p-2"
-          >
-            <span className="block w-6 h-0.5 bg-white" />
-            <span className="block w-6 h-0.5 bg-white" />
-            <span className="block w-6 h-0.5 bg-white" />
-          </button>
+  // Determine dynamic title based on path
+  const getHeaderTitle = () => {
+    if (pathname === '/') {
+      return (
+        <div className="flex flex-col items-center">
+          <span className="text-xl font-black tracking-tight">
+            <span className="text-white">Swift</span>
+            <span className="text-[#D4AF37]">Mart</span>
+          </span>
+          <span className="text-[10px] text-[#D4AF37]/90 font-medium tracking-wide">
+            Marketplace & Fintech all together
+          </span>
         </div>
+      );
+    }
+
+    let titleText = 'SwiftMart';
+    if (pathname?.startsWith('/products')) titleText = 'Shop / Marketplace';
+    else if (pathname?.startsWith('/cart')) titleText = 'My Cart';
+    else if (pathname?.startsWith('/wallet')) titleText = 'Wallet';
+    else if (pathname?.startsWith('/notifications')) titleText = 'Notifications';
+    else if (pathname?.startsWith('/profile')) titleText = 'Profile';
+    else if (pathname?.startsWith('/orders')) titleText = 'My Orders';
+    else if (pathname?.startsWith('/vendor')) titleText = 'Vendor Dashboard';
+    else if (pathname?.startsWith('/admin')) titleText = 'Admin Console';
+    else if (pathname?.startsWith('/post')) titleText = 'Create Post';
+
+    return (
+      <h1 className="text-base sm:text-lg font-bold text-white tracking-wide">
+        {titleText}
+      </h1>
+    );
+  };
+
+  return (
+    <header className="sticky top-0 z-50 w-full bg-[#0A1028] border-b border-[#D4AF37]/20 shadow-md">
+      <div className="flex items-center justify-between px-3 py-2.5 max-w-7xl mx-auto">
+        {/* Left: Hamburger menu */}
+        <button
+          onClick={() => setMenuOpen(!menuOpen)}
+          aria-label="Toggle menu"
+          className="p-2 text-white hover:text-[#D4AF37] transition rounded-lg hover:bg-white/5"
+        >
+          {menuOpen ? <X size={24} className="text-[#D4AF37]" /> : <Menu size={24} />}
+        </button>
+
+        {/* Center: Title / App Branding */}
+        <div className="flex-1 text-center">
+          {getHeaderTitle()}
+        </div>
+
+        {/* Right: Cart Button */}
+        <Link
+          href="/cart"
+          className="relative p-2 text-[#D4AF37] hover:text-[#F5C445] transition rounded-lg hover:bg-white/5"
+          aria-label="Shopping Cart"
+        >
+          <ShoppingCart size={22} strokeWidth={2} />
+          {cartCount > 0 && (
+            <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white shadow-sm">
+              {cartCount > 9 ? '9+' : cartCount}
+            </span>
+          )}
+        </Link>
       </div>
 
+      {/* Slide-over Side Drawer Menu (Left side) */}
       {menuOpen && (
         <>
           <div
-            className="fixed inset-0 bg-black/40 z-40"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 transition-opacity"
             onClick={() => setMenuOpen(false)}
           />
-          <nav className="absolute right-4 top-14 z-50 w-48 bg-white rounded-xl shadow-xl overflow-hidden">
-            {MENU_ITEMS.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
+          <nav className="fixed left-0 top-0 bottom-0 z-50 w-72 bg-[#0A1028] border-r border-[#D4AF37]/25 shadow-2xl flex flex-col p-4 animate-in slide-in-from-left duration-200">
+            <div className="flex items-center justify-between pb-4 border-b border-white/10 mb-2">
+              <div>
+                <span className="text-xl font-black">
+                  <span className="text-white">Swift</span>
+                  <span className="text-[#D4AF37]">Mart</span>
+                </span>
+                <p className="text-[10px] text-[#D4AF37]/80">Marketplace & Fintech</p>
+              </div>
+              <button
                 onClick={() => setMenuOpen(false)}
-                className="block px-4 py-3 text-sm text-[#0F172A] font-medium hover:bg-gray-50 border-b border-gray-100 last:border-0"
+                className="p-1.5 text-gray-400 hover:text-white rounded-lg"
               >
-                {item.label}
-              </Link>
-            ))}
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto space-y-1 py-2">
+              {MENU_ITEMS.map((item) => {
+                const Icon = item.icon;
+                const isActive = pathname === item.href;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setMenuOpen(false)}
+                    className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition ${
+                      isActive
+                        ? 'bg-[#D4AF37]/15 text-[#F5C445] border border-[#D4AF37]/30'
+                        : 'text-gray-300 hover:bg-white/5 hover:text-white'
+                    }`}
+                  >
+                    <Icon size={18} className={isActive ? 'text-[#F5C445]' : 'text-gray-400'} />
+                    <span>{item.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+
+            <div className="pt-4 border-t border-white/10 text-center text-xs text-gray-500">
+              SwiftMart App v2.0
+            </div>
           </nav>
         </>
       )}
