@@ -4,15 +4,21 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, ShoppingBag, Wallet, Bell, User } from 'lucide-react';
 
-interface BottomNavProps {
+export interface BottomNavProps {
   unreadNotifications?: number;
+  username?: string;
+  avatarUrl?: string | null;
 }
 
 export function BottomNav({ unreadNotifications = 0 }: BottomNavProps) {
   const pathname = usePathname();
 
-  // Hide on auth pages or admin if desired, or keep everywhere
-  if (pathname?.startsWith('/login') || pathname?.startsWith('/signup')) {
+  // Hide on auth pages
+  if (
+    pathname?.startsWith('/login') ||
+    pathname?.startsWith('/register') ||
+    pathname?.startsWith('/signup')
+  ) {
     return null;
   }
 

@@ -127,11 +127,7 @@ export default async function FeedPage() {
 
       <PostFab isVendor={isVendor} />
 
-      <BottomNav
-        username={profile?.username}
-        avatarUrl={profile?.avatar_url}
-        unreadNotifications={unreadNotifications}
-      />
+      
     </div>
   );
 }
