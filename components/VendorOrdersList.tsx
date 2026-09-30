@@ -87,9 +87,9 @@ export function VendorOrdersList({ items }: { items: OrderItemData[] }) {
 
             {/* Quick Delivery summary bar */}
             <div className="mt-3 bg-amber-50/60 border border-amber-200/60 rounded-xl p-2.5 text-xs">
-              <div className="flex items-center justify-between font-medium text-gray-800">
-                <span className="truncate">📍 {item.deliveryAddress}</span>
-                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100/60 px-2 py-0.5 rounded ml-2 flex-shrink-0">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 font-medium text-gray-800">
+                <span className="break-words">📍 {item.deliveryAddress}</span>
+                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded self-start sm:self-auto flex-shrink-0">
                   Waybill: {naira(item.shippingKobo)}
                 </span>
               </div>
@@ -117,7 +117,7 @@ export function VendorOrdersList({ items }: { items: OrderItemData[] }) {
           onClick={() => setSelectedItem(null)}
         >
           <div
-            className="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-2xl max-h-[90vh] overflow-y-auto p-5 space-y-4 shadow-2xl animate-in fade-in zoom-in-95"
+            className="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-2xl max-h-[85vh] overflow-y-auto overscroll-contain p-5 space-y-4 shadow-2xl animate-in fade-in zoom-in-95"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
