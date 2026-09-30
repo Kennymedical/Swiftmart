@@ -208,7 +208,21 @@ export default function AdminProfitWalletPage() {
       });
 
       if (payoutErr || payoutData?.error) {
-        throw new Error(payoutErr?.message || payoutData?.error || 'Payout transfer failed via Paystack');
+        let errMsg = payoutData?.error;
+        if (!errMsg && payoutErr) {
+          try {
+            if (payoutErr.context && typeof payoutErr.context.json === 'function') {
+              const b = await payoutErr.context.json();
+              errMsg = b?.error || b?.message;
+            }
+          } catch {}
+          if (!errMsg && payoutErr.message) {
+            errMsg = payoutErr.message.includes('non-2xx')
+              ? 'Paystack transfer error: Check your Paystack dashboard balance and ensure Transfers are enabled for your account.'
+              : payoutErr.message;
+          }
+        }
+        throw new Error(errMsg || 'Payout transfer failed via Paystack');
       }
 
       setShowWithdrawModal(false);

@@ -50,7 +50,15 @@ async function extractEdgeError(error: any, fallback: string): Promise<string> {
       if (body?.error) return body.error;
       if (body?.message) return body.message;
     }
-  } catch (_) {}
+    if (typeof error.message === 'string') {
+      if (error.message.includes('non-2xx')) {
+        return 'Paystack transfer error: Test account balance is empty or transfers are disabled in your Paystack dashboard.';
+      }
+      return error.message;
+    }
+  } catch {
+    // fallback
+  }
   return error.message || fallback;
 }
 

@@ -2,6 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+html,
+body {
+  background-color: #0A1028;
+  color: #FFFFFF;
+  min-height: 100vh;
+}
+
 .scrollbar-none::-webkit-scrollbar {
   display: none;
 }

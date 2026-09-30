@@ -125,7 +125,7 @@ async function handleBankTransfer(
   });
   const recipientBody = await recipientRes.json();
   if (!recipientRes.ok || !recipientBody.status) {
-    return json({ error: recipientBody.message ?? 'Failed to create transfer recipient' }, 502);
+    return json({ error: `Paystack recipient error: ${recipientBody.message || 'Failed to create recipient. Verify bank code & account number.'}` }, 400);
   }
 
   const reference = `WOUT-${userId.slice(0, 8)}-${Date.now()}`;
@@ -146,7 +146,7 @@ async function handleBankTransfer(
   });
   const transferBody = await transferRes.json();
   if (!transferRes.ok || !transferBody.status) {
-    return json({ error: transferBody.message ?? 'Transfer failed' }, 502);
+    return json({ error: `Paystack transfer rejected: ${transferBody.message || 'Insufficient Paystack account balance or transfers not enabled in Paystack dashboard.'}` }, 400);
   }
 
   // Debit immediately for a synchronous "transfer success" response;
