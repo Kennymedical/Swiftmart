@@ -339,6 +339,65 @@ export default function AdminProfitWalletPage() {
         </div>
       </div>
 
+      {/* Recent Payout Transactions Section */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-base font-bold text-[#0F172A]">Recent Payout Transactions</h2>
+            <p className="text-xs text-gray-500">Bank payouts debited from SwiftMart Treasury via Paystack</p>
+          </div>
+          <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-red-50 text-red-700">
+            {revenueLedger.filter((item) => item.source === 'withdrawal').length} Payout{revenueLedger.filter((item) => item.source === 'withdrawal').length === 1 ? '' : 's'}
+          </span>
+        </div>
+
+        {revenueLedger.filter((item) => item.source === 'withdrawal').length === 0 ? (
+          <div className="text-center py-8 bg-gray-50/70 rounded-xl border border-dashed border-gray-200">
+            <p className="text-sm font-medium text-gray-600">No bank withdrawals recorded yet</p>
+            <p className="text-xs text-gray-400 mt-1">
+              When you withdraw profit to your bank account, amounts, bank names, timestamps, and transfer statuses will display here.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {revenueLedger
+              .filter((item) => item.source === 'withdrawal')
+              .slice(0, 15)
+              .map((payout) => (
+                <div
+                  key={payout.id}
+                  className="p-3.5 bg-gray-50/80 rounded-xl border border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                >
+                  <div className="space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-xs font-bold text-gray-900">
+                        {payout.description.replace('Admin Profit Payout to ', '')}
+                      </span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                        ● Successful
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      📅 {new Date(payout.created_at).toLocaleString('en-NG', {
+                        dateStyle: 'medium',
+                        timeStyle: 'short',
+                      })}
+                    </p>
+                  </div>
+                  <div className="text-left sm:text-right">
+                    <p className="text-sm font-black text-red-600">
+                      -{formatNaira(Math.abs(payout.amount_kobo))}
+                    </p>
+                    <p className="text-[11px] text-gray-400 font-medium">
+                      Treasury reserve: {formatNaira(payout.balance_after_kobo)}
+                    </p>
+                  </div>
+                </div>
+              ))}
+          </div>
+        )}
+      </div>
+
       {/* Revenue Ledger Table */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
         <h2 className="text-base font-bold text-[#0F172A] mb-4">Live Profit Activity Ledger</h2>
