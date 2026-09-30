@@ -45,9 +45,9 @@ export default function CartPage() {
   const [state, setState] = useState('Lagos');
   const [city, setCity] = useState('');
 
-  // Shipping Fee State
-  const [shippingKobo, setShippingKobo] = useState<number>(300000); // default ₦3,000 (₦2,500 base + ₦500 profit)
-  const [shippingName, setShippingName] = useState('SwiftMart Express Dispatch');
+  // Shipping Fee State (initially null until address is provided)
+  const [shippingKobo, setShippingKobo] = useState<number | null>(null);
+  const [shippingName, setShippingName] = useState('');
   const [calcLoading, setCalcLoading] = useState(false);
 
   async function loadCartAndProfile() {
@@ -85,9 +85,13 @@ export default function CartPage() {
     loadCartAndProfile();
   }, []);
 
-  // Recalculate shipping rate when destination changes
+  // Recalculate shipping rate ONLY after address & city are filled
   useEffect(() => {
-    if (!state) return;
+    if (!address.trim() || !city.trim() || !state) {
+      setShippingKobo(null);
+      setShippingName('');
+      return;
+    }
 
     let isMounted = true;
     async function fetchShippingRate() {
@@ -95,10 +99,11 @@ export default function CartPage() {
       try {
         const { data, error: fnErr } = await supabase.functions.invoke('calculate-shipping', {
           body: {
-            senderState: 'Lagos',
+            senderState: 'Anambra',
+            senderCity: 'Onitsha',
             receiverState: state,
-            receiverCity: city || state,
-            receiverAddress: address ? `${address}, ${city || state}, ${state}` : `${city || state}, ${state}`,
+            receiverCity: city.trim(),
+            receiverAddress: `${address.trim()}, ${city.trim()}, ${state}`,
             itemsCount: items.length || 1,
           },
         });
@@ -114,7 +119,7 @@ export default function CartPage() {
       }
     }
 
-    const timer = setTimeout(fetchShippingRate, 400);
+    const timer = setTimeout(fetchShippingRate, 600);
 
     return () => {
       isMounted = false;
@@ -134,7 +139,7 @@ export default function CartPage() {
   }
 
   const subtotal = items.reduce((sum, i) => sum + Math.round(i.product.price_kobo * 1.2) * i.quantity, 0);
-  const total = subtotal + shippingKobo;
+  const total = subtotal + (shippingKobo ?? 0);
 
   async function handleCheckout() {
     setError('');
@@ -143,6 +148,11 @@ export default function CartPage() {
 
     if (!fullName.trim() || !phone.trim() || !address.trim() || !city.trim()) {
       setError('Please provide your complete delivery address, city, and phone number.');
+      return;
+    }
+
+    if (shippingKobo === null || calcLoading) {
+      setError('Please wait for waybill / shipping calculation before placing order.');
       return;
     }
 
@@ -358,8 +368,8 @@ export default function CartPage() {
                   <span>{naira(subtotal)}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs text-gray-500">
-                  <span>Waybill / Logistics (incl. platform fee)</span>
-                  <span className="font-medium text-gray-800">{naira(shippingKobo)}</span>
+                  <span>Waybill / Logistics</span>
+                  <span className="font-medium text-gray-800">{shippingKobo !== null ? naira(shippingKobo) : 'Calculated after address'}</span>
                 </div>
                 <div className="flex items-center justify-between text-base font-bold text-[#0F172A] pt-1 border-t border-gray-100">
                   <span>Total Payable</span>
@@ -368,10 +378,14 @@ export default function CartPage() {
               </div>
               <button
                 onClick={handleCheckout}
-                disabled={checkingOut}
+                disabled={checkingOut || shippingKobo === null || calcLoading}
                 className="w-full bg-[#0F172A] text-[#D4AF37] font-bold py-3 rounded-xl border-2 border-[#D4AF37] disabled:opacity-50 transition shadow-sm"
               >
-                {checkingOut ? 'Placing order...' : `Pay ${naira(total)} & Order`}
+                {checkingOut
+                  ? 'Placing order...'
+                  : shippingKobo === null
+                  ? 'Enter Address to Calculate Waybill'
+                  : `Pay ${naira(total)} & Order`}
               </button>
             </>
           )}
