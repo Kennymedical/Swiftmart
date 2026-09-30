@@ -108,9 +108,12 @@ export default function CartPage() {
           },
         });
 
-        if (!fnErr && data?.totalShippingKobo && isMounted) {
-          setShippingKobo(data.totalShippingKobo);
+        const computedKobo = data?.totalShippingKobo ?? (typeof data?.shippingFee === 'number' ? Math.round(data.shippingFee * 100) : (data?.shippingKobo ?? null));
+        if (!fnErr && computedKobo && isMounted) {
+          setShippingKobo(computedKobo);
           if (data.courierName) setShippingName(data.courierName);
+        } else if (fnErr) {
+          console.warn('Shipping calc error:', fnErr);
         }
       } catch (e) {
         console.warn('Shipping calc error:', e);
@@ -199,7 +202,7 @@ export default function CartPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-44">
+    <div className="min-h-screen bg-gray-50 pb-80">
       <div className="bg-[#0F172A] px-4 py-5">
         <h1 className="text-xl font-bold text-white">
           Your <span className="text-[#D4AF37]">Cart</span>
