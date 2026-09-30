@@ -56,6 +56,10 @@ export default function AdminProfitWalletPage() {
   const [syncing, setSyncing] = useState(false);
   const [syncSuccess, setSyncSuccess] = useState<string | null>(null);
 
+  // Dynamic Bank List State
+  const [banks, setBanks] = useState<{ code: string; name: string }[]>(BANK_LIST);
+  const [loadingBanks, setLoadingBanks] = useState(false);
+
   // Withdrawal Modal State
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [bankCode, setBankCode] = useState('100004');
@@ -68,7 +72,24 @@ export default function AdminProfitWalletPage() {
 
   useEffect(() => {
     fetchWalletData();
+    fetchLiveBanks();
   }, []);
+
+  async function fetchLiveBanks() {
+    setLoadingBanks(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('resolve-account?action=banks', {
+        method: 'GET',
+      });
+      if (!error && Array.isArray(data?.banks) && data.banks.length > 0) {
+        setBanks(data.banks);
+      }
+    } catch (e) {
+      console.warn('Using default bank list:', e);
+    } finally {
+      setLoadingBanks(false);
+    }
+  }
 
   async function fetchWalletData() {
     setLoading(true);
@@ -173,22 +194,22 @@ export default function AdminProfitWalletPage() {
 
     setWithdrawing(true);
     try {
-      const selectedBank = BANK_LIST.find((b) => b.code === bankCode);
+      const selectedBank = banks.find((b) => b.code === bankCode) || BANK_LIST.find((b) => b.code === bankCode);
 
-      // Debit platform treasury and insert ledger record
-      const newTreasuryBalance = treasuryBalance - amountKobo;
-      const { error: debitErr } = await supabase
-        .from('platform_treasury')
-        .update({ balance_kobo: newTreasuryBalance, updated_at: new Date().toISOString() });
-
-      if (debitErr) throw debitErr;
-
-      await supabase.from('platform_revenue').insert({
-        source: 'withdrawal',
-        amount_kobo: -amountKobo,
-        balance_after_kobo: newTreasuryBalance,
-        description: `Admin Profit Payout to ${accountName} (${selectedBank?.name || bankCode} - ${accountNumber})`,
+      // Call secure admin-payout Edge Function that executes via Paystack
+      const { data: payoutData, error: payoutErr } = await supabase.functions.invoke('admin-payout', {
+        body: {
+          amountKobo,
+          bankCode,
+          accountNumber,
+          bankName: selectedBank?.name || bankCode,
+          accountName,
+        },
       });
+
+      if (payoutErr || payoutData?.error) {
+        throw new Error(payoutErr?.message || payoutData?.error || 'Payout transfer failed via Paystack');
+      }
 
       setShowWithdrawModal(false);
       setWithdrawAmountNaira('');
@@ -386,7 +407,7 @@ export default function AdminProfitWalletPage() {
                   }}
                   className="w-full rounded-xl border border-gray-200 p-3 text-sm focus:border-[#D4AF37] outline-none"
                 >
-                  {BANK_LIST.map((b) => (
+                  {banks.map((b) => (
                     <option key={b.code} value={b.code}>
                       {b.name}
                     </option>
