@@ -41,6 +41,28 @@ interface RevenueItem {
   created_at: string;
 }
 
+export async function extractAdminPayoutError(
+  payoutErr: any,
+  payoutData?: any,
+  fallback: string = "Payout transfer failed via Paystack"
+): Promise<string> {
+  let errMsg = payoutData?.error;
+  if (!errMsg && payoutErr) {
+    try {
+      if (payoutErr.context && typeof payoutErr.context.json === "function") {
+        const b = await payoutErr.context.json();
+        errMsg = b?.error || b?.message;
+      }
+    } catch {}
+    if (!errMsg && payoutErr.message) {
+      errMsg = payoutErr.message.includes("non-2xx")
+        ? "Paystack transfer error: Check your Paystack dashboard balance and ensure Transfers are enabled for your account."
+        : payoutErr.message;
+    }
+  }
+  return errMsg || payoutErr?.message || fallback;
+}
+
 export default function AdminProfitWalletPage() {
   const supabase = createClient();
 
@@ -208,21 +230,8 @@ export default function AdminProfitWalletPage() {
       });
 
       if (payoutErr || payoutData?.error) {
-        let errMsg = payoutData?.error;
-        if (!errMsg && payoutErr) {
-          try {
-            if (payoutErr.context && typeof payoutErr.context.json === 'function') {
-              const b = await payoutErr.context.json();
-              errMsg = b?.error || b?.message;
-            }
-          } catch {}
-          if (!errMsg && payoutErr.message) {
-            errMsg = payoutErr.message.includes('non-2xx')
-              ? 'Paystack transfer error: Check your Paystack dashboard balance and ensure Transfers are enabled for your account.'
-              : payoutErr.message;
-          }
-        }
-        throw new Error(errMsg || 'Payout transfer failed via Paystack');
+        const errMsg = await extractAdminPayoutError(payoutErr, payoutData);
+        throw new Error(errMsg);
       }
 
       setShowWithdrawModal(false);

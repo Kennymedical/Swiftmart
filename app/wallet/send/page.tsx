@@ -42,7 +42,7 @@ async function hashPin(code: string): Promise<string> {
     .join('');
 }
 
-async function extractEdgeError(error: any, fallback: string): Promise<string> {
+export async function extractEdgeError(error: any, fallback: string): Promise<string> {
   if (!error) return fallback;
   try {
     if (error.context && typeof error.context.json === 'function') {
