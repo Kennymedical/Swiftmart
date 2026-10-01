@@ -35,7 +35,7 @@ serve(async (req) => {
     if (userError || !user) return json({ error: 'Invalid session' }, 401);
 
     const body = await req.json();
-    const { amountKobo } = body;
+    const { amountKobo, idempotencyKey } = body;
     if (!amountKobo || amountKobo <= 0) return json({ error: 'amountKobo must be positive' }, 400);
 
     const admin = getSupabaseAdmin();
@@ -45,13 +45,33 @@ serve(async (req) => {
       .eq('user_id', user.id)
       .single();
     if (!senderWallet) return json({ error: 'Wallet not found' }, 404);
+
+    // Idempotency check: if request was already processed, return existing reference
+    if (idempotencyKey) {
+      const { data: existingTx } = await admin
+        .from('transactions')
+        .select('id, provider_reference, status, amount_kobo')
+        .eq('wallet_id', senderWallet.id)
+        .eq('provider_reference', idempotencyKey)
+        .maybeSingle();
+
+      if (existingTx) {
+        return json({
+          success: true,
+          duplicate: true,
+          reference: existingTx.provider_reference || existingTx.id,
+          message: 'Transfer already processed',
+        });
+      }
+    }
+
     if (senderWallet.balance_kobo < amountKobo) return json({ error: 'Insufficient balance' }, 400);
 
     if (body.recipientUsername) {
-      return await handleInternalTransfer(admin, senderWallet.id, body.recipientUsername, amountKobo);
+      return await handleInternalTransfer(admin, senderWallet.id, body.recipientUsername, amountKobo, idempotencyKey);
     }
     if (body.bankCode && body.accountNumber) {
-      return await handleBankTransfer(admin, user.id, senderWallet, body, amountKobo);
+      return await handleBankTransfer(admin, user.id, senderWallet, body, amountKobo, idempotencyKey);
     }
     return json({ error: 'Provide either recipientUsername or bankCode+accountNumber' }, 400);
   } catch (err) {
@@ -65,6 +85,7 @@ async function handleInternalTransfer(
   senderWalletId: string,
   recipientUsername: string,
   amountKobo: number,
+  idempotencyKey?: string,
 ) {
   const { data: recipientProfile } = await admin
     .from('profiles')
@@ -96,7 +117,18 @@ async function handleInternalTransfer(
     link: '/wallet',
   });
 
-  return json({ success: true });
+  if (idempotencyKey) {
+    await admin.from('transactions').insert({
+      wallet_id: senderWalletId,
+      type: 'transfer_out',
+      status: 'success',
+      amount_kobo: amountKobo,
+      provider_reference: idempotencyKey,
+      description: `Transfer to @${recipientUsername}`,
+    });
+  }
+
+  return json({ success: true, reference: idempotencyKey });
 }
 
 async function handleBankTransfer(
@@ -105,6 +137,7 @@ async function handleBankTransfer(
   senderWallet: { id: string; balance_kobo: number },
   body: { bankCode: string; accountNumber: string; accountName?: string },
   amountKobo: number,
+  idempotencyKey?: string,
 ) {
   // Paystack requires a "transfer recipient" object before you can send to
   // it — create one per request rather than assuming it's cached, since
@@ -128,7 +161,7 @@ async function handleBankTransfer(
     return json({ error: `Paystack recipient error: ${recipientBody.message || 'Failed to create recipient. Verify bank code & account number.'}` }, 400);
   }
 
-  const reference = `WOUT-${userId.slice(0, 8)}-${Date.now()}`;
+  const reference = idempotencyKey ? `WOUT-${idempotencyKey.slice(0, 24)}` : `WOUT-${userId.slice(0, 8)}-${Date.now()}`;
 
   const transferRes = await fetch('https://api.paystack.co/transfer', {
     method: 'POST',
@@ -162,7 +195,7 @@ async function handleBankTransfer(
     status: 'pending',
     amount_kobo: amountKobo,
     balance_after_kobo: newBalance,
-    provider_reference: reference,
+    provider_reference: idempotencyKey || reference,
     description: `Bank transfer to ${body.accountNumber}`,
   });
   await admin.from('wallets').update({ balance_kobo: newBalance }).eq('id', senderWallet.id);

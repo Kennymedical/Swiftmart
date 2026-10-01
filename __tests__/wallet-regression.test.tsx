@@ -556,3 +556,84 @@ describe('Wallet Transfer Duplicate Submission Prevention', () => {
     expect(callCount).toBe(1);
   });
 });
+
+describe('Idempotency Key Verification', () => {
+  const TEST_PIN_HASH = 'a7676dcaaa624e374064b600b976ebc809645a630742ae77174284a9dc78362c';
+
+  it('includes a unique idempotencyKey in the wallet-transfer payload', async () => {
+    let capturedPayload: any = null;
+    mockSupabase = {
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: {
+            user: {
+              id: 'u-idemp-1',
+              email: 'idemp@swiftmart.test',
+              user_metadata: { transaction_pin_hash: TEST_PIN_HASH },
+            },
+          },
+        }),
+        signOut: vi.fn().mockResolvedValue({}),
+      },
+      from: vi.fn((table: string) => {
+        if (table === 'wallets') {
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            maybeSingle: vi.fn().mockResolvedValue({ data: { balance_kobo: 5000000 } }),
+          };
+        }
+        if (table === 'profiles') {
+          return {
+            select: vi.fn().mockReturnThis(),
+            ilike: vi.fn().mockReturnThis(),
+            maybeSingle: vi.fn().mockResolvedValue({ data: { id: 'p-idemp', username: 'chinedu', full_name: 'Chinedu Obi' } }),
+          };
+        }
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          maybeSingle: vi.fn().mockResolvedValue({ data: null }),
+        };
+      }),
+      functions: {
+        invoke: vi.fn(async (fnName: string, options?: any) => {
+          if (fnName.startsWith('resolve-account')) return { data: { banks: [] } };
+          if (fnName === 'wallet-transfer') {
+            capturedPayload = options?.body;
+            return { data: { success: true, reference: capturedPayload?.idempotencyKey || 'TRX-1' } };
+          }
+          return { data: {} };
+        }),
+      },
+    };
+
+    render(<BankTransferFlow />);
+
+    await waitFor(() => expect(screen.getByPlaceholderText(/@username/i)).toBeInTheDocument());
+    fireEvent.change(screen.getByPlaceholderText(/@username/i), { target: { value: '@chinedu' } });
+    fireEvent.click(screen.getByRole('button', { name: /verify/i }));
+
+    await waitFor(() => expect(screen.getByText('Chinedu Obi')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole('button', { name: /^continue$/i }));
+    await waitFor(() => expect(screen.getByPlaceholderText('0.00')).toBeInTheDocument());
+    fireEvent.change(screen.getByPlaceholderText('0.00'), { target: { value: '2500' } });
+    fireEvent.click(screen.getByRole('button', { name: /^continue$/i }));
+
+    await waitFor(() => expect(screen.getByText('Review Transfer Details')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: /proceed to pin authorization/i }));
+
+    await waitFor(() => expect(screen.getByText('Enter Transaction PIN')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: '1' }));
+    fireEvent.click(screen.getByRole('button', { name: '2' }));
+    fireEvent.click(screen.getByRole('button', { name: '3' }));
+    fireEvent.click(screen.getByRole('button', { name: '4' }));
+
+    await waitFor(() => expect(screen.getByText(/Transfer Successful!/i)).toBeInTheDocument());
+    expect(capturedPayload).not.toBeNull();
+    expect(capturedPayload.idempotencyKey).toBeDefined();
+    expect(typeof capturedPayload.idempotencyKey).toBe('string');
+    expect(capturedPayload.idempotencyKey.length).toBeGreaterThan(10);
+  });
+});

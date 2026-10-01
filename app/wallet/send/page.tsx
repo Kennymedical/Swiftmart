@@ -121,6 +121,9 @@ function SendTransferContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isSubmittingRef = useRef(false);
   const [txReceipt, setTxReceipt] = useState<any>(null);
+  const [idempotencyKey, setIdempotencyKey] = useState<string>(() => 
+    typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `idemp_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
+  );
 
   // Load Banks, Wallet Balance & User PIN metadata
   useEffect(() => {
@@ -318,6 +321,7 @@ function SendTransferContent() {
           ? {
               recipientUsername: targetUsername,
               amountKobo: Math.round(numAmt * 100),
+              idempotencyKey,
             }
           : {
               bankCode,
@@ -325,6 +329,7 @@ function SendTransferContent() {
               accountNumber,
               accountName: beneficiary?.name,
               amountKobo: Math.round(numAmt * 100),
+              idempotencyKey,
             };
 
       const { data, error } = await supabase.functions.invoke('wallet-transfer', { body });
@@ -355,6 +360,7 @@ function SendTransferContent() {
       isSubmittingRef.current = false;
       setIsSubmitting(false);
       setPin('');
+      setIdempotencyKey(typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `idemp_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`);
       showToast(err.message || 'Transfer failed. Check your wallet balance.', 'error');
     }
   };
@@ -689,6 +695,9 @@ function SendTransferContent() {
             <button
               onClick={() => {
                 setPin('');
+                if (!idempotencyKey) {
+                  setIdempotencyKey(typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `idemp_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`);
+                }
                 setStep(5);
               }}
               className="w-full py-4 rounded-full bg-[#F5C445] text-black font-extrabold text-sm hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-[#F5C445]/20"
