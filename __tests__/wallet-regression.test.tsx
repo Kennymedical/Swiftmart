@@ -1,10 +1,10 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { usePathname } from 'next/navigation';
 import { Header } from '@/components/Header';
 import UserWalletPage from '@/app/wallet/page';
-import { extractEdgeError } from '@/app/wallet/send/page';
+import BankTransferFlow, { extractEdgeError } from '@/app/wallet/send/page';
 import { extractAdminPayoutError } from '@/app/admin/wallet/page';
 
 vi.mock('next/navigation', () => ({
@@ -214,5 +214,256 @@ describe('Admin Flow: Payout Error Messaging Regression Tests', () => {
   it('falls back to default fallback when payoutErr has no message or context', async () => {
     const message = await extractAdminPayoutError({}, null, 'Default payout failure');
     expect(message).toBe('Default payout failure');
+  });
+});
+
+describe('Wallet Transfer UI: Paystack Error Rendering & Loading State Reset', () => {
+  const TEST_PIN_HASH = 'a7676dcaaa624e374064b600b976ebc809645a630742ae77174284a9dc78362c'; // SHA-256 for "1234"
+
+  function setupTransferMock(invokeWalletTransferImpl?: any) {
+    return {
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: {
+            user: {
+              id: 'user-100',
+              email: 'shopper@swiftmart.test',
+              user_metadata: { transaction_pin_hash: TEST_PIN_HASH },
+            },
+          },
+        }),
+        signOut: vi.fn().mockResolvedValue({}),
+      },
+      from: vi.fn((table: string) => {
+        if (table === 'wallets') {
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            maybeSingle: vi.fn().mockResolvedValue({
+              data: { balance_kobo: 5000000 }, // ₦50,000 balance
+            }),
+          };
+        }
+        if (table === 'profiles') {
+          return {
+            select: vi.fn().mockReturnThis(),
+            ilike: vi.fn().mockReturnThis(),
+            maybeSingle: vi.fn().mockResolvedValue({
+              data: { id: 'prof-2', full_name: 'Amaka Eze', username: 'amaka' },
+            }),
+          };
+        }
+        if (table === 'vendors') {
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            maybeSingle: vi.fn().mockResolvedValue({ data: null }),
+          };
+        }
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+        };
+      }),
+      functions: {
+        invoke: vi.fn((fnName: string, options?: any) => {
+          if (fnName.startsWith('resolve-account')) {
+            return Promise.resolve({
+              data: {
+                banks: [{ code: '044', name: 'Access Bank' }],
+              },
+            });
+          }
+          if (fnName === 'wallet-transfer') {
+            return invokeWalletTransferImpl ? invokeWalletTransferImpl(options) : Promise.resolve({ data: {} });
+          }
+          return Promise.resolve({ data: {} });
+        }),
+      },
+    };
+  }
+
+  it('renders customer-facing Paystack dashboard error and resets loading state when transfer fails with non-2xx', async () => {
+    let transferAttempted = false;
+    mockSupabase = setupTransferMock(async () => {
+      transferAttempted = true;
+      return {
+        error: {
+          message: 'FunctionsHttpError: Edge Function returned a non-2xx status code',
+        },
+      };
+    });
+
+    render(<BankTransferFlow />);
+
+    // 1. Enter username and verify
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText(/@username/i)).toBeInTheDocument();
+    });
+    const usernameInput = screen.getByPlaceholderText(/@username/i);
+    fireEvent.change(usernameInput, { target: { value: '@amaka' } });
+
+    const verifyBtn = screen.getByRole('button', { name: /verify/i });
+    fireEvent.click(verifyBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText('Amaka Eze')).toBeInTheDocument();
+    });
+
+    // 2. Proceed to amount step
+    const continueBtn = screen.getByRole('button', { name: /^continue$/i });
+    fireEvent.click(continueBtn);
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('0.00')).toBeInTheDocument();
+    });
+
+    // 3. Enter amount
+    const amountInput = screen.getByPlaceholderText('0.00');
+    fireEvent.change(amountInput, { target: { value: '2000' } });
+
+    const proceedToReviewBtn = screen.getByRole('button', { name: /^continue$/i });
+    fireEvent.click(proceedToReviewBtn);
+
+    // 4. Review details step
+    await waitFor(() => {
+      expect(screen.getByText('Review Transfer Details')).toBeInTheDocument();
+    });
+    const proceedToPinBtn = screen.getByRole('button', { name: /proceed to pin authorization/i });
+    fireEvent.click(proceedToPinBtn);
+
+    // 5. Enter 4-digit PIN: 1, 2, 3, 4
+    await waitFor(() => {
+      expect(screen.getByText('Enter Transaction PIN')).toBeInTheDocument();
+    });
+
+    // Verify keypad is initially rendered before submit
+    expect(screen.getByRole('button', { name: '1' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '1' }));
+    fireEvent.click(screen.getByRole('button', { name: '2' }));
+    fireEvent.click(screen.getByRole('button', { name: '3' }));
+    fireEvent.click(screen.getByRole('button', { name: '4' }));
+
+    // 6. Assert error toast renders the clear Paystack instructions
+    await waitFor(() => {
+      expect(
+        screen.getByText(
+          'Paystack transfer error: Test account balance is empty or transfers are disabled in your Paystack dashboard.'
+        )
+      ).toBeInTheDocument();
+    });
+
+    expect(transferAttempted).toBe(true);
+
+    // 7. Verify loading state is reset: spinner is gone and keypad is visible again
+    expect(screen.queryByText('Processing transfer securely...')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '1' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '0' })).toBeInTheDocument();
+  });
+
+  it('renders structured error message and resets loading state when backend provides error payload', async () => {
+    mockSupabase = setupTransferMock(async () => {
+      return {
+        data: {
+          error: 'Daily transfer limit of ₦100,000 exceeded for this account',
+        },
+      };
+    });
+
+    render(<BankTransferFlow />);
+
+    // Step 1: Username
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText(/@username/i)).toBeInTheDocument();
+    });
+    fireEvent.change(screen.getByPlaceholderText(/@username/i), { target: { value: '@amaka' } });
+    fireEvent.click(screen.getByRole('button', { name: /verify/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Amaka Eze')).toBeInTheDocument();
+    });
+
+    // Step 2: Amount
+    fireEvent.click(screen.getByRole('button', { name: /^continue$/i }));
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('0.00')).toBeInTheDocument();
+    });
+    fireEvent.change(screen.getByPlaceholderText('0.00'), { target: { value: '5000' } });
+    fireEvent.click(screen.getByRole('button', { name: /^continue$/i }));
+
+    // Step 3: Review
+    await waitFor(() => {
+      expect(screen.getByText('Review Transfer Details')).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole('button', { name: /proceed to pin authorization/i }));
+
+    // Step 4: PIN Entry
+    await waitFor(() => {
+      expect(screen.getByText('Enter Transaction PIN')).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole('button', { name: '1' }));
+    fireEvent.click(screen.getByRole('button', { name: '2' }));
+    fireEvent.click(screen.getByRole('button', { name: '3' }));
+    fireEvent.click(screen.getByRole('button', { name: '4' }));
+
+    // Error toast verification
+    await waitFor(() => {
+      expect(
+        screen.getByText('Daily transfer limit of ₦100,000 exceeded for this account')
+      ).toBeInTheDocument();
+    });
+
+    // Keypad restored & loading cleared
+    expect(screen.queryByText('Processing transfer securely...')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '1' })).toBeInTheDocument();
+  });
+
+  it('renders clear bank resolution error toast and clears resolving state when resolve-account returns non-2xx', async () => {
+    mockSupabase = setupTransferMock();
+    mockSupabase.functions.invoke = vi.fn((fnName: string) => {
+      if (fnName.startsWith('resolve-account?action=banks')) {
+        return Promise.resolve({
+          data: {
+            banks: [{ code: '044', name: 'Access Bank' }],
+          },
+        });
+      }
+      if (fnName === 'resolve-account') {
+        return Promise.resolve({
+          error: {
+            message: 'FunctionsHttpError: Edge Function returned a non-2xx status code',
+          },
+        });
+      }
+      return Promise.resolve({ data: {} });
+    });
+
+    render(<BankTransferFlow />);
+
+    // Switch to Bank Account tab
+    const bankTab = screen.getByRole('button', { name: /bank account/i });
+    fireEvent.click(bankTab);
+
+    // Enter 10-digit account number and select bank
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('0123456789')).toBeInTheDocument();
+    });
+    fireEvent.change(screen.getByPlaceholderText('0123456789'), { target: { value: '0123456789' } });
+
+    const bankSelect = screen.getByRole('combobox');
+    fireEvent.change(bankSelect, { target: { value: '044' } });
+
+    // Assert error toast surfaces clear Paystack message
+    await waitFor(() => {
+      expect(
+        screen.getByText(
+          'Paystack transfer error: Test account balance is empty or transfers are disabled in your Paystack dashboard.'
+        )
+      ).toBeInTheDocument();
+    });
+
+    // Assert resolving indicator is cleared
+    expect(screen.queryByText(/verifying bank account/i)).not.toBeInTheDocument();
   });
 });
