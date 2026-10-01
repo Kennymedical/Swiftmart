@@ -31,15 +31,15 @@ export function NotificationsList({ notifications }: { notifications: Notificati
 
   return (
     <div>
-      <div className="flex gap-2 overflow-x-auto px-4 py-3 bg-white border-b border-gray-100">
+      <div className="flex gap-2 overflow-x-auto px-4 py-3 bg-[#0F172A] border-b border-[#D4AF37]/20 scrollbar-none">
         {TABS.map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`whitespace-nowrap text-xs font-semibold px-3 py-1.5 rounded-full ${
+            className={`whitespace-nowrap text-xs font-bold px-3.5 py-1.5 rounded-full transition ${
               activeTab === tab.key
-                ? 'bg-[#0F172A] text-[#D4AF37]'
-                : 'bg-gray-100 text-gray-600'
+                ? 'bg-[#D4AF37] text-[#0A1028] shadow'
+                : 'bg-[#151B3D] text-slate-300 hover:text-white border border-white/5'
             }`}
           >
             {tab.label}
@@ -48,9 +48,9 @@ export function NotificationsList({ notifications }: { notifications: Notificati
       </div>
 
       {filtered.length === 0 ? (
-        <p className="text-center text-gray-500 py-16">No notifications here.</p>
+        <p className="text-center text-[#D4AF37]/70 py-16 text-sm">No notifications here.</p>
       ) : (
-        <div className="bg-white">
+        <div className="bg-[#0A1028] divide-y divide-[#D4AF37]/15">
           {filtered.map((n) => (
             <NotificationItem
               key={n.id}

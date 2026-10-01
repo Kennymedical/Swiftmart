@@ -27,23 +27,22 @@ export function NotificationItem({ id, title, body, link, readAt, createdAt }: P
   return (
     <button
       onClick={handleClick}
-      className={`w-full text-left p-4 border-b border-gray-100 last:border-0 ${
-        !readAt ? 'bg-[#0F172A]/5' : ''
+      className={`w-full text-left p-4 border-b border-[#D4AF37]/15 hover:bg-[#151B3D]/60 transition last:border-0 ${
+        !readAt ? 'bg-[#151B3D]/70' : 'bg-[#0A1028]'
       }`}
     >
-      <div className="flex items-start gap-2">
-        {!readAt && <span className="mt-1.5 h-2 w-2 rounded-full bg-[#D4AF37] flex-shrink-0" />}
+      <div className="flex items-start gap-2.5">
+        {!readAt && <span className="mt-1.5 h-2 w-2 rounded-full bg-[#D4AF37] flex-shrink-0 animate-pulse" />}
         <div className="flex-1 min-w-0">
-          <p className={`text-sm ${!readAt ? 'font-semibold text-[#0F172A]' : 'text-gray-700'}`}>
+          <p className={`text-sm ${!readAt ? 'font-bold text-[#F5C445]' : 'font-medium text-white'}`}>
             {title}
           </p>
-          <p className="text-sm text-gray-500 mt-0.5">{body}</p>
-          <p className="text-xs text-gray-400 mt-1">
+          <p className="text-sm text-slate-300 mt-0.5 leading-snug">{body}</p>
+          <p className="text-[11px] text-[#D4AF37]/80 mt-1">
             {new Date(createdAt).toLocaleString()}
           </p>
         </div>
       </div>
     </button>
   );
-  }
-  
+}

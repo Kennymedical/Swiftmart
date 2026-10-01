@@ -41,7 +41,7 @@ export function VendorOrdersList({ items }: { items: OrderItemData[] }) {
           <div
             key={item.id}
             onClick={() => setSelectedItem(item)}
-            className="bg-white rounded-xl shadow-sm p-4 border border-gray-100 hover:border-[#D4AF37] transition cursor-pointer active:scale-[0.99]"
+            className="bg-[#151B3D] rounded-xl shadow-sm p-4 border border-[#D4AF37]/25 hover:border-[#D4AF37] transition cursor-pointer active:scale-[0.99]"
           >
             <div className="flex gap-3 items-center">
               {/* Product Thumbnail */}
@@ -63,20 +63,20 @@ export function VendorOrdersList({ items }: { items: OrderItemData[] }) {
               {/* Order Info */}
               <div className="flex-1 min-w-0">
                 <div className="flex justify-between items-start">
-                  <p className="text-sm font-semibold text-gray-900 truncate">
+                  <p className="text-sm font-semibold text-white truncate">
                     {item.product_name}
                   </p>
-                  <p className="text-sm font-bold text-[#0F172A] ml-2">
+                  <p className="text-sm font-bold text-[#F5C445] ml-2">
                     {naira(item.line_total_kobo)}
                   </p>
                 </div>
 
                 <p className="text-xs text-gray-500 mt-0.5">
-                  Qty: <span className="font-semibold text-gray-800">{item.quantity}</span> · Order #{item.orderNumber}
+                  Qty: <span className="font-semibold text-slate-200">{item.quantity}</span> · Order #{item.orderNumber}
                 </p>
 
                 <p className="text-xs text-gray-600 mt-0.5">
-                  Buyer: <span className="font-medium text-gray-900">{item.customerName}</span>
+                  Buyer: <span className="font-medium text-slate-200">{item.customerName}</span>
                 </p>
 
                 <p className="text-[11px] text-[#D4AF37] font-semibold mt-1">
@@ -86,8 +86,8 @@ export function VendorOrdersList({ items }: { items: OrderItemData[] }) {
             </div>
 
             {/* Quick Delivery summary bar */}
-            <div className="mt-3 bg-amber-50/60 border border-amber-200/60 rounded-xl p-2.5 text-xs">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 font-medium text-gray-800">
+            <div className="mt-3 bg-[#0A1028]/80 border border-[#D4AF37]/30 rounded-xl p-2.5 text-xs">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 font-medium text-slate-300">
                 <span className="break-words">📍 {item.deliveryAddress}</span>
                 <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded self-start sm:self-auto flex-shrink-0">
                   Waybill: {naira(item.shippingKobo)}
@@ -117,13 +117,13 @@ export function VendorOrdersList({ items }: { items: OrderItemData[] }) {
           onClick={() => setSelectedItem(null)}
         >
           <div
-            className="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-2xl max-h-[85vh] overflow-y-auto overscroll-contain p-5 space-y-4 shadow-2xl animate-in fade-in zoom-in-95"
+            className="bg-[#151B3D] border border-[#D4AF37]/30 text-white w-full max-w-lg rounded-t-3xl sm:rounded-2xl max-h-[85vh] overflow-y-auto overscroll-contain p-5 space-y-4 shadow-2xl animate-in fade-in zoom-in-95"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-gray-100 pb-3">
               <div>
-                <h3 className="font-bold text-[#0F172A] text-base">Order Item Details</h3>
+                <h3 className="font-bold text-white text-base">Order Item Details</h3>
                 <p className="text-xs text-gray-500">Order #{selectedItem.orderNumber}</p>
               </div>
               <button
@@ -149,10 +149,10 @@ export function VendorOrdersList({ items }: { items: OrderItemData[] }) {
             </div>
 
             {/* Product Meta */}
-            <div className="bg-gray-50 rounded-2xl p-4 space-y-2 border border-gray-100">
+            <div className="bg-[#0A1028] rounded-2xl p-4 space-y-2 border border-[#D4AF37]/20">
               <div className="flex justify-between items-start">
-                <h4 className="font-bold text-gray-900 text-base">{selectedItem.product_name}</h4>
-                <span className="bg-[#0F172A] text-[#D4AF37] font-bold text-sm px-3 py-1 rounded-xl">
+                <h4 className="font-bold text-white text-base">{selectedItem.product_name}</h4>
+                <span className="bg-[#151B3D] text-[#F5C445] border border-[#D4AF37]/40 font-bold text-sm px-3 py-1 rounded-xl">
                   {naira(selectedItem.line_total_kobo)}
                 </span>
               </div>
@@ -173,9 +173,9 @@ export function VendorOrdersList({ items }: { items: OrderItemData[] }) {
             </div>
 
             {/* Full Customer & Delivery Address Card */}
-            <div className="bg-amber-50/80 border border-amber-200 rounded-2xl p-4 space-y-3">
+            <div className="bg-[#0A1028] border border-[#D4AF37]/30 rounded-2xl p-4 space-y-3">
               <div className="flex items-center justify-between">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-amber-900 flex items-center gap-1">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-[#F5C445] flex items-center gap-1">
                   📦 Customer Delivery Destination
                 </h4>
                 <span className="text-xs font-bold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full">
@@ -206,7 +206,7 @@ export function VendorOrdersList({ items }: { items: OrderItemData[] }) {
 
                 <div className="pt-2 border-t border-amber-200/80">
                   <p className="text-gray-500 text-[11px] mb-0.5">Full Destination Address:</p>
-                  <p className="font-semibold text-gray-900 text-sm bg-white p-2.5 rounded-xl border border-amber-200/60">
+                  <p className="font-semibold text-white text-sm bg-[#151B3D] p-2.5 rounded-xl border border-[#D4AF37]/30">
                     {selectedItem.deliveryAddress}
                   </p>
                 </div>

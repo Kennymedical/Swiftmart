@@ -177,16 +177,7 @@ function VendorWalletContent() {
 
   return (
     <div className="w-full min-h-screen bg-[#0A1028] text-white flex flex-col font-sans pb-24">
-      {/* Header */}
-      <header className="sticky top-0 z-40 bg-[#0A1028]/95 backdrop-blur-md px-4 py-3.5 border-b border-[#D4AF37]/20 flex items-center justify-between">
-        <Link href="/profile" className="p-2 rounded-full bg-[#151B3D] border border-[#D4AF37]/30 text-[#D4AF37]">
-          <User size={18} />
-        </Link>
-        <h1 className="text-xl font-extrabold tracking-wider text-[#F5C445] uppercase">Vendor Wallet</h1>
-        <Link href="/notifications" className="p-2 rounded-full bg-[#151B3D] border border-[#D4AF37]/30 text-[#D4AF37]">
-          <Bell size={18} />
-        </Link>
-      </header>
+
 
       <main className="flex-1 max-w-xl mx-auto w-full px-4 py-5 space-y-6">
         {/* 3 Balances: Available Balance, Escrow, and Total Sales */}

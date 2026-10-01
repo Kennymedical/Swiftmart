@@ -17,19 +17,18 @@ export function AdminNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="sticky top-0 z-40 bg-[#0F172A] px-2 pt-3 shadow-lg">
-      <p className="px-3 pb-2 text-lg font-bold text-white">
-        Swift<span className="text-[#D4AF37]">Mart</span> Admin
-      </p>
-      <div className="flex gap-1 overflow-x-auto pb-2">
+    <nav className="sticky top-0 z-40 bg-[#0F172A] border-b border-[#D4AF37]/20 px-2 pt-2 shadow-lg">
+      <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-none">
         {TABS.map((tab) => {
           const active = pathname === tab.href;
           return (
             <Link
               key={tab.href}
               href={tab.href}
-              className={`whitespace-nowrap rounded-t-lg px-4 py-2 text-sm font-medium ${
-                active ? 'bg-gray-50 text-[#0F172A]' : 'text-slate-300'
+              className={`whitespace-nowrap rounded-t-lg px-4 py-2 text-xs sm:text-sm font-bold transition ${
+                active
+                  ? 'bg-[#151B3D] text-[#F5C445] border-t-2 border-x border-[#D4AF37]'
+                  : 'text-slate-300 hover:text-white hover:bg-white/5'
               }`}
             >
               {tab.label}
@@ -39,4 +38,4 @@ export function AdminNav() {
       </div>
     </nav>
   );
-                   }
+}

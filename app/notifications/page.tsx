@@ -10,8 +10,8 @@ export default async function NotificationsPage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-        <p className="text-gray-500">Please log in.</p>
+      <div className="min-h-screen flex items-center justify-center bg-[#0A1028] p-4 text-[#D4AF37]">
+        <p>Please log in.</p>
       </div>
     );
   }
@@ -24,15 +24,8 @@ export default async function NotificationsPage() {
     .limit(50);
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
-      <div className="bg-[#0F172A] px-4 py-5">
-        <h1 className="text-xl font-bold text-white">
-          <span className="text-[#D4AF37]">Notifications</span>
-        </h1>
-      </div>
-
+    <div className="min-h-screen bg-[#0A1028] text-white pb-24">
       <NotificationsList notifications={notifications ?? []} />
     </div>
   );
-           }
-                          
+}

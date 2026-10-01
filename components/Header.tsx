@@ -91,11 +91,12 @@ export function Header() {
     let titleText = 'SwiftMart';
     if (pathname?.startsWith('/products')) titleText = 'Shop / Marketplace';
     else if (pathname?.startsWith('/cart')) titleText = 'My Cart';
+    else if (pathname?.startsWith('/vendor/wallet')) titleText = 'Vendor Wallet';
+    else if (pathname?.startsWith('/vendor')) titleText = 'Vendor Dashboard';
     else if (pathname?.startsWith('/wallet')) titleText = 'Wallet';
     else if (pathname?.startsWith('/notifications')) titleText = 'Notifications';
     else if (pathname?.startsWith('/profile')) titleText = 'Profile';
     else if (pathname?.startsWith('/orders')) titleText = 'My Orders';
-    else if (pathname?.startsWith('/vendor')) titleText = 'Vendor Dashboard';
     else if (pathname?.startsWith('/admin')) titleText = 'Admin Console';
     else if (pathname?.startsWith('/post')) titleText = 'Create Post';
 

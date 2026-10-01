@@ -16,8 +16,8 @@ export default async function VendorDashboardPage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-        <p className="text-gray-500">Please log in.</p>
+      <div className="min-h-screen flex items-center justify-center bg-[#0A1028] p-4 text-[#D4AF37]">
+        <p>Please log in.</p>
       </div>
     );
   }
@@ -30,17 +30,17 @@ export default async function VendorDashboardPage() {
 
   if (!vendor) {
     return (
-      <div className="min-h-screen bg-gray-50 p-4">
-        <div className="max-w-md mx-auto bg-white rounded-2xl shadow-sm p-6 mt-6 text-center">
-          <h1 className="text-xl font-semibold text-[#0F172A] mb-2">
+      <div className="min-h-screen bg-[#0A1028] text-white p-4">
+        <div className="max-w-md mx-auto bg-[#151B3D] border border-[#D4AF37]/30 rounded-2xl shadow-xl p-6 mt-6 text-center">
+          <h1 className="text-xl font-bold text-white mb-2">
             You're not a vendor yet
           </h1>
-          <p className="text-sm text-gray-500 mb-4">
-            Register as a vendor to start listing products and selling on SwiftMart.
+          <p className="text-sm text-slate-300 mb-5">
+            Register as a vendor to start listing products and selling on SwiftMart with secure escrow payouts.
           </p>
           <Link
             href="/vendor/register"
-            className="inline-block bg-[#0F172A] text-[#D4AF37] font-bold py-3 px-6 rounded-xl border-2 border-[#D4AF37]"
+            className="inline-block bg-[#F5C445] text-black font-extrabold py-3 px-6 rounded-xl hover:bg-[#D4AF37] transition shadow-lg"
           >
             Become a Vendor
           </Link>
