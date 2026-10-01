@@ -1,5 +1,7 @@
 'use client';
 
+import { extractEdgeError } from '@/lib/error-utils';
+
 import React, { useState, useEffect, Suspense, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
@@ -40,26 +42,6 @@ async function hashPin(code: string): Promise<string> {
   return Array.from(new Uint8Array(buf))
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('');
-}
-
-export async function extractEdgeError(error: any, fallback: string): Promise<string> {
-  if (!error) return fallback;
-  try {
-    if (error.context && typeof error.context.json === 'function') {
-      const body = await error.context.json();
-      if (body?.error) return body.error;
-      if (body?.message) return body.message;
-    }
-    if (typeof error.message === 'string') {
-      if (error.message.includes('non-2xx')) {
-        return 'Paystack transfer error: Test account balance is empty or transfers are disabled in your Paystack dashboard.';
-      }
-      return error.message;
-    }
-  } catch {
-    // fallback
-  }
-  return error.message || fallback;
 }
 
 interface ToastNotice {

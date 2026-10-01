@@ -4,8 +4,8 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { usePathname } from 'next/navigation';
 import { Header } from '@/components/Header';
 import UserWalletPage from '@/app/wallet/page';
-import BankTransferFlow, { extractEdgeError } from '@/app/wallet/send/page';
-import { extractAdminPayoutError } from '@/app/admin/wallet/page';
+import BankTransferFlow from '@/app/wallet/send/page';
+import { extractEdgeError, extractAdminPayoutError } from '@/lib/error-utils';
 
 vi.mock('next/navigation', () => ({
   usePathname: vi.fn(() => '/wallet'),

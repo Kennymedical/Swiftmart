@@ -1,5 +1,7 @@
 'use client';
 
+import { extractAdminPayoutError } from '@/lib/error-utils';
+
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 
@@ -39,28 +41,6 @@ interface RevenueItem {
   balance_after_kobo: number;
   description: string;
   created_at: string;
-}
-
-export async function extractAdminPayoutError(
-  payoutErr: any,
-  payoutData?: any,
-  fallback: string = "Payout transfer failed via Paystack"
-): Promise<string> {
-  let errMsg = payoutData?.error;
-  if (!errMsg && payoutErr) {
-    try {
-      if (payoutErr.context && typeof payoutErr.context.json === "function") {
-        const b = await payoutErr.context.json();
-        errMsg = b?.error || b?.message;
-      }
-    } catch {}
-    if (!errMsg && payoutErr.message) {
-      errMsg = payoutErr.message.includes("non-2xx")
-        ? "Paystack transfer error: Check your Paystack dashboard balance and ensure Transfers are enabled for your account."
-        : payoutErr.message;
-    }
-  }
-  return errMsg || payoutErr?.message || fallback;
 }
 
 export default function AdminProfitWalletPage() {
