@@ -119,6 +119,7 @@ function SendTransferContent() {
   
   // Submitting / Receipt
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isSubmittingRef = useRef(false);
   const [txReceipt, setTxReceipt] = useState<any>(null);
 
   // Load Banks, Wallet Balance & User PIN metadata
@@ -251,6 +252,7 @@ function SendTransferContent() {
 
   // PIN Keypad handler
   const handlePinDigit = async (digit: string) => {
+    if (isSubmitting || isSubmittingRef.current) return;
     if (pin.length < 4) {
       const nextPin = pin + digit;
       setPin(nextPin);
@@ -284,6 +286,7 @@ function SendTransferContent() {
                 await executeTransfer();
               } catch (err: any) {
                 showToast(err.message || 'Failed to save transaction PIN', 'error');
+                isSubmittingRef.current = false;
                 setIsSubmitting(false);
                 setPin('');
               }
@@ -305,6 +308,8 @@ function SendTransferContent() {
   };
 
   const executeTransfer = async () => {
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
     setIsSubmitting(true);
     try {
       const targetUsername = (beneficiary?.username || username).replace(/^@/, '').trim().toLowerCase();
@@ -347,6 +352,7 @@ function SendTransferContent() {
         setStep(6);
       }, 700);
     } catch (err: any) {
+      isSubmittingRef.current = false;
       setIsSubmitting(false);
       setPin('');
       showToast(err.message || 'Transfer failed. Check your wallet balance.', 'error');

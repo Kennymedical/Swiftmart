@@ -467,3 +467,92 @@ describe('Wallet Transfer UI: Paystack Error Rendering & Loading State Reset', (
     expect(screen.queryByText(/verifying bank account/i)).not.toBeInTheDocument();
   });
 });
+
+describe('Wallet Transfer Duplicate Submission Prevention', () => {
+  const TEST_PIN_HASH = 'a7676dcaaa624e374064b600b976ebc809645a630742ae77174284a9dc78362c';
+
+  it('guarantees rapid repeated clicks cannot submit duplicate wallet-transfer requests', async () => {
+    let callCount = 0;
+    mockSupabase = {
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: {
+            user: {
+              id: 'u-dup-1',
+              email: 'dup@swiftmart.test',
+              user_metadata: { transaction_pin_hash: TEST_PIN_HASH },
+            },
+          },
+        }),
+        signOut: vi.fn().mockResolvedValue({}),
+      },
+      from: vi.fn((table: string) => {
+        if (table === 'wallets') {
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            maybeSingle: vi.fn().mockResolvedValue({ data: { balance_kobo: 5000000 } }),
+          };
+        }
+        if (table === 'profiles') {
+          return {
+            select: vi.fn().mockReturnThis(),
+            ilike: vi.fn().mockReturnThis(),
+            maybeSingle: vi.fn().mockResolvedValue({ data: { id: 'p-dup', username: 'kene', full_name: 'Kene Nnamdi' } }),
+          };
+        }
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          maybeSingle: vi.fn().mockResolvedValue({ data: null }),
+        };
+      }),
+      functions: {
+        invoke: vi.fn(async (fnName: string) => {
+          if (fnName.startsWith('resolve-account')) return { data: { banks: [] } };
+          if (fnName === 'wallet-transfer') {
+            callCount++;
+            // Simulate realistic network latency for the Edge Function / Paystack call
+            await new Promise((resolve) => setTimeout(resolve, 80));
+            return { data: { success: true, reference: 'TRX-DUP-CHECK' } };
+          }
+          return { data: {} };
+        }),
+      },
+    };
+
+    render(<BankTransferFlow />);
+
+    // Step 1: User
+    await waitFor(() => expect(screen.getByPlaceholderText(/@username/i)).toBeInTheDocument());
+    fireEvent.change(screen.getByPlaceholderText(/@username/i), { target: { value: '@kene' } });
+    fireEvent.click(screen.getByRole('button', { name: /verify/i }));
+
+    await waitFor(() => expect(screen.getByText('Kene Nnamdi')).toBeInTheDocument());
+
+    // Step 2: Amount
+    fireEvent.click(screen.getByRole('button', { name: /^continue$/i }));
+    await waitFor(() => expect(screen.getByPlaceholderText('0.00')).toBeInTheDocument());
+    fireEvent.change(screen.getByPlaceholderText('0.00'), { target: { value: '3500' } });
+    fireEvent.click(screen.getByRole('button', { name: /^continue$/i }));
+
+    // Step 3: Review
+    await waitFor(() => expect(screen.getByText('Review Transfer Details')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: /proceed to pin authorization/i }));
+
+    // Step 4: PIN Entry
+    await waitFor(() => expect(screen.getByText('Enter Transaction PIN')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: '1' }));
+    fireEvent.click(screen.getByRole('button', { name: '2' }));
+    fireEvent.click(screen.getByRole('button', { name: '3' }));
+
+    const btn4 = screen.getByRole('button', { name: '4' });
+    // Rapid repeated clicks on the confirming PIN digit
+    fireEvent.click(btn4);
+    fireEvent.click(btn4);
+    fireEvent.click(btn4);
+
+    await waitFor(() => expect(screen.getByText(/Transfer Successful!/i)).toBeInTheDocument());
+    expect(callCount).toBe(1);
+  });
+});
