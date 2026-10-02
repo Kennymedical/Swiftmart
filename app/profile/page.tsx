@@ -44,17 +44,17 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
-      <div className="max-w-md mx-auto bg-white rounded-2xl shadow-sm p-6 mt-6">
+      <div className="max-w-md mx-auto bg-gradient-to-br from-[#142850] to-[#1B2F5E] rounded-2xl p-6 mt-6 border border-[#D4AF37]/25 shadow-[0_4px_20px_rgba(212,175,55,0.08)] text-[#F5F7FA]">
         <h1 className="text-xl font-semibold text-[#0F172A] mb-6">Profile</h1>
 
         <div className="mb-2">
-          <p className="text-sm text-gray-500">Username</p>
-          <p className="text-base text-gray-900">{username ?? '—'}</p>
+          <p className="text-sm text-[#A8B0C5]">Username</p>
+          <p className="text-base text-[#F5F7FA]">{username ?? '—'}</p>
         </div>
 
         <div className="mb-6">
-          <p className="text-sm text-gray-500">Email</p>
-          <p className="text-base text-gray-900">{email ?? '—'}</p>
+          <p className="text-sm text-[#A8B0C5]">Email</p>
+          <p className="text-base text-[#F5F7FA]">{email ?? '—'}</p>
         </div>
 
         {!loading && (

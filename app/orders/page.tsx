@@ -8,14 +8,14 @@ function naira(kobo: number) {
 }
 
 const statusColors: Record<string, string> = {
-  pending_payment: 'text-gray-500',
+  pending_payment: 'text-[#A8B0C5]',
   paid: 'text-blue-600',
   shipped: 'text-blue-600',
   delivered: 'text-amber-600',
   completed: 'text-green-600',
   disputed: 'text-red-600',
   refunded: 'text-red-600',
-  cancelled: 'text-gray-400',
+  cancelled: 'text-[#8A94B0]',
 };
 
 export default async function OrdersPage() {
@@ -28,7 +28,7 @@ export default async function OrdersPage() {
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-        <p className="text-gray-500">Please log in.</p>
+        <p className="text-[#A8B0C5]">Please log in.</p>
       </div>
     );
   }
@@ -67,21 +67,21 @@ export default async function OrdersPage() {
       <CartOrdersTabs />
 
       {!orders || orders.length === 0 ? (
-        <p className="text-center text-gray-500 py-20">No orders yet.</p>
+        <p className="text-center text-[#A8B0C5] py-20">No orders yet.</p>
       ) : (
         <div className="p-3 space-y-3">
           {orders.map((o) => (
-            <div key={o.id} className="bg-white rounded-2xl shadow-sm p-4 border border-gray-100">
+            <div key={o.id} className="bg-gradient-to-br from-[#142850] to-[#1B2F5E] rounded-2xl p-4 border border-[#D4AF37]/25 shadow-[0_4px_20px_rgba(212,175,55,0.08)]">
               <div className="flex justify-between items-start mb-1">
-                <p className="font-semibold text-[#0F172A]">#{o.order_number}</p>
-                <p className="font-bold text-[#0F172A]">{naira(o.total_kobo)}</p>
+                <p className="font-semibold text-[#F5F7FA]">#{o.order_number}</p>
+                <p className="font-bold text-[#F5F7FA]">{naira(o.total_kobo)}</p>
               </div>
 
               <div className="flex justify-between items-center text-xs">
-                <span className={`font-medium capitalize ${statusColors[o.status] ?? 'text-gray-500'}`}>
+                <span className={`font-medium capitalize ${statusColors[o.status] ?? 'text-[#A8B0C5]'}`}>
                   {o.status.replace('_', ' ')}
                 </span>
-                <span className="text-gray-400">
+                <span className="text-[#8A94B0]">
                   {new Date(o.created_at).toLocaleDateString()}
                 </span>
               </div>
@@ -92,7 +92,7 @@ export default async function OrdersPage() {
                   {o.order_items.map((item) => (
                     <div key={item.id} className="flex justify-between items-center text-xs text-gray-700">
                       <span>
-                        {item.product_name} <span className="text-gray-400">× {item.quantity}</span>
+                        {item.product_name} <span className="text-[#8A94B0]">× {item.quantity}</span>
                       </span>
                       <span className="font-medium text-gray-600">
                         {naira(item.unit_price_kobo * item.quantity)}

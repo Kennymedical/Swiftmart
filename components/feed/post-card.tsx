@@ -119,7 +119,7 @@ export function PostCard({ post, currentUserId }: { post: PostCardData; currentU
   const displayName = post.author.full_name || post.author.username;
 
   return (
-    <article className="mb-2 bg-white sm:rounded-lg sm:border">
+    <article className="mb-2 bg-gradient-to-br from-[#142850] to-[#1B2F5E] sm:rounded-2xl border border-[#D4AF37]/25 shadow-[0_4px_20px_rgba(212,175,55,0.08)] text-[#F5F7FA]">
       {/* Header */}
       <div className="flex items-center justify-between p-3">
         <Link href={`/profile/${post.author.username}`} className="flex items-center gap-2">
@@ -132,7 +132,7 @@ export function PostCard({ post, currentUserId }: { post: PostCardData; currentU
           <div>
             <p className="text-sm font-semibold leading-tight">
               {displayName}
-              {post.vendor && <span className="ml-1 font-normal text-gray-500">→ {post.vendor.business_name}</span>}
+              {post.vendor && <span className="ml-1 font-normal text-[#A8B0C5]">→ {post.vendor.business_name}</span>}
             </p>
             <p className="text-xs text-gray-400">{timeAgo(post.created_at)}</p>
           </div>
@@ -178,7 +178,7 @@ export function PostCard({ post, currentUserId }: { post: PostCardData; currentU
 
       {/* Engagement counts */}
       {(likeCount > 0 || commentCount > 0) && (
-        <div className="flex justify-between px-3 pb-1 text-xs text-gray-500">
+        <div className="flex justify-between px-3 pb-1 text-xs text-[#A8B0C5]">
           <span>{likeCount > 0 && `${likeCount} like${likeCount === 1 ? '' : 's'}`}</span>
           <span>{commentCount > 0 && `${commentCount} comment${commentCount === 1 ? '' : 's'}`}</span>
         </div>

@@ -24,7 +24,7 @@ export async function StoryBar({ currentUserAvatarUrl }: { currentUserAvatarUrl?
   }
 
   return (
-    <div className="flex gap-3 overflow-x-auto border-b bg-white p-3 scrollbar-none">
+    <div className="flex gap-3 overflow-x-auto border-b bg-[#0A1931]/80 backdrop-blur-md border-b border-[#D4AF37]/20 p-3 scrollbar-none">
       <Link href="/stories/create" className="flex w-20 flex-shrink-0 flex-col items-center gap-1">
         <div className="relative h-16 w-16 overflow-hidden rounded-full border-2 border-gray-200 bg-gray-100">
           {currentUserAvatarUrl && (

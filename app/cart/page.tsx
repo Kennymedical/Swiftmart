@@ -227,7 +227,7 @@ export default function CartPage() {
           {/* Cart Products Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {items.map((item) => (
-              <div key={item.id} className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100">
+              <div key={item.id} className="bg-gradient-to-br from-[#142850] to-[#1B2F5E] rounded-xl overflow-hidden border border-[#D4AF37]/25 shadow-[0_4px_20px_rgba(212,175,55,0.08)]">
                 <div className="relative aspect-square bg-gray-100">
                   {item.product.images?.[0] && (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -273,7 +273,7 @@ export default function CartPage() {
           </div>
 
           {/* Delivery & Waybill Destination Form */}
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-3">
+          <div className="bg-gradient-to-br from-[#142850] to-[#1B2F5E] rounded-2xl p-4 border border-[#D4AF37]/25 shadow-[0_4px_20px_rgba(212,175,55,0.08)] space-y-3">
             <div className="flex items-center justify-between">
               <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500">
                 📍 Delivery Destination
@@ -312,7 +312,7 @@ export default function CartPage() {
                 <select
                   value={state}
                   onChange={(e) => setState(e.target.value)}
-                  className="w-full text-xs border border-gray-200 rounded-xl px-3 py-2 text-gray-900 bg-white focus:outline-none focus:border-[#D4AF37]"
+                  className="w-full text-xs border border-gray-200 rounded-xl px-3 py-2 text-gray-900 bg-[#0A1931] text-[#F5F7FA] focus:outline-none focus:border-[#D4AF37]"
                 >
                   {NIGERIAN_STATES.map((s) => (
                     <option key={s} value={s}>{s}</option>
@@ -347,7 +347,7 @@ export default function CartPage() {
 
       {/* Checkout Floating Bar */}
       {items.length > 0 && (
-        <div className="fixed bottom-16 inset-x-0 bg-white/95 backdrop-blur-md border-t border-gray-200 p-4 shadow-lg z-40">
+        <div className="fixed bottom-16 inset-x-0 bg-[#0A1931]/95 backdrop-blur-md border-t border-[#D4AF37]/25 p-4 shadow-2xl z-40">
           {error && <p className="text-xs text-red-600 mb-2 font-medium">{error}</p>}
 
           {insufficient ? (

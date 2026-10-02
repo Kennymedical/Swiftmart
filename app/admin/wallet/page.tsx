@@ -274,10 +274,10 @@ export default function AdminProfitWalletPage() {
     <div className="max-w-4xl mx-auto p-4 pb-20">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-black text-[#0F172A] tracking-tight">
+          <h1 className="text-2xl font-black text-[#D4AF37] tracking-tight">
             SwiftMart <span className="text-[#D4AF37]">Profit Wallet</span>
           </h1>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-[#A8B0C5]">
             Internal company treasury holding earned markups, commissions, logistics margins, and fees.
           </p>
         </div>
@@ -320,34 +320,34 @@ export default function AdminProfitWalletPage() {
 
       {/* Profit Stream Breakdown */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
-        <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
-          <p className="text-xs text-gray-500 font-medium">20% Product Markup</p>
-          <p className="text-lg font-bold text-[#0F172A] mt-1">{formatNaira(stats.markupKobo)}</p>
+        <div className="bg-gradient-to-br from-[#142850] to-[#1B2F5E] rounded-2xl p-4 border border-[#D4AF37]/25 shadow-[0_4px_20px_rgba(212,175,55,0.08)]">
+          <p className="text-xs text-[#A8B0C5] font-medium">20% Product Markup</p>
+          <p className="text-lg font-bold text-[#D4AF37] mt-1">{formatNaira(stats.markupKobo)}</p>
           <span className="text-[10px] text-emerald-600 font-semibold">+20% on vendor goods</span>
         </div>
-        <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
-          <p className="text-xs text-gray-500 font-medium">10% Commissions</p>
-          <p className="text-lg font-bold text-[#0F172A] mt-1">{formatNaira(stats.commissionKobo)}</p>
+        <div className="bg-gradient-to-br from-[#142850] to-[#1B2F5E] rounded-2xl p-4 border border-[#D4AF37]/25 shadow-[0_4px_20px_rgba(212,175,55,0.08)]">
+          <p className="text-xs text-[#A8B0C5] font-medium">10% Commissions</p>
+          <p className="text-lg font-bold text-[#D4AF37] mt-1">{formatNaira(stats.commissionKobo)}</p>
           <span className="text-[10px] text-blue-600 font-semibold">Vendor sales cut</span>
         </div>
-        <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
-          <p className="text-xs text-gray-500 font-medium">Waybill Logistics</p>
-          <p className="text-lg font-bold text-[#0F172A] mt-1">{formatNaira(stats.logisticsKobo)}</p>
+        <div className="bg-gradient-to-br from-[#142850] to-[#1B2F5E] rounded-2xl p-4 border border-[#D4AF37]/25 shadow-[0_4px_20px_rgba(212,175,55,0.08)]">
+          <p className="text-xs text-[#A8B0C5] font-medium">Waybill Logistics</p>
+          <p className="text-lg font-bold text-[#D4AF37] mt-1">{formatNaira(stats.logisticsKobo)}</p>
           <span className="text-[10px] text-purple-600 font-semibold">Shipbubble margin</span>
         </div>
-        <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
-          <p className="text-xs text-gray-500 font-medium">Transfer & Fees</p>
-          <p className="text-lg font-bold text-[#0F172A] mt-1">{formatNaira(stats.transferFeeKobo)}</p>
+        <div className="bg-gradient-to-br from-[#142850] to-[#1B2F5E] rounded-2xl p-4 border border-[#D4AF37]/25 shadow-[0_4px_20px_rgba(212,175,55,0.08)]">
+          <p className="text-xs text-[#A8B0C5] font-medium">Transfer & Fees</p>
+          <p className="text-lg font-bold text-[#D4AF37] mt-1">{formatNaira(stats.transferFeeKobo)}</p>
           <span className="text-[10px] text-amber-600 font-semibold">Stamp duty & VAT</span>
         </div>
       </div>
 
       {/* Recent Payout Transactions Section */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+      <div className="bg-gradient-to-br from-[#142850] to-[#1B2F5E] rounded-2xl border border-[#D4AF37]/25 shadow-[0_4px_20px_rgba(212,175,55,0.08)] p-5">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h2 className="text-base font-bold text-[#0F172A]">Recent Payout Transactions</h2>
-            <p className="text-xs text-gray-500">Bank payouts debited from SwiftMart Treasury via Paystack</p>
+            <h2 className="text-base font-bold text-[#D4AF37]">Recent Payout Transactions</h2>
+            <p className="text-xs text-[#A8B0C5]">Bank payouts debited from SwiftMart Treasury via Paystack</p>
           </div>
           <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-red-50 text-red-700">
             {revenueLedger.filter((item) => item.source === 'withdrawal').length} Payout{revenueLedger.filter((item) => item.source === 'withdrawal').length === 1 ? '' : 's'}
@@ -355,7 +355,7 @@ export default function AdminProfitWalletPage() {
         </div>
 
         {revenueLedger.filter((item) => item.source === 'withdrawal').length === 0 ? (
-          <div className="text-center py-8 bg-gray-50/70 rounded-xl border border-dashed border-gray-200">
+          <div className="text-center py-8 bg-[#0A1931]/60 rounded-xl border border-dashed border-[#D4AF37]/25">
             <p className="text-sm font-medium text-gray-600">No bank withdrawals recorded yet</p>
             <p className="text-xs text-gray-400 mt-1">
               When you withdraw profit to your bank account, amounts, bank names, timestamps, and transfer statuses will display here.
@@ -380,7 +380,7 @@ export default function AdminProfitWalletPage() {
                         ● Successful
                       </span>
                     </div>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-[#A8B0C5]">
                       📅 {new Date(payout.created_at).toLocaleString('en-NG', {
                         dateStyle: 'medium',
                         timeStyle: 'short',
@@ -402,10 +402,10 @@ export default function AdminProfitWalletPage() {
       </div>
 
       {/* Revenue Ledger Table */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-        <h2 className="text-base font-bold text-[#0F172A] mb-4">Live Profit Activity Ledger</h2>
+      <div className="bg-gradient-to-br from-[#142850] to-[#1B2F5E] rounded-2xl border border-[#D4AF37]/25 shadow-[0_4px_20px_rgba(212,175,55,0.08)] p-5">
+        <h2 className="text-base font-bold text-[#D4AF37] mb-4">Live Profit Activity Ledger</h2>
         {revenueLedger.length === 0 ? (
-          <p className="text-center text-sm text-gray-500 py-10">
+          <p className="text-center text-sm text-[#A8B0C5] py-10">
             No profit records in the ledger yet. Click &quot;Calculate Past Profits&quot; above to backfill previous sales.
           </p>
         ) : (
@@ -452,9 +452,9 @@ export default function AdminProfitWalletPage() {
       {/* Admin Withdrawal Modal */}
       {showWithdrawModal && (
         <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl">
-            <h3 className="text-lg font-black text-[#0F172A] mb-1">Withdraw Profit to Bank</h3>
-            <p className="text-xs text-gray-500 mb-4">
+          <div className="bg-gradient-to-br from-[#142850] to-[#1B2F5E] rounded-3xl max-w-md w-full p-6 shadow-2xl border border-[#D4AF37]/30 text-[#F5F7FA]">
+            <h3 className="text-lg font-black text-[#D4AF37] mb-1">Withdraw Profit to Bank</h3>
+            <p className="text-xs text-[#A8B0C5] mb-4">
               Payout from SwiftMart Treasury via Paystack resolution.
             </p>
 
@@ -497,7 +497,7 @@ export default function AdminProfitWalletPage() {
 
               {/* Real-time Paystack Account Resolution Box */}
               <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs">
-                <span className="text-gray-500 block">Account Holder Name:</span>
+                <span className="text-[#A8B0C5] block">Account Holder Name:</span>
                 {resolvingAccount ? (
                   <span className="text-blue-600 font-semibold animate-pulse">
                     Verifying with Paystack...
@@ -522,7 +522,7 @@ export default function AdminProfitWalletPage() {
                   className="w-full rounded-xl border border-gray-200 p-3 text-sm font-bold focus:border-[#D4AF37] outline-none"
                   placeholder="e.g. 50000"
                 />
-                <p className="text-[11px] text-gray-500 mt-1">
+                <p className="text-[11px] text-[#A8B0C5] mt-1">
                   Available: {formatNaira(treasuryBalance)}
                 </p>
               </div>

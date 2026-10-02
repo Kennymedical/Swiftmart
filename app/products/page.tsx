@@ -15,19 +15,19 @@ export default async function ProductsPage() {
     .order('created_at', { ascending: false });
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
-      <div className="bg-[#0F172A] px-4 py-5">
+    <div className="min-h-screen bg-gradient-to-b from-[#0A1931] via-[#0D1D3A] to-[#0F2140] pb-24 text-[#F5F7FA]">
+      <div className="bg-[#0A1931]/80 backdrop-blur-md border-b border-[#D4AF37]/20 px-4 py-4">
         <h1 className="text-xl font-bold text-white">
           Shop <span className="text-[#D4AF37]">SwiftMart</span>
         </h1>
-        <p className="text-slate-300 text-xs mt-1">
+        <p className="text-[#A8B0C5] text-xs mt-1">
           Great finds from trusted vendors
         </p>
       </div>
 
       {(!products || products.length === 0) ? (
         <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
-          <p className="text-gray-500">
+          <p className="text-[#A8B0C5]">
             No products yet — vendors haven&apos;t listed anything.
           </p>
         </div>
@@ -50,9 +50,9 @@ export default async function ProductsPage() {
             return (
               <div
                 key={product.id}
-                className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100"
+                className="bg-gradient-to-br from-[#142850] to-[#1B2F5E] rounded-xl overflow-hidden border border-[#D4AF37]/25 shadow-[0_4px_20px_rgba(212,175,55,0.08)]"
               >
-                <div className="relative aspect-square bg-gray-100">
+                <div className="relative aspect-square bg-[#0A1931]/80">
                   {product.images?.[0] && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -69,7 +69,7 @@ export default async function ProductsPage() {
                 </div>
 
                 <div className="p-2">
-                  <p className="text-xs text-gray-900 font-medium line-clamp-1 mb-1">
+                  <p className="text-xs text-[#F5F7FA] font-medium line-clamp-1 mb-1">
                     {product.name}
                   </p>
 
@@ -85,7 +85,7 @@ export default async function ProductsPage() {
                   </div>
 
                   {(product.rating > 0 || product.sold_count > 0) && (
-                    <div className="flex items-center gap-1 text-[10px] text-gray-500 mb-1">
+                    <div className="flex items-center gap-1 text-[10px] text-[#A8B0C5] mb-1">
                       {product.rating > 0 && <span>⭐{product.rating.toFixed(1)}</span>}
                       {product.sold_count > 0 && <span>{product.sold_count} sold</span>}
                     </div>
