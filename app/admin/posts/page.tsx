@@ -16,29 +16,35 @@ export default async function AdminPostsPage() {
 
   return (
     <div className="max-w-2xl mx-auto p-4">
+      <h2 className="text-xs font-bold uppercase tracking-wider text-[#D4AF37] mb-3 px-1">
+        Pending Feed Posts
+      </h2>
       {(!posts || posts.length === 0) ? (
-        <p className="text-center text-gray-500 py-16">No posts pending approval.</p>
+        <p className="text-center text-[#A8B0C5] py-16">No posts pending approval.</p>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-3.5">
           {posts.map((p: any) => {
             const image = p.product?.images?.[0] ?? p.image_urls?.[0] ?? null;
             return (
-              <div key={p.id} className="bg-white rounded-2xl shadow-sm p-4 flex gap-3">
-                <div className="h-16 w-16 flex-shrink-0 rounded-lg bg-gray-100 overflow-hidden">
+              <div
+                key={p.id}
+                className="bg-gradient-to-br from-[#142850] to-[#1B2F5E] border border-[#D4AF37]/25 rounded-2xl shadow-[0_4px_20px_rgba(212,175,55,0.08)] p-4 flex gap-3.5"
+              >
+                <div className="h-16 w-16 flex-shrink-0 rounded-xl bg-[#0A1931] border border-[#D4AF37]/20 overflow-hidden">
                   {image && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={image} alt="" className="h-full w-full object-cover" />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs text-gray-500">@{p.author?.username}</p>
+                  <p className="text-xs text-[#A8B0C5]">@{p.author?.username}</p>
                   {p.product && (
-                    <p className="text-sm font-semibold text-[#0F172A]">
+                    <p className="text-sm font-bold text-[#E8C874] mt-0.5">
                       {p.product.name} — ₦{(p.product.price_kobo / 100).toLocaleString()}
                     </p>
                   )}
-                  {p.content && <p className="text-xs text-gray-600 line-clamp-2 mt-1">{p.content}</p>}
-                  <div className="mt-2">
+                  {p.content && <p className="text-xs text-[#F5F7FA] line-clamp-2 mt-1">{p.content}</p>}
+                  <div className="mt-2.5">
                     <AdminPostActions postId={p.id} />
                   </div>
                 </div>
@@ -49,5 +55,4 @@ export default async function AdminPostsPage() {
       )}
     </div>
   );
-    }
-          
+}

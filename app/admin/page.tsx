@@ -41,42 +41,59 @@ export default async function AdminOverviewPage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-4">
-      <div className="grid grid-cols-2 gap-3 mb-6">
+    <div className="max-w-2xl mx-auto p-4 space-y-6">
+      {/* 4 Stat Cards */}
+      <div className="grid grid-cols-2 gap-3.5">
         {stats.map((s) => (
-          <div key={s.label} className="bg-white rounded-2xl shadow-sm p-4">
-            <p className="text-2xl font-bold text-[#0F172A]">{s.value}</p>
-            <p className="text-xs text-gray-500 mt-1">{s.label}</p>
+          <div
+            key={s.label}
+            className="bg-gradient-to-br from-[#142850] to-[#1B2F5E] border border-[#D4AF37]/25 rounded-2xl shadow-[0_4px_20px_rgba(212,175,55,0.08)] p-4 transition-all"
+          >
+            <p className="text-2xl font-black text-[#D4AF37]">{s.value}</p>
+            <p className="text-xs font-medium text-[#A8B0C5] mt-1 uppercase tracking-wide">{s.label}</p>
           </div>
         ))}
       </div>
 
       {payoutAccount.number && (
-        <div className="bg-[#0F172A] rounded-2xl p-4 mb-6">
-          <p className="text-xs text-slate-400 mb-2">SwiftMart Payouts — External Account</p>
-          <p className="text-white font-semibold">{payoutAccount.bank}</p>
-          <p className="text-[#D4AF37] text-lg font-bold tracking-wide">{payoutAccount.number}</p>
-          <p className="text-slate-300 text-sm">{payoutAccount.name}</p>
+        <div className="bg-gradient-to-br from-[#142850] to-[#1B2F5E] border border-[#D4AF37]/30 rounded-2xl shadow-[0_4px_20px_rgba(212,175,55,0.08)] p-5">
+          <p className="text-xs font-semibold text-[#A8B0C5] mb-2 uppercase tracking-wider">
+            SwiftMart Payouts — External Account
+          </p>
+          <p className="text-[#F5F7FA] font-bold text-base">{payoutAccount.bank}</p>
+          <p className="text-[#E8C874] text-xl font-black tracking-wider mt-0.5">{payoutAccount.number}</p>
+          <p className="text-[#A8B0C5] text-sm mt-0.5">{payoutAccount.name}</p>
         </div>
       )}
 
-      <h2 className="text-sm font-semibold text-gray-500 mb-2 px-1">Recent activity</h2>
-      <div className="bg-white rounded-2xl shadow-sm divide-y divide-gray-100">
-        {(recentTxns ?? []).length === 0 && (
-          <p className="p-4 text-center text-gray-400 text-sm">No transactions yet.</p>
-        )}
-        {(recentTxns ?? []).map((t) => (
-          <div key={t.id} className="flex justify-between items-center p-3">
-            <div>
-              <p className="text-sm font-medium text-gray-900">{t.description}</p>
-              <p className="text-xs text-gray-400">
-                {t.type} · {t.status} · {new Date(t.created_at).toLocaleString()}
-              </p>
-            </div>
-            <p className="text-sm font-semibold text-[#0F172A]">{naira(t.amount_kobo)}</p>
-          </div>
-        ))}
+      <div>
+        <h2 className="text-xs font-bold uppercase tracking-wider text-[#D4AF37] mb-3 px-1">
+          Recent Activity
+        </h2>
+        <div className="bg-gradient-to-br from-[#142850] to-[#1B2F5E] border border-[#D4AF37]/25 rounded-2xl shadow-[0_4px_20px_rgba(212,175,55,0.08)] divide-y divide-[#D4AF37]/10 overflow-hidden">
+          {(recentTxns ?? []).length === 0 && (
+            <p className="p-5 text-center text-[#A8B0C5] text-sm">No transactions yet.</p>
+          )}
+          {(recentTxns ?? []).map((t) => {
+            const isSuccess = t.status === 'success' || t.status === 'completed';
+            return (
+              <div key={t.id} className="flex justify-between items-center p-3.5 hover:bg-white/[0.02] transition">
+                <div>
+                  <p className="text-sm font-semibold text-[#F5F7FA]">{t.description}</p>
+                  <p className="text-xs text-[#A8B0C5] mt-0.5">
+                    <span className="capitalize">{t.type}</span> ·{' '}
+                    <span className={isSuccess ? 'text-[#2ED573] font-semibold' : 'text-[#D4AF37] font-semibold'}>
+                      {t.status}
+                    </span>{' '}
+                    · {new Date(t.created_at).toLocaleString()}
+                  </p>
+                </div>
+                <p className="text-sm font-bold text-[#D4AF37]">{naira(t.amount_kobo)}</p>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
-  }
+}

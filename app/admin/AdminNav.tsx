@@ -17,18 +17,18 @@ export function AdminNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="sticky top-0 z-40 bg-[#0F172A] border-b border-[#D4AF37]/20 px-2 pt-2 shadow-lg">
-      <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-none">
+    <nav className="sticky top-[57px] z-40 bg-[#0A1931]/90 backdrop-blur-md border-b border-[#D4AF37]/20 px-3 pt-2 shadow-lg">
+      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
         {TABS.map((tab) => {
           const active = pathname === tab.href;
           return (
             <Link
               key={tab.href}
               href={tab.href}
-              className={`whitespace-nowrap rounded-t-lg px-4 py-2 text-xs sm:text-sm font-bold transition ${
+              className={`whitespace-nowrap px-3.5 py-1.5 text-xs sm:text-sm font-bold transition rounded-lg ${
                 active
-                  ? 'bg-[#151B3D] text-[#F5C445] border-t-2 border-x border-[#D4AF37]'
-                  : 'text-slate-300 hover:text-white hover:bg-white/5'
+                  ? 'text-[#D4AF37] border-b-2 border-[#D4AF37] bg-[#142850]/60 shadow-[0_2px_10px_rgba(212,175,55,0.15)]'
+                  : 'text-[#8A94B0] hover:text-[#F5F7FA] hover:bg-[#142850]/30'
               }`}
             >
               {tab.label}

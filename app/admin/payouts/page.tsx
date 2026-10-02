@@ -1,7 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { PayoutActions } from './PayoutActions';
 
-// Nigerian Bank Code dictionary for NIBSS/Paystack resolution
 const BANK_CODE_MAP: Record<string, string> = {
   '090551': 'FairMoney Microfinance Bank',
   '090267': 'Kuda Microfinance Bank',
@@ -61,8 +60,11 @@ export default async function AdminPayoutsPage() {
 
   return (
     <div className="max-w-2xl mx-auto p-4">
+      <h2 className="text-xs font-bold uppercase tracking-wider text-[#D4AF37] mb-3 px-1">
+        Pending Vendor & User Payouts
+      </h2>
       {(!payouts || payouts.length === 0) ? (
-        <p className="text-center text-gray-500 py-16">No pending payouts.</p>
+        <p className="text-center text-[#A8B0C5] py-16">No pending payouts.</p>
       ) : (
         <div className="space-y-4">
           {payouts.map((payout) => {
@@ -78,43 +80,46 @@ export default async function AdminPayoutsPage() {
             const displayBankName = resolveBankName(meta?.bankName, meta?.bankCode);
 
             return (
-              <div key={payout.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+              <div
+                key={payout.id}
+                className="bg-gradient-to-br from-[#142850] to-[#1B2F5E] border border-[#D4AF37]/25 rounded-2xl shadow-[0_4px_20px_rgba(212,175,55,0.08)] p-5"
+              >
                 <div className="flex justify-between items-start mb-3">
                   <div>
-                    <p className="font-bold text-[#0F172A] text-base">
+                    <p className="font-bold text-[#F5F7FA] text-base">
                       {requester?.full_name ?? requester?.username ?? 'Unknown user'}
                     </p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-[#A8B0C5]">
                       @{requester?.username ?? '—'} • {new Date(payout.created_at).toLocaleString()}
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-lg font-black text-[#0F172A]">
+                    <p className="text-lg font-black text-[#D4AF37]">
                       ₦{(payout.amount_kobo / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </p>
-                    <span className="inline-block px-2 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-full text-[10px] font-bold mt-1">
+                    <span className="inline-block px-2.5 py-0.5 bg-[#D4AF37]/15 text-[#E8C874] border border-[#D4AF37]/40 rounded-full text-[10px] font-bold mt-1">
                       PENDING APPROVAL
                     </span>
                   </div>
                 </div>
 
                 {/* Bank Transfer Details Card */}
-                <div className="bg-gray-50 rounded-xl p-3.5 mb-4 text-sm space-y-2 border border-gray-100">
+                <div className="bg-[#0A1931]/60 rounded-xl p-3.5 mb-4 text-sm space-y-2 border border-[#D4AF37]/15">
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Bank Name:</span>
-                    <span className="font-bold text-[#0F172A] text-right">
+                    <span className="text-[#A8B0C5]">Bank Name:</span>
+                    <span className="font-bold text-[#F5F7FA] text-right">
                       {displayBankName} {meta?.bankCode ? `(${meta.bankCode})` : ''}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Account Number:</span>
-                    <span className="font-mono font-bold text-blue-600 tracking-wider">
+                    <span className="text-[#A8B0C5]">Account Number:</span>
+                    <span className="font-mono font-bold text-[#E8C874] tracking-wider">
                       {meta?.accountNumber ?? '—'}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Account Name:</span>
-                    <span className="font-semibold text-gray-900 text-right">
+                    <span className="text-[#A8B0C5]">Account Name:</span>
+                    <span className="font-semibold text-[#F5F7FA] text-right">
                       {meta?.accountName ?? '—'}
                     </span>
                   </div>
@@ -128,5 +133,4 @@ export default async function AdminPayoutsPage() {
       )}
     </div>
   );
-    }
-    
+}

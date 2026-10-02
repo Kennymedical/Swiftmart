@@ -17,7 +17,7 @@ export default async function AdminVendorDetailPage({ params }: { params: { id: 
   if (!vendor) {
     return (
       <div className="max-w-2xl mx-auto p-4">
-        <p className="text-center text-gray-500 py-16">Vendor not found.</p>
+        <p className="text-center text-[#A8B0C5] py-16">Vendor not found.</p>
       </div>
     );
   }
@@ -45,98 +45,51 @@ export default async function AdminVendorDetailPage({ params }: { params: { id: 
     .eq('vendor_id', vendor.id)
     .eq('status', 'active');
 
-  const { data: soldSum } = await supabase
-    .from('products')
-    .select('sold_count')
-    .eq('vendor_id', vendor.id);
-  const totalSold = (soldSum ?? []).reduce((sum, p) => sum + (p.sold_count ?? 0), 0);
-
-  const { data: revenueRows } = await supabase
-    .from('order_items')
-    .select('vendor_payout_kobo')
-    .eq('vendor_id', vendor.id);
-  const totalRevenue = (revenueRows ?? []).reduce((sum, r) => sum + (r.vendor_payout_kobo ?? 0), 0);
-
   return (
-    <div className="max-w-2xl mx-auto p-4">
-      <div className="bg-white rounded-2xl shadow-sm p-5 mb-4">
-        <div className="flex items-center gap-3 mb-4">
-          {owner?.avatar_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={owner.avatar_url} alt="" className="h-14 w-14 rounded-full object-cover" />
-          ) : (
-            <div className="h-14 w-14 rounded-full bg-gray-200" />
-          )}
+    <div className="max-w-2xl mx-auto p-4 space-y-4">
+      {/* Vendor Profile Card */}
+      <div className="bg-gradient-to-br from-[#142850] to-[#1B2F5E] border border-[#D4AF37]/25 rounded-2xl shadow-[0_4px_20px_rgba(212,175,55,0.08)] p-5">
+        <div className="flex justify-between items-start mb-3">
           <div>
-            <h1 className="text-lg font-bold text-[#0F172A]">{vendor.business_name}</h1>
-            <p className="text-sm text-gray-500">@{owner?.username ?? 'unknown'}</p>
-            <p className={`text-xs mt-0.5 font-semibold capitalize ${
-              vendor.status === 'approved' ? 'text-green-600'
-              : vendor.status === 'suspended' || vendor.status === 'rejected' ? 'text-red-600'
-              : 'text-amber-600'
-            }`}>
-              {vendor.status}
-            </p>
+            <h1 className="text-xl font-bold text-[#F5F7FA]">{vendor.business_name}</h1>
+            <p className="text-xs text-[#A8B0C5]">Owner: @{owner?.username ?? '—'} ({owner?.full_name ?? '—'})</p>
+          </div>
+          <span className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
+            vendor.status === 'approved' 
+              ? 'bg-[#2ED573]/20 text-[#2ED573] border border-[#2ED573]/40' 
+              : 'bg-[#D4AF37]/20 text-[#E8C874] border border-[#D4AF37]/40'
+          }`}>
+            {vendor.status}
+          </span>
+        </div>
+
+        {vendor.description && (
+          <p className="text-sm text-[#A8B0C5] mt-2 mb-4">{vendor.description}</p>
+        )}
+
+        {/* Bank & Financials Grid */}
+        <div className="grid grid-cols-2 gap-3 mt-4">
+          <div className="bg-[#0A1931]/60 border border-[#D4AF37]/15 rounded-xl p-3">
+            <p className="text-[11px] text-[#A8B0C5] uppercase tracking-wider">Wallet Balance</p>
+            <p className="text-lg font-black text-[#D4AF37] mt-0.5">{naira(wallet?.balance_kobo ?? 0)}</p>
+          </div>
+          <div className="bg-[#0A1931]/60 border border-[#D4AF37]/15 rounded-xl p-3">
+            <p className="text-[11px] text-[#A8B0C5] uppercase tracking-wider">Active Products</p>
+            <p className="text-lg font-black text-[#D4AF37] mt-0.5">{activeProductCount ?? 0} / {productCount ?? 0}</p>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 mb-4">
-          <div className="bg-gray-50 rounded-xl p-3">
-            <p className="text-xs text-gray-500">Wallet balance</p>
-            <p className="text-lg font-bold text-[#0F172A]">{naira(wallet?.balance_kobo ?? 0)}</p>
-          </div>
-          <div className="bg-gray-50 rounded-xl p-3">
-            <p className="text-xs text-gray-500">Total earned</p>
-            <p className="text-lg font-bold text-[#0F172A]">{naira(totalRevenue)}</p>
-          </div>
-          <div className="bg-gray-50 rounded-xl p-3">
-            <p className="text-xs text-gray-500">Products (active / total)</p>
-            <p className="text-lg font-bold text-[#0F172A]">{activeProductCount ?? 0} / {productCount ?? 0}</p>
-          </div>
-          <div className="bg-gray-50 rounded-xl p-3">
-            <p className="text-xs text-gray-500">Items sold</p>
-            <p className="text-lg font-bold text-[#0F172A]">{totalSold}</p>
-          </div>
+        {/* Bank details */}
+        <div className="bg-[#0A1931]/60 border border-[#D4AF37]/15 rounded-xl p-3.5 mt-3 space-y-1.5 text-xs">
+          <p><span className="text-[#A8B0C5]">Bank Name: </span><span className="font-semibold text-[#F5F7FA]">{vendor.kyc_bank_account_name ?? '—'}</span></p>
+          <p><span className="text-[#A8B0C5]">Account Number: </span><span className="font-mono font-bold text-[#E8C874]">{vendor.kyc_bank_account_number ?? '—'}</span> <span className="text-[#A8B0C5]">({vendor.kyc_bank_code ?? '—'})</span></p>
+          <p><span className="text-[#A8B0C5]">Commission Rate: </span><span className="font-semibold text-[#F5F7FA]">{((vendor.commission_rate ?? 0.1) * 100).toFixed(0)}%</span></p>
         </div>
 
-        <div className="mb-4">
-          <p className="text-xs text-gray-500 mb-1">Rating</p>
-          <p className="text-sm">
-            {vendor.review_count > 0 ? `⭐ ${vendor.rating.toFixed(1)} (${vendor.review_count} reviews)` : 'No reviews yet'}
-          </p>
+        <div className="mt-5 pt-3 border-t border-[#D4AF37]/15">
+          <VendorDetailActions vendorId={vendor.id} status={vendor.status} />
         </div>
-
-        <div className="border-t border-gray-100 pt-4 mb-4">
-          <p className="text-xs font-semibold text-gray-500 mb-2">Profile details</p>
-          <div className="text-sm space-y-1">
-            <p><span className="text-gray-500">Full name: </span>{owner?.full_name ?? '—'}</p>
-            <p><span className="text-gray-500">Phone: </span>{owner?.phone ?? '—'} {owner?.phone_verified ? '✓ verified' : ''}</p>
-            <p><span className="text-gray-500">Bio: </span>{owner?.bio ?? '—'}</p>
-            <p className="text-gray-400 text-xs mt-2">
-              Gender, date of birth, nationality, address, and ID/selfie KYC are not collected yet — pending the full KYC upgrade.
-            </p>
-          </div>
-        </div>
-
-        <div className="border-t border-gray-100 pt-4 mb-4">
-          <p className="text-xs font-semibold text-gray-500 mb-2">Payout bank details</p>
-          <div className="text-sm space-y-1">
-            <p><span className="text-gray-500">Account name: </span>{vendor.kyc_bank_account_name ?? '—'}</p>
-            <p><span className="text-gray-500">Account number: </span>{vendor.kyc_bank_account_number ?? '—'}</p>
-            <p><span className="text-gray-500">Bank code: </span>{vendor.kyc_bank_code ?? '—'}</p>
-            <p><span className="text-gray-500">Commission rate: </span>{vendor.commission_rate}%</p>
-          </div>
-        </div>
-
-        <div className="border-t border-gray-100 pt-4 mb-4">
-          <p className="text-xs text-gray-400">
-            Applied {new Date(vendor.created_at).toLocaleDateString()}
-          </p>
-        </div>
-
-        <VendorDetailActions vendorId={vendor.id} status={vendor.status} />
       </div>
     </div>
   );
-    }
-  
+}
