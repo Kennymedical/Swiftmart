@@ -36,7 +36,7 @@ export default async function WalletHistoryPage({
   return (
     <div className="mx-auto max-w-lg px-4 py-6 pb-20">
       <div className="mb-4 flex items-center gap-2">
-        <Link href="/wallet" className="text-sm text-gray-500">
+        <Link href="/wallet" className="text-sm text-[#A8B0C5]">
           ← Wallet
         </Link>
       </div>
@@ -45,7 +45,7 @@ export default async function WalletHistoryPage({
       {!transactions || transactions.length === 0 ? (
         <p className="py-16 text-center text-sm text-gray-400">No transactions yet.</p>
       ) : (
-        <div className="divide-y rounded-lg border bg-white">
+        <div className="divide-y rounded-lg border bg-gradient-to-b from-[#142850] to-[#1B2F5E] text-[#F5F7FA] border-[#D4AF37]/20">
           {transactions.map((tx) => (
             <TransactionRow key={tx.id} tx={tx} />
           ))}
@@ -59,7 +59,7 @@ export default async function WalletHistoryPage({
               Previous
             </Link>
           )}
-          <span className="px-3 py-1.5 text-sm text-gray-500">
+          <span className="px-3 py-1.5 text-sm text-[#A8B0C5]">
             Page {page} of {totalPages}
           </span>
           {page < totalPages && (

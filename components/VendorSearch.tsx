@@ -65,14 +65,14 @@ export function VendorSearch() {
   }
 
   return (
-    <div className="p-4 bg-white border-b border-gray-100">
+    <div className="p-4 bg-[#0A1931] border-b border-[#D4AF37]/20 text-[#F5F7FA]">
       <div className="flex gap-2">
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
           placeholder="Search by username, business name, or vendor ID"
-          className="flex-1 rounded-xl border-2 border-gray-200 p-2.5 text-sm focus:border-[#D4AF37] outline-none"
+          className="flex-1 rounded-xl border-2 border-[#D4AF37]/20 bg-[#0F2140] text-[#F5F7FA] p-2.5 text-sm focus:border-[#D4AF37] outline-none"
         />
         <button
           onClick={handleSearch}
@@ -89,7 +89,7 @@ export function VendorSearch() {
             <button
               key={r.id}
               onClick={() => router.push(`/admin/vendors/${r.id}`)}
-              className="w-full text-left bg-gray-50 rounded-xl p-3 hover:bg-gray-100"
+              className="w-full text-left bg-[#142850] rounded-xl p-3 hover:bg-[#1B2F5E] border border-[#D4AF37]/20 text-[#F5F7FA]"
             >
               <p className="text-sm font-semibold text-[#0F172A]">{r.business_name}</p>
               <p className="text-xs text-gray-500">

@@ -43,7 +43,7 @@ export default function ProfilePage() {
   }, [supabase]);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
+    <div className="min-h-screen bg-[#0A1931] p-4">
       <div className="max-w-md mx-auto bg-gradient-to-br from-[#142850] to-[#1B2F5E] rounded-2xl p-6 mt-6 border border-[#D4AF37]/25 shadow-[0_4px_20px_rgba(212,175,55,0.08)] text-[#F5F7FA]">
         <h1 className="text-xl font-semibold text-[#0F172A] mb-6">Profile</h1>
 
@@ -78,7 +78,7 @@ export default function ProfilePage() {
             ) : (
               <Link
                 href="/vendor/register"
-                className="block text-center bg-white text-[#0F172A] font-bold py-3 rounded-xl border-2 border-[#0F172A]"
+                className="block text-center bg-gradient-to-r from-[#D4AF37] to-[#F5C445] text-[#0A1931] font-bold py-3 rounded-xl border-2 border-[#0F172A]"
               >
                 Become a Vendor
               </Link>

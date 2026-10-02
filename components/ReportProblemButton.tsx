@@ -112,7 +112,7 @@ export function ReportProblemButton({ orderId }: { orderId: string }) {
         <select
           value={category}
           onChange={(e) => setCategory(e.target.value)}
-          className="w-full text-xs bg-white border border-red-200 rounded-lg p-2 text-gray-800 focus:outline-none"
+          className="w-full text-xs bg-[#0F2140] border border-red-500/30 rounded-lg p-2 text-[#F5F7FA] focus:outline-none"
         >
           {DISPUTE_CATEGORIES.map((cat) => (
             <option key={cat.value} value={cat.value}>
@@ -132,7 +132,7 @@ export function ReportProblemButton({ orderId }: { orderId: string }) {
           onChange={(e) => setReason(e.target.value)}
           placeholder="Describe what was delivered, condition of package, what is wrong..."
           rows={3}
-          className="w-full rounded-lg border border-red-200 p-2 text-xs bg-white resize-none text-gray-800 focus:outline-none"
+          className="w-full rounded-lg border border-red-500/30 p-2 text-xs bg-[#0F2140] resize-none text-[#F5F7FA] focus:outline-none"
         />
       </div>
 
@@ -170,7 +170,7 @@ export function ReportProblemButton({ orderId }: { orderId: string }) {
             setError('');
           }}
           disabled={loading}
-          className="px-3 py-2 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg"
+          className="px-3 py-2 text-xs font-medium text-[#A8B0C5] bg-[#0F2140] border border-[#D4AF37]/20 rounded-lg hover:text-[#F5F7FA]"
         >
           Cancel
         </button>

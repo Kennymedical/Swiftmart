@@ -82,8 +82,8 @@ export default function CreatePostPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 pb-24">
-      <div className="max-w-md mx-auto bg-white rounded-2xl shadow-sm p-6 mt-6">
+    <div className="min-h-screen bg-[#0A1931] text-[#F5F7FA] p-4 pb-24">
+      <div className="max-w-md mx-auto bg-gradient-to-b from-[#142850] to-[#1B2F5E] rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.37)] border border-[#D4AF37]/25 p-6 mt-6 text-[#F5F7FA]">
         <h1 className="text-xl font-semibold text-[#0F172A] mb-6">
           Create post
         </h1>
@@ -94,11 +94,11 @@ export default function CreatePostPage() {
             onChange={(e) => setContent(e.target.value)}
             placeholder="What's on your mind?"
             rows={4}
-            className="w-full rounded-xl border-2 border-gray-200 p-3 mb-4 focus:border-[#D4AF37] outline-none resize-none"
+            className="w-full rounded-xl border-2 border-[#D4AF37]/20 bg-[#0F2140] text-[#F5F7FA] p-3 mb-4 focus:border-[#D4AF37] outline-none resize-none"
           />
 
           <label className="block mb-4">
-            <span className="text-sm font-medium text-gray-700 mb-1 block">
+            <span className="text-sm font-medium text-[#A8B0C5] mb-1 block">
               Photo (optional)
             </span>
             <input

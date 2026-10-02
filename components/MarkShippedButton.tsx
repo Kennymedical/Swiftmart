@@ -59,21 +59,21 @@ export function MarkShippedButton({
 
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl w-full max-w-sm p-5 shadow-2xl border border-gray-100">
+          <div className="bg-gradient-to-b from-[#142850] to-[#1B2F5E] rounded-2xl w-full max-w-sm p-5 shadow-[0_8px_32px_rgba(0,0,0,0.37)] border border-[#D4AF37]/25 text-[#F5F7FA]">
             <h3 className="text-base font-bold text-[#0F172A] mb-1">Fulfill & Dispatch Order</h3>
-            <p className="text-xs text-gray-500 mb-4">
+            <p className="text-xs text-[#A8B0C5] mb-4">
               Select how you are dispatching this package to the customer.
             </p>
 
             {customerAddress && (
-              <div className="bg-slate-50 border border-slate-100 rounded-xl p-2.5 mb-4 text-xs">
+              <div className="bg-[#0F2140] border border-[#D4AF37]/20 rounded-xl p-2.5 mb-4 text-xs text-[#A8B0C5]">
                 <p className="font-semibold text-slate-800">Destination:</p>
                 <p className="text-slate-600 truncate">{customerAddress}</p>
               </div>
             )}
 
             {/* Waybill Selection Tabs */}
-            <div className="grid grid-cols-2 gap-2 mb-4 bg-gray-100 p-1 rounded-xl">
+            <div className="grid grid-cols-2 gap-2 mb-4 bg-[#0F2140] p-1 rounded-xl border border-[#D4AF37]/20">
               <button
                 type="button"
                 onClick={() => setWaybillType('courier')}
@@ -116,7 +116,7 @@ export function MarkShippedButton({
                     placeholder="e.g. 08012345678"
                     value={driverPhone}
                     onChange={(e) => setDriverPhone(e.target.value)}
-                    className="w-full text-xs border border-gray-200 rounded-xl px-3 py-2 text-gray-900 focus:outline-none focus:border-[#D4AF37]"
+                    className="w-full text-xs border border-[#D4AF37]/20 bg-[#0F2140] text-[#F5F7FA] rounded-xl px-3 py-2 text-[#D4AF37] focus:outline-none focus:border-[#D4AF37]"
                   />
                 </div>
                 <div>
@@ -128,7 +128,7 @@ export function MarkShippedButton({
                     placeholder="e.g. GIG-73829 or Park Slip #44"
                     value={trackingNumber}
                     onChange={(e) => setTrackingNumber(e.target.value)}
-                    className="w-full text-xs border border-gray-200 rounded-xl px-3 py-2 text-gray-900 focus:outline-none focus:border-[#D4AF37]"
+                    className="w-full text-xs border border-[#D4AF37]/20 bg-[#0F2140] text-[#F5F7FA] rounded-xl px-3 py-2 text-[#D4AF37] focus:outline-none focus:border-[#D4AF37]"
                   />
                 </div>
               </div>
@@ -140,7 +140,7 @@ export function MarkShippedButton({
               <button
                 type="button"
                 onClick={() => setShowModal(false)}
-                className="flex-1 py-2.5 text-xs font-semibold text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200 transition"
+                className="flex-1 py-2.5 text-xs font-semibold text-[#A8B0C5] bg-[#0F2140] rounded-xl hover:bg-[#142850] hover:text-[#F5F7FA] border border-[#D4AF37]/20 transition"
               >
                 Cancel
               </button>

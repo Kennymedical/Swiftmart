@@ -38,7 +38,7 @@ export function VendorDetailActions({ vendorId, status }: { vendorId: string; st
             <button
               onClick={() => handleAction('reject_vendor')}
               disabled={loading !== null}
-              className="flex-1 bg-white text-red-600 font-semibold text-sm py-2 rounded-lg border-2 border-red-200 disabled:opacity-50"
+              className="flex-1 bg-[#142850] text-red-400 border border-red-500/30 hover:bg-red-950/40 font-semibold text-sm py-2 rounded-lg border-2 border-red-200 disabled:opacity-50"
             >
               {loading === 'reject_vendor' ? '...' : 'Reject'}
             </button>
@@ -49,7 +49,7 @@ export function VendorDetailActions({ vendorId, status }: { vendorId: string; st
           <button
             onClick={() => handleAction('suspend_vendor')}
             disabled={loading !== null}
-            className="flex-1 bg-white text-red-600 font-semibold text-sm py-2 rounded-lg border-2 border-red-200 disabled:opacity-50"
+            className="flex-1 bg-[#142850] text-red-400 border border-red-500/30 hover:bg-red-950/40 font-semibold text-sm py-2 rounded-lg border-2 border-red-200 disabled:opacity-50"
           >
             {loading === 'suspend_vendor' ? '...' : 'Suspend Vendor'}
           </button>

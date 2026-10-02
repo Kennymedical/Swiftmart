@@ -40,7 +40,7 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#0F172A] to-[#1E293B] p-4">
-      <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl p-8">
+      <div className="w-full max-w-md bg-gradient-to-b from-[#142850] to-[#1B2F5E] rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.37)] border border-[#D4AF37]/25 p-8 text-[#F5F7FA]">
         <h1 className="text-center text-4xl font-bold text-[#0F172A] mb-1">
           SwiftMart
         </h1>
@@ -52,7 +52,7 @@ export default function RegisterPage() {
             required
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className="w-full rounded-xl border-2 border-gray-200 p-3 mb-4 focus:border-[#D4AF37] outline-none"
+            className="w-full rounded-xl border-2 border-[#D4AF37]/20 bg-[#0F2140] text-[#F5F7FA] p-3 mb-4 focus:border-[#D4AF37] outline-none"
             placeholder="Username"
           />
           <input
@@ -60,7 +60,7 @@ export default function RegisterPage() {
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-xl border-2 border-gray-200 p-3 mb-4 focus:border-[#D4AF37] outline-none"
+            className="w-full rounded-xl border-2 border-[#D4AF37]/20 bg-[#0F2140] text-[#F5F7FA] p-3 mb-4 focus:border-[#D4AF37] outline-none"
             placeholder="you@example.com"
           />
           <input
@@ -69,7 +69,7 @@ export default function RegisterPage() {
             minLength={6}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-xl border-2 border-gray-200 p-3 mb-2 focus:border-[#D4AF37] outline-none"
+            className="w-full rounded-xl border-2 border-[#D4AF37]/20 bg-[#0F2140] text-[#F5F7FA] p-3 mb-2 focus:border-[#D4AF37] outline-none"
             placeholder="At least 6 characters"
           />
 

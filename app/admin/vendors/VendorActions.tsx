@@ -36,7 +36,7 @@ export function VendorActions({ vendorId }: { vendorId: string }) {
         <button
           onClick={() => handleAction('reject_vendor', 'reject')}
           disabled={loading !== null}
-          className="flex-1 bg-white text-red-600 font-semibold text-sm py-2 rounded-lg border-2 border-red-200 disabled:opacity-50"
+          className="flex-1 bg-[#142850] text-red-400 border border-red-500/30 hover:bg-red-950/40 font-semibold text-sm py-2 rounded-lg border-2 border-red-200 disabled:opacity-50"
         >
           {loading === 'reject' ? 'Rejecting...' : 'Reject'}
         </button>

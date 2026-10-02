@@ -61,18 +61,18 @@ export default function BecomeVendorPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 pb-24">
-      <div className="max-w-md mx-auto bg-white rounded-2xl shadow-sm p-6 mt-6">
+    <div className="min-h-screen bg-[#0A1931] text-[#F5F7FA] p-4 pb-24">
+      <div className="max-w-md mx-auto bg-gradient-to-b from-[#142850] to-[#1B2F5E] rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.37)] border border-[#D4AF37]/25 p-6 text-[#F5F7FA] mt-6">
         <h1 className="text-xl font-semibold text-[#0F172A] mb-1">
           Become a Vendor
         </h1>
-        <p className="text-sm text-gray-500 mb-6">
+        <p className="text-sm text-[#A8B0C5] mb-6">
           Set up your store on SwiftMart
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="text-sm font-medium text-gray-700 mb-1 block">
+            <label className="text-sm font-medium text-[#A8B0C5] mb-1 block">
               Business name
             </label>
             <input
@@ -80,20 +80,20 @@ export default function BecomeVendorPage() {
               required
               value={businessName}
               onChange={(e) => setBusinessName(e.target.value)}
-              className="w-full rounded-xl border-2 border-gray-200 p-3 focus:border-[#D4AF37] outline-none"
+              className="w-full rounded-xl border-2 border-[#D4AF37]/20 bg-[#0F2140] text-[#F5F7FA] p-3 focus:border-[#D4AF37] outline-none"
               placeholder="e.g. Kenny's Fashion Hub"
             />
           </div>
 
           <div>
-            <label className="text-sm font-medium text-gray-700 mb-1 block">
+            <label className="text-sm font-medium text-[#A8B0C5] mb-1 block">
               Description (optional)
             </label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
-              className="w-full rounded-xl border-2 border-gray-200 p-3 focus:border-[#D4AF37] outline-none resize-none"
+              className="w-full rounded-xl border-2 border-[#D4AF37]/20 bg-[#0F2140] text-[#F5F7FA] p-3 focus:border-[#D4AF37] outline-none resize-none"
               placeholder="What do you sell?"
             />
           </div>
@@ -103,7 +103,7 @@ export default function BecomeVendorPage() {
               Payout bank details
             </p>
 
-            <label className="text-sm font-medium text-gray-700 mb-1 block">
+            <label className="text-sm font-medium text-[#A8B0C5] mb-1 block">
               Bank code
             </label>
             <input
@@ -111,11 +111,11 @@ export default function BecomeVendorPage() {
               required
               value={bankCode}
               onChange={(e) => setBankCode(e.target.value)}
-              className="w-full rounded-xl border-2 border-gray-200 p-3 mb-3 focus:border-[#D4AF37] outline-none"
+              className="w-full rounded-xl border-2 border-[#D4AF37]/20 bg-[#0F2140] text-[#F5F7FA] p-3 mb-3 focus:border-[#D4AF37] outline-none"
               placeholder="e.g. 058 (GTBank)"
             />
 
-            <label className="text-sm font-medium text-gray-700 mb-1 block">
+            <label className="text-sm font-medium text-[#A8B0C5] mb-1 block">
               Account number
             </label>
             <input
@@ -123,11 +123,11 @@ export default function BecomeVendorPage() {
               required
               value={bankAccountNumber}
               onChange={(e) => setBankAccountNumber(e.target.value)}
-              className="w-full rounded-xl border-2 border-gray-200 p-3 mb-3 focus:border-[#D4AF37] outline-none"
+              className="w-full rounded-xl border-2 border-[#D4AF37]/20 bg-[#0F2140] text-[#F5F7FA] p-3 mb-3 focus:border-[#D4AF37] outline-none"
               placeholder="10-digit account number"
             />
 
-            <label className="text-sm font-medium text-gray-700 mb-1 block">
+            <label className="text-sm font-medium text-[#A8B0C5] mb-1 block">
               Account name
             </label>
             <input
@@ -135,7 +135,7 @@ export default function BecomeVendorPage() {
               required
               value={bankAccountName}
               onChange={(e) => setBankAccountName(e.target.value)}
-              className="w-full rounded-xl border-2 border-gray-200 p-3 focus:border-[#D4AF37] outline-none"
+              className="w-full rounded-xl border-2 border-[#D4AF37]/20 bg-[#0F2140] text-[#F5F7FA] p-3 focus:border-[#D4AF37] outline-none"
               placeholder="Must match your bank account"
             />
           </div>

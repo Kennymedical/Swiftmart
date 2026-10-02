@@ -35,7 +35,7 @@ export function CreateVendorForm() {
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm p-4">
+    <div className="bg-gradient-to-b from-[#142850] to-[#1B2F5E] rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.37)] border border-[#D4AF37]/25 p-4 text-[#F5F7FA]">
       <button
         onClick={() => setOpen(!open)}
         className="text-sm font-semibold text-[#0F172A]"
@@ -50,14 +50,14 @@ export function CreateVendorForm() {
             onChange={(e) => setUsername(e.target.value)}
             placeholder="Their username"
             required
-            className="w-full rounded-xl border-2 border-gray-200 p-2.5 text-sm focus:border-[#D4AF37] outline-none"
+            className="w-full rounded-xl border-2 border-[#D4AF37]/20 bg-[#0F2140] text-[#F5F7FA] p-2.5 text-sm focus:border-[#D4AF37] outline-none"
           />
           <input
             value={businessName}
             onChange={(e) => setBusinessName(e.target.value)}
             placeholder="Business name"
             required
-            className="w-full rounded-xl border-2 border-gray-200 p-2.5 text-sm focus:border-[#D4AF37] outline-none"
+            className="w-full rounded-xl border-2 border-[#D4AF37]/20 bg-[#0F2140] text-[#F5F7FA] p-2.5 text-sm focus:border-[#D4AF37] outline-none"
           />
           {error && <p className="text-xs text-red-600">{error}</p>}
           {success && <p className="text-xs text-green-600">{success}</p>}

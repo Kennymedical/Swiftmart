@@ -27,7 +27,7 @@ export default async function OrdersPage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+      <div className="min-h-screen flex items-center justify-center bg-[#0A1931] p-4">
         <p className="text-[#A8B0C5]">Please log in.</p>
       </div>
     );
@@ -57,7 +57,7 @@ export default async function OrdersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
+    <div className="min-h-screen bg-[#0A1931] pb-24">
       <div className="bg-[#0F172A] px-4 py-5">
         <h1 className="text-xl font-bold text-white">
           Your <span className="text-[#D4AF37]">Orders</span>

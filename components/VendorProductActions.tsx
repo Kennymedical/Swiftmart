@@ -26,7 +26,7 @@ export function VendorProductActions({ productId }: { productId: string }) {
     <div className="flex gap-1 mt-1">
       <Link
         href={`/vendor/products/${productId}/edit`}
-        className="flex-1 text-center text-[10px] font-semibold bg-white text-[#0F172A] border border-gray-200 rounded-lg py-1"
+        className="flex-1 text-center text-[10px] font-semibold bg-[#142850] text-[#D4AF37] border border-[#D4AF37]/20 hover:bg-[#1B2F5E] rounded-lg py-1"
       >
         Edit
       </Link>
@@ -36,7 +36,7 @@ export function VendorProductActions({ productId }: { productId: string }) {
         className={`flex-1 text-[10px] font-semibold rounded-lg py-1 border ${
           confirming
             ? 'bg-red-600 text-white border-red-600'
-            : 'bg-white text-red-600 border-red-200'
+            : 'bg-[#142850] text-red-400 border border-red-500/30 hover:bg-red-950/40'
         } disabled:opacity-50`}
       >
         {deleting ? '...' : confirming ? 'Confirm?' : 'Delete'}

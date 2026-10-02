@@ -123,20 +123,20 @@ export default function AddProductPage() {
 
   if (checking) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <p className="text-gray-500">Loading...</p>
+      <div className="min-h-screen flex items-center justify-center bg-[#0A1931] text-[#F5F7FA]">
+        <p className="text-[#A8B0C5]">Loading...</p>
       </div>
     );
   }
 
   if (!vendorId) {
     return (
-      <div className="min-h-screen bg-gray-50 p-4">
-        <div className="max-w-md mx-auto bg-white rounded-2xl shadow-sm p-6 mt-6 text-center">
+      <div className="min-h-screen bg-[#0A1931] text-[#F5F7FA] p-4">
+        <div className="max-w-md mx-auto bg-gradient-to-b from-[#142850] to-[#1B2F5E] rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.37)] border border-[#D4AF37]/25 p-6 text-[#F5F7FA] mt-6 text-center">
           <h1 className="text-xl font-semibold text-[#0F172A] mb-2">
             Vendors only
           </h1>
-          <p className="text-sm text-gray-500 mb-4">
+          <p className="text-sm text-[#A8B0C5] mb-4">
             You need to be a registered vendor to add products.
           </p>
           <a
@@ -151,47 +151,47 @@ export default function AddProductPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 pb-24">
-      <div className="max-w-md mx-auto bg-white rounded-2xl shadow-sm p-6 mt-6">
+    <div className="min-h-screen bg-[#0A1931] text-[#F5F7FA] p-4 pb-24">
+      <div className="max-w-md mx-auto bg-gradient-to-b from-[#142850] to-[#1B2F5E] rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.37)] border border-[#D4AF37]/25 p-6 text-[#F5F7FA] mt-6">
         <h1 className="text-xl font-semibold text-[#0F172A] mb-1">Add Product</h1>
-        <p className="text-sm text-gray-500 mb-6">
+        <p className="text-sm text-[#A8B0C5] mb-6">
           Submitted products need admin approval before they appear in the Shop.
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="text-sm font-medium text-gray-700 mb-1 block">Product name</label>
+            <label className="text-sm font-medium text-[#A8B0C5] mb-1 block">Product name</label>
             <input
               type="text"
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full rounded-xl border-2 border-gray-200 p-3 focus:border-[#D4AF37] outline-none"
+              className="w-full rounded-xl border-2 border-[#D4AF37]/20 bg-[#0F2140] text-[#F5F7FA] p-3 focus:border-[#D4AF37] outline-none"
               placeholder="e.g. Wireless Earbuds"
             />
           </div>
 
           <div>
-            <label className="text-sm font-medium text-gray-700 mb-1 block">Description</label>
+            <label className="text-sm font-medium text-[#A8B0C5] mb-1 block">Description</label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
-              className="w-full rounded-xl border-2 border-gray-200 p-3 focus:border-[#D4AF37] outline-none resize-none"
+              className="w-full rounded-xl border-2 border-[#D4AF37]/20 bg-[#0F2140] text-[#F5F7FA] p-3 focus:border-[#D4AF37] outline-none resize-none"
               placeholder="Describe the product"
             />
           </div>
 
           <div className="flex gap-3">
             <div className="flex-1">
-              <label className="text-sm font-medium text-gray-700 mb-1 block">Your Vendor Price (₦)</label>
+              <label className="text-sm font-medium text-[#A8B0C5] mb-1 block">Your Vendor Price (₦)</label>
               <input
                 type="number"
                 required
                 min={1}
                 value={priceNaira}
                 onChange={(e) => setPriceNaira(e.target.value ? Number(e.target.value) : '')}
-                className="w-full rounded-xl border-2 border-gray-200 p-3 focus:border-[#D4AF37] outline-none"
+                className="w-full rounded-xl border-2 border-[#D4AF37]/20 bg-[#0F2140] text-[#F5F7FA] p-3 focus:border-[#D4AF37] outline-none"
               />
               {priceNaira ? (
                 <p className="text-xs text-emerald-700 font-bold mt-1">
@@ -200,7 +200,7 @@ export default function AddProductPage() {
               ) : null}
             </div>
             <div className="flex-1">
-              <label className="text-sm font-medium text-gray-700 mb-1 block">
+              <label className="text-sm font-medium text-[#A8B0C5] mb-1 block">
                 Compare-at (₦, optional)
               </label>
               <input
@@ -208,25 +208,25 @@ export default function AddProductPage() {
                 min={0}
                 value={compareAtNaira}
                 onChange={(e) => setCompareAtNaira(e.target.value ? Number(e.target.value) : '')}
-                className="w-full rounded-xl border-2 border-gray-200 p-3 focus:border-[#D4AF37] outline-none"
+                className="w-full rounded-xl border-2 border-[#D4AF37]/20 bg-[#0F2140] text-[#F5F7FA] p-3 focus:border-[#D4AF37] outline-none"
               />
             </div>
           </div>
 
           <div>
-            <label className="text-sm font-medium text-gray-700 mb-1 block">Stock quantity</label>
+            <label className="text-sm font-medium text-[#A8B0C5] mb-1 block">Stock quantity</label>
             <input
               type="number"
               required
               min={0}
               value={stock}
               onChange={(e) => setStock(e.target.value ? Number(e.target.value) : '')}
-              className="w-full rounded-xl border-2 border-gray-200 p-3 focus:border-[#D4AF37] outline-none"
+              className="w-full rounded-xl border-2 border-[#D4AF37]/20 bg-[#0F2140] text-[#F5F7FA] p-3 focus:border-[#D4AF37] outline-none"
             />
           </div>
 
           <label className="block">
-            <span className="text-sm font-medium text-gray-700 mb-1 block">Product photo</span>
+            <span className="text-sm font-medium text-[#A8B0C5] mb-1 block">Product photo</span>
             <input type="file" accept="image/*" onChange={handleImageChange} className="w-full text-sm" />
           </label>
 

@@ -285,7 +285,7 @@ export default function AdminProfitWalletPage() {
           <button
             onClick={handleSyncHistorical}
             disabled={syncing}
-            className="text-xs font-semibold px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition border border-slate-300 disabled:opacity-50"
+            className="text-xs font-semibold px-3 py-2 bg-[#142850] hover:bg-[#1B2F5E] text-[#D4AF37] border border-[#D4AF37]/20 rounded-xl transition border border-slate-300 disabled:opacity-50"
           >
             {syncing ? 'Calculating...' : '⚡ Calculate Past Profits'}
           </button>
@@ -369,7 +369,7 @@ export default function AdminProfitWalletPage() {
               .map((payout) => (
                 <div
                   key={payout.id}
-                  className="p-3.5 bg-gray-50/80 rounded-xl border border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                  className="p-3.5 bg-[#0F2140]/80 rounded-xl border border-[#D4AF37]/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
                 >
                   <div className="space-y-1">
                     <div className="flex flex-wrap items-center gap-2">
@@ -496,7 +496,7 @@ export default function AdminProfitWalletPage() {
               </div>
 
               {/* Real-time Paystack Account Resolution Box */}
-              <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs">
+              <div className="bg-[#0F2140] border border-[#D4AF37]/20 text-[#A8B0C5] rounded-xl p-3 text-xs">
                 <span className="text-[#A8B0C5] block">Account Holder Name:</span>
                 {resolvingAccount ? (
                   <span className="text-blue-600 font-semibold animate-pulse">

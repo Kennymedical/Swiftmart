@@ -26,7 +26,7 @@ export async function StoryBar({ currentUserAvatarUrl }: { currentUserAvatarUrl?
   return (
     <div className="flex gap-3 overflow-x-auto border-b bg-[#0A1931]/80 backdrop-blur-md border-b border-[#D4AF37]/20 p-3 scrollbar-none">
       <Link href="/stories/create" className="flex w-20 flex-shrink-0 flex-col items-center gap-1">
-        <div className="relative h-16 w-16 overflow-hidden rounded-full border-2 border-gray-200 bg-gray-100">
+        <div className="relative h-16 w-16 overflow-hidden rounded-full border-2 border-[#D4AF37]/30 bg-[#0F2140]">
           {currentUserAvatarUrl && (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={currentUserAvatarUrl} alt="You" className="h-full w-full object-cover" />
@@ -47,7 +47,7 @@ export async function StoryBar({ currentUserAvatarUrl }: { currentUserAvatarUrl?
             className="flex w-20 flex-shrink-0 flex-col items-center gap-1"
           >
             <div className="h-16 w-16 overflow-hidden rounded-full border-2 border-blue-600 p-0.5">
-              <div className="h-full w-full overflow-hidden rounded-full bg-gray-100">
+              <div className="h-full w-full overflow-hidden rounded-full bg-[#0F2140]">
                 {vendor.user?.avatar_url && (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img

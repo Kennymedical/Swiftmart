@@ -153,7 +153,7 @@ export default async function VendorDashboardPage() {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
+    <div className="min-h-screen bg-[#0A1931] text-[#F5F7FA] pb-24">
       <div className="bg-[#0F172A] px-4 py-5">
         <h1 className="text-xl font-bold text-white">{vendor.business_name}</h1>
         <p className="text-[#D4AF37] text-xs mt-1 capitalize">{vendor.status}</p>
@@ -162,7 +162,7 @@ export default async function VendorDashboardPage() {
       <div className="p-4">
         {/* Products Section */}
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold text-gray-500">My Products</h2>
+          <h2 className="text-sm font-semibold text-[#A8B0C5]">My Products</h2>
           <Link
             href="/vendor/products/add"
             className="text-xs font-semibold bg-[#0F172A] text-[#D4AF37] px-3 py-1.5 rounded-lg border border-[#D4AF37]"
@@ -172,12 +172,12 @@ export default async function VendorDashboardPage() {
         </div>
 
         {!products || products.length === 0 ? (
-          <p className="text-center text-gray-400 text-sm py-8">No products yet.</p>
+          <p className="text-center text-[#8A94B0] text-sm py-8">No products yet.</p>
         ) : (
           <div className="grid grid-cols-3 gap-2 mb-8">
             {products.map((p) => (
-              <div key={p.id} className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100">
-                <div className="aspect-square bg-gray-100">
+              <div key={p.id} className="bg-gradient-to-b from-[#142850] to-[#1B2F5E] rounded-xl overflow-hidden shadow-sm border border-[#D4AF37]/20">
+                <div className="aspect-square bg-[#0F2140]">
                   {p.images?.[0] && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={p.images[0]} alt={p.name} className="w-full h-full object-cover" />
@@ -197,7 +197,7 @@ export default async function VendorDashboardPage() {
         )}
 
         {/* Orders to Fulfill Section */}
-        <h2 className="text-sm font-semibold text-gray-500 mb-3">Orders to Fulfill</h2>
+        <h2 className="text-sm font-semibold text-[#A8B0C5] mb-3">Orders to Fulfill</h2>
         <VendorOrdersList items={formattedItems} />
       </div>
     </div>

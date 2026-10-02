@@ -36,7 +36,7 @@ export function AdminPostActions({ postId }: { postId: string }) {
         <button
           onClick={() => handleAction('reject_post', 'reject')}
           disabled={loading !== null}
-          className="rounded-lg bg-white text-red-600 border border-red-200 text-xs font-semibold px-3 py-1.5 disabled:opacity-50"
+          className="rounded-lg bg-[#142850] text-red-400 border border-red-500/30 hover:bg-red-950/40 border border-red-200 text-xs font-semibold px-3 py-1.5 disabled:opacity-50"
         >
           {loading === 'reject' ? '...' : 'Reject'}
         </button>

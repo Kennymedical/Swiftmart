@@ -71,7 +71,7 @@ export function ResolveDisputeButtons({ disputeId }: { disputeId: string }) {
         <button
           onClick={() => run({ type: 'resolve_dispute', disputeId, resolution: 'favor_buyer' }, 'buyer')}
           disabled={loading !== null}
-          className="flex-1 bg-white text-red-600 font-semibold text-xs py-2 rounded-lg border border-red-200 disabled:opacity-50"
+          className="flex-1 bg-[#142850] text-red-400 border border-red-500/30 hover:bg-red-950/40 font-semibold text-xs py-2 rounded-lg border border-red-200 disabled:opacity-50"
         >
           {loading === 'buyer' ? '...' : 'Favor Buyer (Refund)'}
         </button>

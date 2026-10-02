@@ -123,7 +123,7 @@ export function PostCard({ post, currentUserId }: { post: PostCardData; currentU
       {/* Header */}
       <div className="flex items-center justify-between p-3">
         <Link href={`/profile/${post.author.username}`} className="flex items-center gap-2">
-          <div className="h-10 w-10 overflow-hidden rounded-full bg-gray-200">
+          <div className="h-10 w-10 overflow-hidden rounded-full bg-[#0F2140]">
             {post.author.avatar_url && (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={post.author.avatar_url} alt={displayName} className="h-full w-full object-cover" />
@@ -148,7 +148,7 @@ export function PostCard({ post, currentUserId }: { post: PostCardData; currentU
       {post.content && <p className="whitespace-pre-line px-3 pb-2 text-sm">{post.content}</p>}
 
       {post.image_urls.length > 0 && (
-        <div className="bg-gray-100">
+        <div className="bg-[#0F2140]">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={post.image_urls[0]} alt="" className="max-h-[480px] w-full object-cover" />
         </div>
@@ -159,7 +159,7 @@ export function PostCard({ post, currentUserId }: { post: PostCardData; currentU
           href={`/products/${post.product.slug}`}
           className="mx-3 mb-3 flex items-center gap-3 rounded-md border p-2"
         >
-          <div className="h-14 w-14 flex-shrink-0 overflow-hidden rounded-md bg-gray-100">
+          <div className="h-14 w-14 flex-shrink-0 overflow-hidden rounded-md bg-[#0F2140]">
             {post.product.images[0] && (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -235,7 +235,7 @@ function FooterButton({
       onClick={onClick}
       className={`flex-1 rounded-md py-2 text-center text-sm font-medium ${
         active ? 'text-blue-600' : 'text-gray-600'
-      } hover:bg-gray-50`}
+      } hover:bg-white/5`}
     >
       {label}
     </button>

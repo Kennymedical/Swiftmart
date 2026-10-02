@@ -195,14 +195,14 @@ export default function CartPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-[#0A1931]">
         <p className="text-gray-500">Loading cart...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-80">
+    <div className="min-h-screen bg-[#0A1931] pb-80">
       <div className="bg-[#0F172A] px-4 py-5">
         <h1 className="text-xl font-bold text-white">
           Your <span className="text-[#D4AF37]">Cart</span>
@@ -228,7 +228,7 @@ export default function CartPage() {
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {items.map((item) => (
               <div key={item.id} className="bg-gradient-to-br from-[#142850] to-[#1B2F5E] rounded-xl overflow-hidden border border-[#D4AF37]/25 shadow-[0_4px_20px_rgba(212,175,55,0.08)]">
-                <div className="relative aspect-square bg-gray-100">
+                <div className="relative aspect-square bg-[#0F2140]">
                   {item.product.images?.[0] && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -239,7 +239,7 @@ export default function CartPage() {
                   )}
                   <button
                     onClick={() => removeItem(item.id)}
-                    className="absolute top-1 right-1 bg-white/90 text-red-600 rounded-full h-6 w-6 flex items-center justify-center text-xs font-bold shadow-sm"
+                    className="absolute top-1 right-1 bg-[#0F2140]/90 text-red-600 rounded-full h-6 w-6 flex items-center justify-center text-xs font-bold shadow-sm"
                     aria-label="Remove"
                   >
                     ×
@@ -252,7 +252,7 @@ export default function CartPage() {
                   <p className="text-[#0F172A] font-bold text-sm mb-2">
                     {naira(Math.round(item.product.price_kobo * 1.2))}
                   </p>
-                  <div className="flex items-center justify-between bg-gray-50 rounded-lg px-1">
+                  <div className="flex items-center justify-between bg-[#0A1931] rounded-lg px-1">
                     <button
                       onClick={() => updateQuantity(item.id, item.quantity - 1)}
                       className="px-2 py-1 text-[#0F172A] font-bold"

@@ -45,7 +45,7 @@ export function VendorOrdersList({ items }: { items: OrderItemData[] }) {
           >
             <div className="flex gap-3 items-center">
               {/* Product Thumbnail */}
-              <div className="w-16 h-16 rounded-xl bg-gray-100 flex-shrink-0 overflow-hidden border border-gray-100">
+              <div className="w-16 h-16 rounded-xl bg-[#0F2140] flex-shrink-0 overflow-hidden border border-[#D4AF37]/20">
                 {item.imageUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -128,14 +128,14 @@ export function VendorOrdersList({ items }: { items: OrderItemData[] }) {
               </div>
               <button
                 onClick={() => setSelectedItem(null)}
-                className="h-8 w-8 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 flex items-center justify-center text-sm font-bold"
+                className="h-8 w-8 rounded-full bg-[#0F2140] text-[#A8B0C5] hover:bg-[#142850] hover:text-[#F5F7FA] border border-[#D4AF37]/20 flex items-center justify-center text-sm font-bold"
               >
                 ✕
               </button>
             </div>
 
             {/* Full Product Picture */}
-            <div className="w-full aspect-video rounded-2xl bg-gray-100 overflow-hidden border border-gray-200 flex items-center justify-center">
+            <div className="w-full aspect-video rounded-2xl bg-[#0F2140] overflow-hidden border border-[#D4AF37]/20 flex items-center justify-center">
               {selectedItem.imageUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -222,7 +222,7 @@ export function VendorOrdersList({ items }: { items: OrderItemData[] }) {
               />
               <button
                 onClick={() => setSelectedItem(null)}
-                className="w-full py-2.5 text-xs font-bold text-gray-500 bg-gray-100 rounded-xl hover:bg-gray-200"
+                className="w-full py-2.5 text-xs font-bold text-[#A8B0C5] bg-[#0F2140] rounded-xl hover:bg-[#142850] hover:text-[#F5F7FA] border border-[#D4AF37]/20"
               >
                 Close
               </button>
