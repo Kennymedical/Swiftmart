@@ -39,7 +39,7 @@ export function NotificationsList({ notifications }: { notifications: Notificati
             className={`whitespace-nowrap text-xs font-bold px-3.5 py-1.5 rounded-full transition ${
               activeTab === tab.key
                 ? 'bg-[#D4AF37] text-[#0A1028] shadow'
-                : 'bg-[#151B3D] text-slate-300 hover:text-white border border-white/5'
+                : 'bg-[#151B3D] text-[#F5EAC2] hover:text-white border border-white/5'
             }`}
           >
             {tab.label}

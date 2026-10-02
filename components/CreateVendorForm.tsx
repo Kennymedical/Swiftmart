@@ -38,7 +38,7 @@ export function CreateVendorForm() {
     <div className="bg-gradient-to-b from-[#142850] to-[#1B2F5E] rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.37)] border border-[#D4AF37]/25 p-4 text-[#F5F7FA]">
       <button
         onClick={() => setOpen(!open)}
-        className="text-sm font-semibold text-[#0F172A]"
+        className="text-sm font-semibold text-[#E9C86A]"
       >
         {open ? '− Manually add a vendor' : '+ Manually add a vendor'}
       </button>

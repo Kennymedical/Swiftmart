@@ -57,7 +57,7 @@ export function FollowButton({
       onClick={toggle}
       disabled={loading}
       className={`${base} ${
-        following ? 'border border-gray-300 text-gray-700' : 'bg-blue-600 text-white'
+        following ? 'border border-[#D4AF37]/40 text-[#E9C86A]' : 'bg-blue-600 text-white'
       } disabled:opacity-50`}
     >
       {following ? 'Following' : 'Follow'}

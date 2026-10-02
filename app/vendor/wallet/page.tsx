@@ -202,7 +202,7 @@ function VendorWalletContent() {
               <span className="text-emerald-400 font-bold">● Ready for withdrawal</span>
               <Link
                 href="/wallet/send?mode=bank"
-                className="px-5 py-2 rounded-full bg-[#F5C445] text-black font-extrabold flex items-center gap-1 hover:brightness-110 active:scale-95 transition-all shadow-md"
+                className="px-5 py-2 rounded-full bg-gradient-to-r from-[#F2D57E] to-[#D4A937] text-[#0A1931] font-extrabold flex items-center gap-1 hover:brightness-110 active:scale-95 transition-all shadow-md"
               >
                 Withdraw <ArrowUpRight size={14} />
               </Link>
@@ -277,7 +277,7 @@ function VendorWalletContent() {
                 key={tab}
                 onClick={() => setActiveTab(tab)}
                 className={`flex-1 py-1.5 rounded-lg font-bold capitalize transition-all ${
-                  activeTab === tab ? 'bg-[#F5C445] text-black shadow-md' : 'text-[#A0A3B1]'
+                  activeTab === tab ? 'bg-gradient-to-r from-[#F2D57E] to-[#D4A937] text-[#0A1931] shadow-md' : 'text-[#A0A3B1]'
                 }`}
               >
                 {tab}

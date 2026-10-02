@@ -402,7 +402,7 @@ function SendTransferContent() {
                   setBeneficiary(null);
                 }}
                 className={`flex-1 py-2.5 rounded-lg font-bold transition-all ${
-                  mode === 'user' ? 'bg-[#F5C445] text-black shadow-md' : 'text-[#A0A3B1]'
+                  mode === 'user' ? 'bg-gradient-to-r from-[#F2D57E] to-[#D4A937] text-[#0A1931] shadow-md' : 'text-[#A0A3B1]'
                 }`}
               >
                 P2P (Username)
@@ -413,7 +413,7 @@ function SendTransferContent() {
                   setBeneficiary(null);
                 }}
                 className={`flex-1 py-2.5 rounded-lg font-bold transition-all ${
-                  mode === 'bank' ? 'bg-[#F5C445] text-black shadow-md' : 'text-[#A0A3B1]'
+                  mode === 'bank' ? 'bg-gradient-to-r from-[#F2D57E] to-[#D4A937] text-[#0A1931] shadow-md' : 'text-[#A0A3B1]'
                 }`}
               >
                 Bank Account
@@ -436,7 +436,7 @@ function SendTransferContent() {
                     type="button"
                     onClick={() => verifyP2PUsername(false)}
                     disabled={isResolving || username.trim().length < 3}
-                    className="absolute right-2 px-3.5 py-2 bg-[#F5C445] text-black rounded-xl text-xs font-bold disabled:opacity-40 hover:brightness-110 active:scale-95 transition-all flex items-center gap-1"
+                    className="absolute right-2 px-3.5 py-2 bg-gradient-to-r from-[#F2D57E] to-[#D4A937] text-[#0A1931] rounded-xl text-xs font-bold disabled:opacity-40 hover:brightness-110 active:scale-95 transition-all flex items-center gap-1"
                   >
                     <Search size={14} />
                     {isResolving ? 'Checking...' : 'Verify'}
@@ -523,7 +523,7 @@ function SendTransferContent() {
                 setStep(mode === 'user' ? 3 : 2);
               }}
               disabled={!beneficiary}
-              className="w-full mt-4 py-4 rounded-full bg-[#F5C445] text-black font-extrabold text-sm disabled:opacity-40 hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-[#F5C445]/20"
+              className="w-full mt-4 py-4 rounded-full bg-gradient-to-r from-[#F2D57E] to-[#D4A937] text-[#0A1931] font-extrabold text-sm disabled:opacity-40 hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-[#F5C445]/20"
             >
               Continue
             </button>
@@ -550,7 +550,7 @@ function SendTransferContent() {
             </div>
             <button
               onClick={() => setStep(3)}
-              className="w-full py-4 rounded-full bg-[#F5C445] text-black font-extrabold text-sm hover:brightness-110 active:scale-95 transition-all"
+              className="w-full py-4 rounded-full bg-gradient-to-r from-[#F2D57E] to-[#D4A937] text-[#0A1931] font-extrabold text-sm hover:brightness-110 active:scale-95 transition-all"
             >
               Confirm & Continue
             </button>
@@ -631,7 +631,7 @@ function SendTransferContent() {
                 }
                 setStep(4);
               }}
-              className="w-full py-4 rounded-full bg-[#F5C445] text-black font-extrabold text-sm hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-[#F5C445]/20"
+              className="w-full py-4 rounded-full bg-gradient-to-r from-[#F2D57E] to-[#D4A937] text-[#0A1931] font-extrabold text-sm hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-[#F5C445]/20"
             >
               Continue
             </button>
@@ -682,7 +682,7 @@ function SendTransferContent() {
                 }
                 setStep(5);
               }}
-              className="w-full py-4 rounded-full bg-[#F5C445] text-black font-extrabold text-sm hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-[#F5C445]/20"
+              className="w-full py-4 rounded-full bg-gradient-to-r from-[#F2D57E] to-[#D4A937] text-[#0A1931] font-extrabold text-sm hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-[#F5C445]/20"
             >
               Proceed to PIN Authorization
             </button>
@@ -817,7 +817,7 @@ function SendTransferContent() {
             </div>
             <button
               onClick={() => router.push('/wallet')}
-              className="w-full py-4 rounded-full bg-[#F5C445] text-black text-sm font-extrabold hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-[#F5C445]/20"
+              className="w-full py-4 rounded-full bg-gradient-to-r from-[#F2D57E] to-[#D4A937] text-[#0A1931] text-sm font-extrabold hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-[#F5C445]/20"
             >
               Return to Wallet
             </button>

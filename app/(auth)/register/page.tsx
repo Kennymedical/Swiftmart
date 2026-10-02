@@ -41,10 +41,10 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#0F172A] to-[#1E293B] p-4">
       <div className="w-full max-w-md bg-gradient-to-b from-[#142850] to-[#1B2F5E] rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.37)] border border-[#D4AF37]/25 p-8 text-[#F5F7FA]">
-        <h1 className="text-center text-4xl font-bold text-[#0F172A] mb-1">
+        <h1 className="text-center text-4xl font-bold text-[#E9C86A] mb-1">
           SwiftMart
         </h1>
-        <p className="text-center text-slate-500 mb-8">Create your account</p>
+        <p className="text-center text-[#A8B0C5] mb-8">Create your account</p>
 
         <form onSubmit={handleRegister}>
           <input
@@ -87,7 +87,7 @@ export default function RegisterPage() {
           </button>
         </form>
 
-        <p className="text-center text-sm text-gray-600 mt-6">
+        <p className="text-center text-sm text-[#A8B0C5] mt-6">
           Already have an account?{' '}
           <Link href="/login" className="text-[#D4AF37] font-semibold">
             Log in

@@ -207,7 +207,7 @@ export default function CartPage() {
         <h1 className="text-xl font-bold text-white">
           Your <span className="text-[#D4AF37]">Cart</span>
         </h1>
-        <p className="text-slate-300 text-xs mt-1">
+        <p className="text-[#F5EAC2] text-xs mt-1">
           {items.length} item{items.length === 1 ? '' : 's'}
         </p>
       </div>
@@ -246,23 +246,23 @@ export default function CartPage() {
                   </button>
                 </div>
                 <div className="p-2">
-                  <p className="text-xs text-gray-900 font-medium line-clamp-1 mb-1">
+                  <p className="text-xs text-[#F5EAC2] font-medium line-clamp-1 mb-1">
                     {item.product.name}
                   </p>
-                  <p className="text-[#0F172A] font-bold text-sm mb-2">
+                  <p className="text-[#E9C86A] font-bold text-sm mb-2">
                     {naira(Math.round(item.product.price_kobo * 1.2))}
                   </p>
                   <div className="flex items-center justify-between bg-[#0A1931] rounded-lg px-1">
                     <button
                       onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                      className="px-2 py-1 text-[#0F172A] font-bold"
+                      className="px-2 py-1 text-[#E9C86A] font-bold"
                     >
                       −
                     </button>
                     <span className="text-xs font-medium">{item.quantity}</span>
                     <button
                       onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                      className="px-2 py-1 text-[#0F172A] font-bold"
+                      className="px-2 py-1 text-[#E9C86A] font-bold"
                     >
                       +
                     </button>
@@ -285,34 +285,34 @@ export default function CartPage() {
 
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="block text-[11px] font-medium text-gray-600 mb-1">Recipient Name</label>
+                <label className="block text-[11px] font-medium text-[#A8B0C5] mb-1">Recipient Name</label>
                 <input
                   type="text"
                   placeholder="Full Name"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  className="w-full text-xs border border-gray-200 rounded-xl px-3 py-2 text-gray-900 focus:outline-none focus:border-[#D4AF37]"
+                  className="w-full text-xs border border-[#D4AF37]/30 rounded-xl px-3 py-2 text-[#F5EAC2] focus:outline-none focus:border-[#D4AF37]"
                 />
               </div>
               <div>
-                <label className="block text-[11px] font-medium text-gray-600 mb-1">Phone Number</label>
+                <label className="block text-[11px] font-medium text-[#A8B0C5] mb-1">Phone Number</label>
                 <input
                   type="tel"
                   placeholder="08012345678"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="w-full text-xs border border-gray-200 rounded-xl px-3 py-2 text-gray-900 focus:outline-none focus:border-[#D4AF37]"
+                  className="w-full text-xs border border-[#D4AF37]/30 rounded-xl px-3 py-2 text-[#F5EAC2] focus:outline-none focus:border-[#D4AF37]"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="block text-[11px] font-medium text-gray-600 mb-1">State</label>
+                <label className="block text-[11px] font-medium text-[#A8B0C5] mb-1">State</label>
                 <select
                   value={state}
                   onChange={(e) => setState(e.target.value)}
-                  className="w-full text-xs border border-gray-200 rounded-xl px-3 py-2 text-gray-900 bg-[#0A1931] text-[#F5F7FA] focus:outline-none focus:border-[#D4AF37]"
+                  className="w-full text-xs border border-[#D4AF37]/30 rounded-xl px-3 py-2 text-[#F5EAC2] bg-[#0A1931] text-[#F5F7FA] focus:outline-none focus:border-[#D4AF37]"
                 >
                   {NIGERIAN_STATES.map((s) => (
                     <option key={s} value={s}>{s}</option>
@@ -320,25 +320,25 @@ export default function CartPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-[11px] font-medium text-gray-600 mb-1">City / Town</label>
+                <label className="block text-[11px] font-medium text-[#A8B0C5] mb-1">City / Town</label>
                 <input
                   type="text"
                   placeholder="e.g. Ikeja, Lekki, Wuse"
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
-                  className="w-full text-xs border border-gray-200 rounded-xl px-3 py-2 text-gray-900 focus:outline-none focus:border-[#D4AF37]"
+                  className="w-full text-xs border border-[#D4AF37]/30 rounded-xl px-3 py-2 text-[#F5EAC2] focus:outline-none focus:border-[#D4AF37]"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-[11px] font-medium text-gray-600 mb-1">Street Address</label>
+              <label className="block text-[11px] font-medium text-[#A8B0C5] mb-1">Street Address</label>
               <input
                 type="text"
                 placeholder="House No, Street, Landmark"
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
-                className="w-full text-xs border border-gray-200 rounded-xl px-3 py-2 text-gray-900 focus:outline-none focus:border-[#D4AF37]"
+                className="w-full text-xs border border-[#D4AF37]/30 rounded-xl px-3 py-2 text-[#F5EAC2] focus:outline-none focus:border-[#D4AF37]"
               />
             </div>
           </div>
@@ -372,11 +372,11 @@ export default function CartPage() {
                 </div>
                 <div className="flex items-center justify-between text-xs text-[#A8B0C5]">
                   <span>Waybill / Logistics</span>
-                  <span className="font-medium text-gray-800">{shippingKobo !== null ? naira(shippingKobo) : 'Calculated after address'}</span>
+                  <span className="font-medium text-[#F5EAC2]">{shippingKobo !== null ? naira(shippingKobo) : 'Calculated after address'}</span>
                 </div>
-                <div className="flex items-center justify-between text-base font-bold text-[#0F172A] pt-1 border-t border-gray-100">
+                <div className="flex items-center justify-between text-base font-bold text-[#E9C86A] pt-1 border-t border-[#D4AF37]/20">
                   <span>Total Payable</span>
-                  <span className="text-[#0F172A]">{naira(total)}</span>
+                  <span className="text-[#E9C86A]">{naira(total)}</span>
                 </div>
               </div>
               <button

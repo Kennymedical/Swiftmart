@@ -54,7 +54,7 @@ export default function UserWalletPage() {
           </h2>
           <div className="mt-4 pt-3 border-t border-[#D4AF37]/20 flex items-center justify-between text-xs">
             <span className="text-[#A0A3B1]">{wallet?.virtual_account_number ? `${wallet.virtual_account_bank || 'Wema'} • ${wallet.virtual_account_number}` : 'SwiftMART Active Wallet'}</span>
-            <Link href="/wallet/fund" className="px-4 py-2 rounded-full bg-[#F5C445] text-black font-extrabold text-xs flex items-center gap-1">Add Money <Plus size={14} /></Link>
+            <Link href="/wallet/fund" className="px-4 py-2 rounded-full bg-gradient-to-r from-[#F2D57E] to-[#D4A937] text-[#0A1931] font-extrabold text-xs flex items-center gap-1">Add Money <Plus size={14} /></Link>
           </div>
         </div>
 
@@ -102,7 +102,7 @@ export default function UserWalletPage() {
           <div className="flex justify-between items-center"><h3 className="text-sm font-bold text-white">Transaction History</h3><Link href="/wallet/history" className="text-xs text-[#D4AF37]">View All</Link></div>
           <div className="flex bg-[#151B3D] border border-[#D4AF37]/20 rounded-xl p-1 text-xs">
             {(['all', 'in', 'out'] as const).map(tab => (
-              <button key={tab} onClick={() => setActiveTab(tab)} className={`flex-1 py-1.5 rounded-lg font-bold capitalize ${activeTab === tab ? 'bg-[#F5C445] text-black' : 'text-[#A0A3B1]'}`}>{tab}</button>
+              <button key={tab} onClick={() => setActiveTab(tab)} className={`flex-1 py-1.5 rounded-lg font-bold capitalize ${activeTab === tab ? 'bg-gradient-to-r from-[#F2D57E] to-[#D4A937] text-[#0A1931]' : 'text-[#A0A3B1]'}`}>{tab}</button>
             ))}
           </div>
           <div className="bg-[#151B3D] border border-[#D4AF37]/25 rounded-2xl divide-y divide-[#D4AF37]/10">

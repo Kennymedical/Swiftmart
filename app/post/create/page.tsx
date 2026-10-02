@@ -84,7 +84,7 @@ export default function CreatePostPage() {
   return (
     <div className="min-h-screen bg-[#0A1931] text-[#F5F7FA] p-4 pb-24">
       <div className="max-w-md mx-auto bg-gradient-to-b from-[#142850] to-[#1B2F5E] rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.37)] border border-[#D4AF37]/25 p-6 mt-6 text-[#F5F7FA]">
-        <h1 className="text-xl font-semibold text-[#0F172A] mb-6">
+        <h1 className="text-xl font-semibold text-[#E9C86A] mb-6">
           Create post
         </h1>
 
@@ -105,7 +105,7 @@ export default function CreatePostPage() {
               type="file"
               accept="image/*"
               onChange={handleImageChange}
-              className="w-full text-sm text-gray-600"
+              className="w-full text-sm text-[#A8B0C5]"
             />
           </label>
 

@@ -313,7 +313,7 @@ export default function AdminProfitWalletPage() {
         <div className="mt-2 text-3xl sm:text-5xl font-black tracking-tight text-white">
           {loading ? '₦...' : formatNaira(treasuryBalance)}
         </div>
-        <p className="text-xs text-slate-300 mt-2">
+        <p className="text-xs text-[#F5EAC2] mt-2">
           100% available for admin withdrawal to corporate or personal bank account via Paystack.
         </p>
       </div>
@@ -356,7 +356,7 @@ export default function AdminProfitWalletPage() {
 
         {revenueLedger.filter((item) => item.source === 'withdrawal').length === 0 ? (
           <div className="text-center py-8 bg-[#0A1931]/60 rounded-xl border border-dashed border-[#D4AF37]/25">
-            <p className="text-sm font-medium text-gray-600">No bank withdrawals recorded yet</p>
+            <p className="text-sm font-medium text-[#A8B0C5]">No bank withdrawals recorded yet</p>
             <p className="text-xs text-[#A8B0C5] mt-1">
               When you withdraw profit to your bank account, amounts, bank names, timestamps, and transfer statuses will display here.
             </p>
@@ -373,7 +373,7 @@ export default function AdminProfitWalletPage() {
                 >
                   <div className="space-y-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-xs font-bold text-gray-900">
+                      <span className="text-xs font-bold text-[#F5EAC2]">
                         {payout.description.replace('Admin Profit Payout to ', '')}
                       </span>
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
@@ -429,7 +429,7 @@ export default function AdminProfitWalletPage() {
                       >
                         {item.source.replace('_', ' ')}
                       </span>
-                      <span className="font-semibold text-gray-900">{item.description}</span>
+                      <span className="font-semibold text-[#F5EAC2]">{item.description}</span>
                     </div>
                     <span className="text-xs text-[#A8B0C5]">
                       {new Date(item.created_at).toLocaleString('en-NG')}
@@ -460,14 +460,14 @@ export default function AdminProfitWalletPage() {
 
             <form onSubmit={handleWithdrawSubmit} className="space-y-4">
               <div>
-                <label className="text-xs font-semibold text-gray-700 block mb-1">Select Bank</label>
+                <label className="text-xs font-semibold text-[#E9C86A] block mb-1">Select Bank</label>
                 <select
                   value={bankCode}
                   onChange={(e) => {
                     setBankCode(e.target.value);
                     if (accountNumber.length === 10) handleResolveAccount(accountNumber, e.target.value);
                   }}
-                  className="w-full rounded-xl border border-gray-200 p-3 text-sm focus:border-[#D4AF37] outline-none"
+                  className="w-full rounded-xl border border-[#D4AF37]/30 p-3 text-sm focus:border-[#D4AF37] outline-none"
                 >
                   {banks.map((b) => (
                     <option key={b.code} value={b.code}>
@@ -478,7 +478,7 @@ export default function AdminProfitWalletPage() {
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-gray-700 block mb-1">Account Number</label>
+                <label className="text-xs font-semibold text-[#E9C86A] block mb-1">Account Number</label>
                 <input
                   type="text"
                   maxLength={10}
@@ -490,7 +490,7 @@ export default function AdminProfitWalletPage() {
                     if (val.length === 10) handleResolveAccount(val, bankCode);
                     else setAccountName('');
                   }}
-                  className="w-full rounded-xl border border-gray-200 p-3 text-sm font-mono tracking-wider focus:border-[#D4AF37] outline-none"
+                  className="w-full rounded-xl border border-[#D4AF37]/30 p-3 text-sm font-mono tracking-wider focus:border-[#D4AF37] outline-none"
                   placeholder="0123456789"
                 />
               </div>
@@ -512,14 +512,14 @@ export default function AdminProfitWalletPage() {
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-gray-700 block mb-1">Amount to Withdraw (₦)</label>
+                <label className="text-xs font-semibold text-[#E9C86A] block mb-1">Amount to Withdraw (₦)</label>
                 <input
                   type="number"
                   required
                   min={100}
                   value={withdrawAmountNaira}
                   onChange={(e) => setWithdrawAmountNaira(e.target.value ? Number(e.target.value) : '')}
-                  className="w-full rounded-xl border border-gray-200 p-3 text-sm font-bold focus:border-[#D4AF37] outline-none"
+                  className="w-full rounded-xl border border-[#D4AF37]/30 p-3 text-sm font-bold focus:border-[#D4AF37] outline-none"
                   placeholder="e.g. 50000"
                 />
                 <p className="text-[11px] text-[#A8B0C5] mt-1">
@@ -533,7 +533,7 @@ export default function AdminProfitWalletPage() {
                 <button
                   type="button"
                   onClick={() => setShowWithdrawModal(false)}
-                  className="flex-1 py-3 text-sm font-semibold rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50"
+                  className="flex-1 py-3 text-sm font-semibold rounded-xl border border-[#D4AF37]/30 text-[#A8B0C5] hover:bg-gray-50"
                 >
                   Cancel
                 </button>

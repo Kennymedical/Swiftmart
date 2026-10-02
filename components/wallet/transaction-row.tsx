@@ -34,7 +34,7 @@ export function TransactionRow({ tx }: { tx: Transaction }) {
         <p className="text-xs text-[#A8B0C5]">{new Date(tx.created_at).toLocaleString()}</p>
       </div>
       <div className="text-right">
-        <p className={`text-sm font-semibold ${isCredit ? 'text-green-600' : 'text-gray-900'}`}>
+        <p className={`text-sm font-semibold ${isCredit ? 'text-green-600' : 'text-[#F5EAC2]'}`}>
           {isCredit ? '+' : '−'}
           {formatNaira(tx.amount_kobo)}
         </p>

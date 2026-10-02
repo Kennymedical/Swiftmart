@@ -37,7 +37,7 @@ export function NotificationItem({ id, title, body, link, readAt, createdAt }: P
           <p className={`text-sm ${!readAt ? 'font-bold text-[#F5C445]' : 'font-medium text-white'}`}>
             {title}
           </p>
-          <p className="text-sm text-slate-300 mt-0.5 leading-snug">{body}</p>
+          <p className="text-sm text-[#F5EAC2] mt-0.5 leading-snug">{body}</p>
           <p className="text-[11px] text-[#D4AF37]/80 mt-1">
             {new Date(createdAt).toLocaleString()}
           </p>

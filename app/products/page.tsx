@@ -62,7 +62,7 @@ export default async function ProductsPage() {
                     />
                   )}
                   {hasDiscount && (
-                    <span className="absolute top-1 left-1 bg-[#D4AF37] text-[#0F172A] text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                    <span className="absolute top-1 left-1 bg-[#D4AF37] text-[#E9C86A] text-[10px] font-bold px-1.5 py-0.5 rounded-full">
                       -{discountPercent}%
                     </span>
                   )}
@@ -74,7 +74,7 @@ export default async function ProductsPage() {
                   </p>
 
                   <div className="flex flex-col gap-0.5 mb-1">
-                    <span className="text-[#0F172A] font-bold text-sm">
+                    <span className="text-[#E9C86A] font-bold text-sm">
                       {formatNaira(displayPriceKobo)}
                     </span>
                     {hasDiscount && (

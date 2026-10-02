@@ -108,7 +108,7 @@ export function ReportProblemButton({ orderId }: { orderId: string }) {
 
       {/* Category Selection */}
       <div className="mb-3">
-        <label className="block text-xs font-semibold text-gray-700 mb-1">Issue Type</label>
+        <label className="block text-xs font-semibold text-[#E9C86A] mb-1">Issue Type</label>
         <select
           value={category}
           onChange={(e) => setCategory(e.target.value)}
@@ -124,7 +124,7 @@ export function ReportProblemButton({ orderId }: { orderId: string }) {
 
       {/* Detailed Description */}
       <div className="mb-3">
-        <label className="block text-xs font-semibold text-gray-700 mb-1">
+        <label className="block text-xs font-semibold text-[#E9C86A] mb-1">
           Detailed Explanation <span className="text-red-500">*</span>
         </label>
         <textarea
@@ -138,7 +138,7 @@ export function ReportProblemButton({ orderId }: { orderId: string }) {
 
       {/* Photo Proof Upload */}
       <div className="mb-3">
-        <label className="block text-xs font-semibold text-gray-700 mb-1">
+        <label className="block text-xs font-semibold text-[#E9C86A] mb-1">
           Photo Evidence (1–3 photos) <span className="text-red-500">*</span>
         </label>
         <input
@@ -146,7 +146,7 @@ export function ReportProblemButton({ orderId }: { orderId: string }) {
           accept="image/*"
           multiple
           onChange={handleFileChange}
-          className="w-full text-xs text-gray-600 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-red-100 file:text-red-700 hover:file:bg-red-200"
+          className="w-full text-xs text-[#A8B0C5] file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-red-100 file:text-red-700 hover:file:bg-red-200"
         />
         {files.length > 0 && (
           <p className="text-[10px] text-[#A8B0C5] mt-1">{files.length} file(s) selected</p>

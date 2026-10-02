@@ -234,7 +234,7 @@ function FooterButton({
     <button
       onClick={onClick}
       className={`flex-1 rounded-md py-2 text-center text-sm font-medium ${
-        active ? 'text-blue-600' : 'text-gray-600'
+        active ? 'text-blue-600' : 'text-[#A8B0C5]'
       } hover:bg-white/5`}
     >
       {label}

@@ -88,13 +88,13 @@ export default async function OrdersPage() {
 
               {/* Items List */}
               {o.order_items && o.order_items.length > 0 && (
-                <div className="mt-3 pt-2 border-t border-gray-100 space-y-1">
+                <div className="mt-3 pt-2 border-t border-[#D4AF37]/20 space-y-1">
                   {o.order_items.map((item) => (
-                    <div key={item.id} className="flex justify-between items-center text-xs text-gray-700">
+                    <div key={item.id} className="flex justify-between items-center text-xs text-[#E9C86A]">
                       <span>
                         {item.product_name} <span className="text-[#8A94B0]">× {item.quantity}</span>
                       </span>
-                      <span className="font-medium text-gray-600">
+                      <span className="font-medium text-[#A8B0C5]">
                         {naira(item.unit_price_kobo * item.quantity)}
                       </span>
                     </div>

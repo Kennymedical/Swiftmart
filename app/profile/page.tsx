@@ -45,7 +45,7 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-[#0A1931] p-4">
       <div className="max-w-md mx-auto bg-gradient-to-br from-[#142850] to-[#1B2F5E] rounded-2xl p-6 mt-6 border border-[#D4AF37]/25 shadow-[0_4px_20px_rgba(212,175,55,0.08)] text-[#F5F7FA]">
-        <h1 className="text-xl font-semibold text-[#0F172A] mb-6">Profile</h1>
+        <h1 className="text-xl font-semibold text-[#E9C86A] mb-6">Profile</h1>
 
         <div className="mb-2">
           <p className="text-sm text-[#A8B0C5]">Username</p>
@@ -62,7 +62,7 @@ export default function ProfilePage() {
             {isAdmin && (
               <Link
                 href="/admin"
-                className="block text-center bg-[#D4AF37] text-[#0F172A] font-bold py-3 rounded-xl"
+                className="block text-center bg-[#D4AF37] text-[#E9C86A] font-bold py-3 rounded-xl"
               >
                 Admin Dashboard
               </Link>

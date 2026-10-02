@@ -72,11 +72,11 @@ export function VendorOrdersList({ items }: { items: OrderItemData[] }) {
                 </div>
 
                 <p className="text-xs text-[#A8B0C5] mt-0.5">
-                  Qty: <span className="font-semibold text-slate-200">{item.quantity}</span> · Order #{item.orderNumber}
+                  Qty: <span className="font-semibold text-[#F5EAC2]">{item.quantity}</span> · Order #{item.orderNumber}
                 </p>
 
-                <p className="text-xs text-gray-600 mt-0.5">
-                  Buyer: <span className="font-medium text-slate-200">{item.customerName}</span>
+                <p className="text-xs text-[#A8B0C5] mt-0.5">
+                  Buyer: <span className="font-medium text-[#F5EAC2]">{item.customerName}</span>
                 </p>
 
                 <p className="text-[11px] text-[#D4AF37] font-semibold mt-1">
@@ -87,7 +87,7 @@ export function VendorOrdersList({ items }: { items: OrderItemData[] }) {
 
             {/* Quick Delivery summary bar */}
             <div className="mt-3 bg-[#0A1028]/80 border border-[#D4AF37]/30 rounded-xl p-2.5 text-xs">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 font-medium text-slate-300">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 font-medium text-[#F5EAC2]">
                 <span className="break-words">📍 {item.deliveryAddress}</span>
                 <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded self-start sm:self-auto flex-shrink-0">
                   Waybill: {naira(item.shippingKobo)}
@@ -97,7 +97,7 @@ export function VendorOrdersList({ items }: { items: OrderItemData[] }) {
 
             {/* Shipped Action */}
             <div
-              className="mt-3 pt-2.5 border-t border-gray-100 flex items-center justify-end"
+              className="mt-3 pt-2.5 border-t border-[#D4AF37]/20 flex items-center justify-end"
               onClick={(e) => e.stopPropagation()}
             >
               <MarkShippedButton
@@ -121,7 +121,7 @@ export function VendorOrdersList({ items }: { items: OrderItemData[] }) {
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+            <div className="flex items-center justify-between border-b border-[#D4AF37]/20 pb-3">
               <div>
                 <h3 className="font-bold text-white text-base">Order Item Details</h3>
                 <p className="text-xs text-[#A8B0C5]">Order #{selectedItem.orderNumber}</p>
@@ -156,9 +156,9 @@ export function VendorOrdersList({ items }: { items: OrderItemData[] }) {
                   {naira(selectedItem.line_total_kobo)}
                 </span>
               </div>
-              <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-gray-200/60 text-gray-600">
+              <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-[#D4AF37]/30/60 text-[#A8B0C5]">
                 <p>
-                  Quantity Ordered: <span className="font-bold text-gray-900">{selectedItem.quantity} unit(s)</span>
+                  Quantity Ordered: <span className="font-bold text-[#F5EAC2]">{selectedItem.quantity} unit(s)</span>
                 </p>
                 <p>
                   Status:{' '}
@@ -166,7 +166,7 @@ export function VendorOrdersList({ items }: { items: OrderItemData[] }) {
                 </p>
                 {selectedItem.orderDate && (
                   <p className="col-span-2">
-                    Date Placed: <span className="font-medium text-gray-800">{new Date(selectedItem.orderDate).toLocaleString('en-NG')}</span>
+                    Date Placed: <span className="font-medium text-[#F5EAC2]">{new Date(selectedItem.orderDate).toLocaleString('en-NG')}</span>
                   </p>
                 )}
               </div>
@@ -183,11 +183,11 @@ export function VendorOrdersList({ items }: { items: OrderItemData[] }) {
                 </span>
               </div>
 
-              <div className="space-y-1.5 text-xs text-gray-800">
+              <div className="space-y-1.5 text-xs text-[#F5EAC2]">
                 <div className="flex items-center justify-between">
                   <p>
                     <span className="text-[#A8B0C5]">Recipient Name:</span>{' '}
-                    <span className="font-bold text-gray-900">{selectedItem.recipientName}</span>
+                    <span className="font-bold text-[#F5EAC2]">{selectedItem.recipientName}</span>
                   </p>
                   {selectedItem.recipientPhone && selectedItem.recipientPhone !== 'No phone provided' && (
                     <a
@@ -201,7 +201,7 @@ export function VendorOrdersList({ items }: { items: OrderItemData[] }) {
 
                 <p>
                   <span className="text-[#A8B0C5]">Phone Number:</span>{' '}
-                  <span className="font-bold text-gray-900">{selectedItem.recipientPhone}</span>
+                  <span className="font-bold text-[#F5EAC2]">{selectedItem.recipientPhone}</span>
                 </p>
 
                 <div className="pt-2 border-t border-amber-200/80">

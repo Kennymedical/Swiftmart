@@ -91,7 +91,7 @@ export function VendorSearch() {
               onClick={() => router.push(`/admin/vendors/${r.id}`)}
               className="w-full text-left bg-[#142850] rounded-xl p-3 hover:bg-[#1B2F5E] border border-[#D4AF37]/20 text-[#F5F7FA]"
             >
-              <p className="text-sm font-semibold text-[#0F172A]">{r.business_name}</p>
+              <p className="text-sm font-semibold text-[#E9C86A]">{r.business_name}</p>
               <p className="text-xs text-[#A8B0C5]">
                 @{r.username ?? 'unknown'} · <span className="capitalize">{r.status}</span>
               </p>

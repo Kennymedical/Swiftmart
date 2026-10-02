@@ -60,15 +60,15 @@ export function MarkShippedButton({
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="bg-gradient-to-b from-[#142850] to-[#1B2F5E] rounded-2xl w-full max-w-sm p-5 shadow-[0_8px_32px_rgba(0,0,0,0.37)] border border-[#D4AF37]/25 text-[#F5F7FA]">
-            <h3 className="text-base font-bold text-[#0F172A] mb-1">Fulfill & Dispatch Order</h3>
+            <h3 className="text-base font-bold text-[#E9C86A] mb-1">Fulfill & Dispatch Order</h3>
             <p className="text-xs text-[#A8B0C5] mb-4">
               Select how you are dispatching this package to the customer.
             </p>
 
             {customerAddress && (
               <div className="bg-[#0F2140] border border-[#D4AF37]/20 rounded-xl p-2.5 mb-4 text-xs text-[#A8B0C5]">
-                <p className="font-semibold text-slate-800">Destination:</p>
-                <p className="text-slate-600 truncate">{customerAddress}</p>
+                <p className="font-semibold text-[#F5EAC2]">Destination:</p>
+                <p className="text-[#A8B0C5] truncate">{customerAddress}</p>
               </div>
             )}
 
@@ -80,7 +80,7 @@ export function MarkShippedButton({
                 className={`py-2 text-xs font-bold rounded-lg transition ${
                   waybillType === 'courier'
                     ? 'bg-[#0F172A] text-[#D4AF37] shadow-sm'
-                    : 'text-gray-600 hover:text-black'
+                    : 'text-[#A8B0C5] hover:text-[#0A1931]'
                 }`}
               >
                 🏍️ Courier Dispatch
@@ -91,7 +91,7 @@ export function MarkShippedButton({
                 className={`py-2 text-xs font-bold rounded-lg transition ${
                   waybillType === 'park'
                     ? 'bg-[#0F172A] text-[#D4AF37] shadow-sm'
-                    : 'text-gray-600 hover:text-black'
+                    : 'text-[#A8B0C5] hover:text-[#0A1931]'
                 }`}
               >
                 🚌 Motor Park / Self
@@ -108,7 +108,7 @@ export function MarkShippedButton({
             ) : (
               <div className="space-y-3 mb-4">
                 <div>
-                  <label className="block text-[11px] font-bold text-gray-700 mb-1">
+                  <label className="block text-[11px] font-bold text-[#E9C86A] mb-1">
                     Driver / Park Phone Number
                   </label>
                   <input
@@ -120,7 +120,7 @@ export function MarkShippedButton({
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-gray-700 mb-1">
+                  <label className="block text-[11px] font-bold text-[#E9C86A] mb-1">
                     Waybill Slip / Tracking Number
                   </label>
                   <input

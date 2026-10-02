@@ -99,14 +99,14 @@ export default async function FeedPage() {
                     <h2 className="text-lg font-bold text-white mb-1">{post.product.name}</h2>
                   )}
 
-                  {post.content && <p className="text-sm text-gray-300 mb-3">{post.content}</p>}
+                  {post.content && <p className="text-sm text-[#F5EAC2] mb-3">{post.content}</p>}
 
                   {post.product && (
                     <div className="flex items-center justify-between">
                       <p className="text-2xl font-extrabold text-[#D4AF37]">
                         ₦{(Math.round(post.product.price_kobo * 1.2) / 100).toLocaleString()}
                       </p>
-                      <button className="bg-[#D4AF37] text-[#0F172A] font-bold px-5 py-2 rounded-xl hover:scale-105 transition">
+                      <button className="bg-[#D4AF37] text-[#E9C86A] font-bold px-5 py-2 rounded-xl hover:scale-105 transition">
                         Buy Now
                       </button>
                     </div>

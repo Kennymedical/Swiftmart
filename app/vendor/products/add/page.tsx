@@ -133,7 +133,7 @@ export default function AddProductPage() {
     return (
       <div className="min-h-screen bg-[#0A1931] text-[#F5F7FA] p-4">
         <div className="max-w-md mx-auto bg-gradient-to-b from-[#142850] to-[#1B2F5E] rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.37)] border border-[#D4AF37]/25 p-6 text-[#F5F7FA] mt-6 text-center">
-          <h1 className="text-xl font-semibold text-[#0F172A] mb-2">
+          <h1 className="text-xl font-semibold text-[#E9C86A] mb-2">
             Vendors only
           </h1>
           <p className="text-sm text-[#A8B0C5] mb-4">
@@ -153,7 +153,7 @@ export default function AddProductPage() {
   return (
     <div className="min-h-screen bg-[#0A1931] text-[#F5F7FA] p-4 pb-24">
       <div className="max-w-md mx-auto bg-gradient-to-b from-[#142850] to-[#1B2F5E] rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.37)] border border-[#D4AF37]/25 p-6 text-[#F5F7FA] mt-6">
-        <h1 className="text-xl font-semibold text-[#0F172A] mb-1">Add Product</h1>
+        <h1 className="text-xl font-semibold text-[#E9C86A] mb-1">Add Product</h1>
         <p className="text-sm text-[#A8B0C5] mb-6">
           Submitted products need admin approval before they appear in the Shop.
         </p>

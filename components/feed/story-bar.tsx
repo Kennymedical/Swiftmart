@@ -35,7 +35,7 @@ export async function StoryBar({ currentUserAvatarUrl }: { currentUserAvatarUrl?
             +
           </span>
         </div>
-        <span className="text-center text-xs text-gray-600">Create story</span>
+        <span className="text-center text-xs text-[#A8B0C5]">Create story</span>
       </Link>
 
       {Array.from(byVendor.values()).map((story) => {
@@ -58,7 +58,7 @@ export async function StoryBar({ currentUserAvatarUrl }: { currentUserAvatarUrl?
                 )}
               </div>
             </div>
-            <span className="line-clamp-1 text-center text-xs text-gray-600">
+            <span className="line-clamp-1 text-center text-xs text-[#A8B0C5]">
               {vendor.business_name}
             </span>
           </Link>
