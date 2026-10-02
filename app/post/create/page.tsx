@@ -118,7 +118,7 @@ export default function CreatePostPage() {
             />
           )}
 
-          {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
+          {error && <p className="text-sm text-red-400 mb-4">{error}</p>}
 
           <button
             type="submit"

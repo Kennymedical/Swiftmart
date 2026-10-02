@@ -59,7 +59,7 @@ export default async function FeedPage() {
         <StoryBar currentUserAvatarUrl={profile?.avatar_url} />
 
         {feed.length === 0 ? (
-          <p className="py-16 text-center text-gray-500">
+          <p className="py-16 text-center text-[#A8B0C5]">
             No posts yet — follow some vendors to fill your feed.
           </p>
         ) : (
@@ -84,7 +84,7 @@ export default async function FeedPage() {
                     />
                     <div>
                       <p className="font-bold text-white">{post.author?.username}</p>
-                      <p className="text-xs text-gray-400">
+                      <p className="text-xs text-[#A8B0C5]">
                         {new Date(post.created_at).toLocaleDateString()}
                       </p>
                     </div>

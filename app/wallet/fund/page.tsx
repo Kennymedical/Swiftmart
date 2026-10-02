@@ -43,7 +43,7 @@ export default function FundWalletPage() {
     <div className="mx-auto max-w-md px-4 py-8">
       <h1 className="mb-6 text-xl font-bold">Fund Wallet</h1>
 
-      {error && <p className="mb-4 rounded-md bg-red-50 p-2 text-sm text-red-600">{error}</p>}
+      {error && <p className="mb-4 rounded-md bg-red-50 p-2 text-sm text-red-400">{error}</p>}
 
       <div className="mb-4 grid grid-cols-3 gap-2">
         {PRESET_AMOUNTS_NAIRA.map((amt) => (
@@ -60,7 +60,7 @@ export default function FundWalletPage() {
       </div>
 
       <div className="relative">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">₦</span>
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A8B0C5]">₦</span>
         <input
           type="number"
           min={100}
@@ -79,7 +79,7 @@ export default function FundWalletPage() {
         {loading ? 'Redirecting to Paystack…' : 'Continue'}
       </button>
 
-      <p className="mt-3 text-center text-xs text-gray-400">
+      <p className="mt-3 text-center text-xs text-[#A8B0C5]">
         You'll be redirected to Paystack to pay by card, bank transfer, or USSD.
       </p>
     </div>

@@ -24,7 +24,7 @@ export function CompleteOrderButton({ orderId }: { orderId: string }) {
 
   return (
     <div>
-      {error && <p className="text-xs text-red-600 mb-1">{error}</p>}
+      {error && <p className="text-xs text-red-400 mb-1">{error}</p>}
       <button
         onClick={handleClick}
         disabled={loading}

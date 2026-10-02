@@ -30,8 +30,8 @@ export function TransactionRow({ tx }: { tx: Transaction }) {
     <div className="flex items-center justify-between px-4 py-3">
       <div>
         <p className="text-sm font-medium">{TYPE_LABELS[tx.type] ?? tx.type}</p>
-        <p className="text-xs text-gray-500">{tx.description}</p>
-        <p className="text-xs text-gray-400">{new Date(tx.created_at).toLocaleString()}</p>
+        <p className="text-xs text-[#A8B0C5]">{tx.description}</p>
+        <p className="text-xs text-[#A8B0C5]">{new Date(tx.created_at).toLocaleString()}</p>
       </div>
       <div className="text-right">
         <p className={`text-sm font-semibold ${isCredit ? 'text-green-600' : 'text-gray-900'}`}>
@@ -39,7 +39,7 @@ export function TransactionRow({ tx }: { tx: Transaction }) {
           {formatNaira(tx.amount_kobo)}
         </p>
         {tx.status !== 'success' && (
-          <p className="text-xs capitalize text-gray-400">{tx.status}</p>
+          <p className="text-xs capitalize text-[#A8B0C5]">{tx.status}</p>
         )}
       </div>
     </div>

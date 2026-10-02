@@ -191,7 +191,7 @@ function VendorWalletContent() {
             </div>
             <h2 className="text-3xl font-extrabold text-white mt-2">
               {loading ? (
-                <span className="text-gray-500 text-2xl animate-pulse">Loading...</span>
+                <span className="text-[#A8B0C5] text-2xl animate-pulse">Loading...</span>
               ) : showBalance ? (
                 `₦${metrics.available.toLocaleString('en-NG', { minimumFractionDigits: 2 })}`
               ) : (

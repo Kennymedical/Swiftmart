@@ -66,16 +66,16 @@ export function PostActions({
       <button
         onClick={toggleLike}
         disabled={busy}
-        className={`text-sm ${liked ? 'text-red-500' : 'text-gray-400'}`}
+        className={`text-sm ${liked ? 'text-red-500' : 'text-[#A8B0C5]'}`}
       >
         {liked ? '❤️' : '🤍'} {likeCount}
       </button>
 
-      <Link href={`/posts/${postId}`} className="text-gray-400 text-sm">
+      <Link href={`/posts/${postId}`} className="text-[#A8B0C5] text-sm">
         💬 {commentCount}
       </Link>
 
-      <button onClick={handleShare} className="text-gray-400 text-sm">
+      <button onClick={handleShare} className="text-[#A8B0C5] text-sm">
         📤 {shared ? 'Copied!' : 'Share'}
       </button>
     </div>

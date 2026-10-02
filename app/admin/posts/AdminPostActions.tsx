@@ -24,7 +24,7 @@ export function AdminPostActions({ postId }: { postId: string }) {
 
   return (
     <div>
-      {error && <p className="text-xs text-red-600 mb-1">{error}</p>}
+      {error && <p className="text-xs text-red-400 mb-1">{error}</p>}
       <div className="flex gap-2">
         <button
           onClick={() => handleAction('approve_post', 'approve')}

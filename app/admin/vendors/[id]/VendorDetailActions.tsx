@@ -24,7 +24,7 @@ export function VendorDetailActions({ vendorId, status }: { vendorId: string; st
 
   return (
     <div>
-      {error && <p className="text-sm text-red-600 mb-2">{error}</p>}
+      {error && <p className="text-sm text-red-400 mb-2">{error}</p>}
       <div className="flex flex-wrap gap-2">
         {(status === 'pending' || status === 'under_review') && (
           <>

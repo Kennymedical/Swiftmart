@@ -31,7 +31,7 @@ export function VendorOrdersList({ items }: { items: OrderItemData[] }) {
   const [selectedItem, setSelectedItem] = useState<OrderItemData | null>(null);
 
   if (!items || items.length === 0) {
-    return <p className="text-center text-gray-400 text-sm py-8">No orders yet.</p>;
+    return <p className="text-center text-[#A8B0C5] text-sm py-8">No orders yet.</p>;
   }
 
   return (
@@ -54,7 +54,7 @@ export function VendorOrdersList({ items }: { items: OrderItemData[] }) {
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-gray-400 text-[10px]">
+                  <div className="w-full h-full flex items-center justify-center text-[#A8B0C5] text-[10px]">
                     No image
                   </div>
                 )}
@@ -71,7 +71,7 @@ export function VendorOrdersList({ items }: { items: OrderItemData[] }) {
                   </p>
                 </div>
 
-                <p className="text-xs text-gray-500 mt-0.5">
+                <p className="text-xs text-[#A8B0C5] mt-0.5">
                   Qty: <span className="font-semibold text-slate-200">{item.quantity}</span> · Order #{item.orderNumber}
                 </p>
 
@@ -124,7 +124,7 @@ export function VendorOrdersList({ items }: { items: OrderItemData[] }) {
             <div className="flex items-center justify-between border-b border-gray-100 pb-3">
               <div>
                 <h3 className="font-bold text-white text-base">Order Item Details</h3>
-                <p className="text-xs text-gray-500">Order #{selectedItem.orderNumber}</p>
+                <p className="text-xs text-[#A8B0C5]">Order #{selectedItem.orderNumber}</p>
               </div>
               <button
                 onClick={() => setSelectedItem(null)}
@@ -144,7 +144,7 @@ export function VendorOrdersList({ items }: { items: OrderItemData[] }) {
                   className="w-full h-full object-contain bg-slate-900"
                 />
               ) : (
-                <span className="text-gray-400 text-xs">No image available</span>
+                <span className="text-[#A8B0C5] text-xs">No image available</span>
               )}
             </div>
 
@@ -186,7 +186,7 @@ export function VendorOrdersList({ items }: { items: OrderItemData[] }) {
               <div className="space-y-1.5 text-xs text-gray-800">
                 <div className="flex items-center justify-between">
                   <p>
-                    <span className="text-gray-500">Recipient Name:</span>{' '}
+                    <span className="text-[#A8B0C5]">Recipient Name:</span>{' '}
                     <span className="font-bold text-gray-900">{selectedItem.recipientName}</span>
                   </p>
                   {selectedItem.recipientPhone && selectedItem.recipientPhone !== 'No phone provided' && (
@@ -200,12 +200,12 @@ export function VendorOrdersList({ items }: { items: OrderItemData[] }) {
                 </div>
 
                 <p>
-                  <span className="text-gray-500">Phone Number:</span>{' '}
+                  <span className="text-[#A8B0C5]">Phone Number:</span>{' '}
                   <span className="font-bold text-gray-900">{selectedItem.recipientPhone}</span>
                 </p>
 
                 <div className="pt-2 border-t border-amber-200/80">
-                  <p className="text-gray-500 text-[11px] mb-0.5">Full Destination Address:</p>
+                  <p className="text-[#A8B0C5] text-[11px] mb-0.5">Full Destination Address:</p>
                   <p className="font-semibold text-white text-sm bg-[#151B3D] p-2.5 rounded-xl border border-[#D4AF37]/30">
                     {selectedItem.deliveryAddress}
                   </p>

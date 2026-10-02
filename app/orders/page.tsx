@@ -13,8 +13,8 @@ const statusColors: Record<string, string> = {
   shipped: 'text-blue-600',
   delivered: 'text-amber-600',
   completed: 'text-green-600',
-  disputed: 'text-red-600',
-  refunded: 'text-red-600',
+  disputed: 'text-red-400',
+  refunded: 'text-red-400',
   cancelled: 'text-[#8A94B0]',
 };
 

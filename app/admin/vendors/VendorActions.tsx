@@ -24,7 +24,7 @@ export function VendorActions({ vendorId }: { vendorId: string }) {
 
   return (
     <div>
-      {error && <p className="text-sm text-red-600 mb-2">{error}</p>}
+      {error && <p className="text-sm text-red-400 mb-2">{error}</p>}
       <div className="flex gap-2">
         <button
           onClick={() => handleAction('approve_vendor', 'approve')}

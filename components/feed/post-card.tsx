@@ -134,7 +134,7 @@ export function PostCard({ post, currentUserId }: { post: PostCardData; currentU
               {displayName}
               {post.vendor && <span className="ml-1 font-normal text-[#A8B0C5]">→ {post.vendor.business_name}</span>}
             </p>
-            <p className="text-xs text-gray-400">{timeAgo(post.created_at)}</p>
+            <p className="text-xs text-[#A8B0C5]">{timeAgo(post.created_at)}</p>
           </div>
         </Link>
         <FollowButton

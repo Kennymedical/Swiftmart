@@ -235,7 +235,7 @@ export default function AddProductPage() {
             <img src={imagePreview} alt="Preview" className="w-full rounded-xl max-h-64 object-cover" />
           )}
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-sm text-red-400">{error}</p>}
 
           <button
             type="submit"

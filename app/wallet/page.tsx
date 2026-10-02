@@ -50,7 +50,7 @@ export default function UserWalletPage() {
             <button onClick={() => setShowBalance(!showBalance)} className="text-[#A0A3B1]">{showBalance ? <Eye size={18} /> : <EyeOff size={18} />}</button>
           </div>
           <h2 className="text-3xl font-extrabold text-white mt-2">
-            {loading ? <span className="text-gray-500 text-2xl animate-pulse">Loading...</span> : showBalance ? `₦${balanceNaira.toLocaleString('en-NG', { minimumFractionDigits: 2 })}` : '••••••••'}
+            {loading ? <span className="text-[#A8B0C5] text-2xl animate-pulse">Loading...</span> : showBalance ? `₦${balanceNaira.toLocaleString('en-NG', { minimumFractionDigits: 2 })}` : '••••••••'}
           </h2>
           <div className="mt-4 pt-3 border-t border-[#D4AF37]/20 flex items-center justify-between text-xs">
             <span className="text-[#A0A3B1]">{wallet?.virtual_account_number ? `${wallet.virtual_account_bank || 'Wema'} • ${wallet.virtual_account_number}` : 'SwiftMART Active Wallet'}</span>

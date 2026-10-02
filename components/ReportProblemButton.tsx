@@ -95,7 +95,7 @@ export function ReportProblemButton({ orderId }: { orderId: string }) {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="w-full text-center text-xs font-semibold text-red-600 border border-red-200 bg-red-50/50 hover:bg-red-50 py-2 rounded-xl transition"
+        className="w-full text-center text-xs font-semibold text-red-400 border border-red-200 bg-red-50/50 hover:bg-red-50 py-2 rounded-xl transition"
       >
         Report a Problem / Open Dispute
       </button>
@@ -149,11 +149,11 @@ export function ReportProblemButton({ orderId }: { orderId: string }) {
           className="w-full text-xs text-gray-600 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-red-100 file:text-red-700 hover:file:bg-red-200"
         />
         {files.length > 0 && (
-          <p className="text-[10px] text-gray-500 mt-1">{files.length} file(s) selected</p>
+          <p className="text-[10px] text-[#A8B0C5] mt-1">{files.length} file(s) selected</p>
         )}
       </div>
 
-      {error && <p className="text-xs text-red-600 font-medium mb-3">{error}</p>}
+      {error && <p className="text-xs text-red-400 font-medium mb-3">{error}</p>}
 
       <div className="flex gap-2">
         <button

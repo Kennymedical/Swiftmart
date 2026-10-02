@@ -59,7 +59,7 @@ export function CreateVendorForm() {
             required
             className="w-full rounded-xl border-2 border-[#D4AF37]/20 bg-[#0F2140] text-[#F5F7FA] p-2.5 text-sm focus:border-[#D4AF37] outline-none"
           />
-          {error && <p className="text-xs text-red-600">{error}</p>}
+          {error && <p className="text-xs text-red-400">{error}</p>}
           {success && <p className="text-xs text-green-600">{success}</p>}
           <button
             type="submit"

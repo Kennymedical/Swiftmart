@@ -27,7 +27,7 @@ export function MarkDeliveredButton({ orderId }: { orderId: string }) {
   const { run, loading, error } = useAdminAction();
   return (
     <div>
-      {error && <p className="text-xs text-red-600 mb-1">{error}</p>}
+      {error && <p className="text-xs text-red-400 mb-1">{error}</p>}
       <button
         onClick={() => run({ type: 'mark_delivered', orderId }, 'mark')}
         disabled={loading !== null}
@@ -43,7 +43,7 @@ export function ReleaseEscrowButton({ orderId, disabled }: { orderId: string; di
   const { run, loading, error } = useAdminAction();
   return (
     <div>
-      {error && <p className="text-xs text-red-600 mb-1">{error}</p>}
+      {error && <p className="text-xs text-red-400 mb-1">{error}</p>}
       <button
         onClick={() => run({ type: 'release_escrow', orderId }, 'release')}
         disabled={loading !== null || disabled}
@@ -59,7 +59,7 @@ export function ResolveDisputeButtons({ disputeId }: { disputeId: string }) {
   const { run, loading, error } = useAdminAction();
   return (
     <div>
-      {error && <p className="text-xs text-red-600 mb-1">{error}</p>}
+      {error && <p className="text-xs text-red-400 mb-1">{error}</p>}
       <div className="flex gap-2">
         <button
           onClick={() => run({ type: 'resolve_dispute', disputeId, resolution: 'favor_vendor' }, 'vendor')}

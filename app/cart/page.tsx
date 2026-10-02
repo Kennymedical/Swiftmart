@@ -196,7 +196,7 @@ export default function CartPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0A1931]">
-        <p className="text-gray-500">Loading cart...</p>
+        <p className="text-[#A8B0C5]">Loading cart...</p>
       </div>
     );
   }
@@ -221,7 +221,7 @@ export default function CartPage() {
       )}
 
       {items.length === 0 && !success ? (
-        <p className="text-center text-gray-500 py-20">Your cart is empty.</p>
+        <p className="text-center text-[#A8B0C5] py-20">Your cart is empty.</p>
       ) : (
         <div className="p-3 space-y-4">
           {/* Cart Products Grid */}
@@ -239,7 +239,7 @@ export default function CartPage() {
                   )}
                   <button
                     onClick={() => removeItem(item.id)}
-                    className="absolute top-1 right-1 bg-[#0F2140]/90 text-red-600 rounded-full h-6 w-6 flex items-center justify-center text-xs font-bold shadow-sm"
+                    className="absolute top-1 right-1 bg-[#0F2140]/90 text-red-400 rounded-full h-6 w-6 flex items-center justify-center text-xs font-bold shadow-sm"
                     aria-label="Remove"
                   >
                     ×
@@ -275,10 +275,10 @@ export default function CartPage() {
           {/* Delivery & Waybill Destination Form */}
           <div className="bg-gradient-to-br from-[#142850] to-[#1B2F5E] rounded-2xl p-4 border border-[#D4AF37]/25 shadow-[0_4px_20px_rgba(212,175,55,0.08)] space-y-3">
             <div className="flex items-center justify-between">
-              <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-[#A8B0C5]">
                 📍 Delivery Destination
               </h2>
-              <span className="text-[11px] text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full">
+              <span className="text-[11px] text-[#2ED573] font-semibold bg-emerald-50 px-2 py-0.5 rounded-full">
                 {calcLoading ? 'Calculating rate...' : shippingName}
               </span>
             </div>
@@ -348,11 +348,11 @@ export default function CartPage() {
       {/* Checkout Floating Bar */}
       {items.length > 0 && (
         <div className="fixed bottom-16 inset-x-0 bg-[#0A1931]/95 backdrop-blur-md border-t border-[#D4AF37]/25 p-4 shadow-2xl z-40">
-          {error && <p className="text-xs text-red-600 mb-2 font-medium">{error}</p>}
+          {error && <p className="text-xs text-red-400 mb-2 font-medium">{error}</p>}
 
           {insufficient ? (
             <div className="mb-2">
-              <p className="text-xs text-red-600 mb-2">
+              <p className="text-xs text-red-400 mb-2">
                 Insufficient balance — you have {naira(insufficient.balance)}, need{' '}
                 {naira(insufficient.required)}.
               </p>
@@ -366,11 +366,11 @@ export default function CartPage() {
           ) : (
             <>
               <div className="space-y-1 mb-3">
-                <div className="flex items-center justify-between text-xs text-gray-500">
+                <div className="flex items-center justify-between text-xs text-[#A8B0C5]">
                   <span>Goods Subtotal</span>
                   <span>{naira(subtotal)}</span>
                 </div>
-                <div className="flex items-center justify-between text-xs text-gray-500">
+                <div className="flex items-center justify-between text-xs text-[#A8B0C5]">
                   <span>Waybill / Logistics</span>
                   <span className="font-medium text-gray-800">{shippingKobo !== null ? naira(shippingKobo) : 'Calculated after address'}</span>
                 </div>

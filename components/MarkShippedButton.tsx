@@ -23,7 +23,7 @@ export function MarkShippedButton({
   const [trackingNumber, setTrackingNumber] = useState('');
 
   if (status !== 'paid' && status !== 'processing') {
-    return <span className="text-[10px] text-gray-400 capitalize">{status}</span>;
+    return <span className="text-[10px] text-[#A8B0C5] capitalize">{status}</span>;
   }
 
   async function handleConfirmShip() {
@@ -134,7 +134,7 @@ export function MarkShippedButton({
               </div>
             )}
 
-            {error && <p className="text-xs text-red-600 mb-3">{error}</p>}
+            {error && <p className="text-xs text-red-400 mb-3">{error}</p>}
 
             <div className="flex gap-2">
               <button

@@ -323,7 +323,7 @@ export default function AdminProfitWalletPage() {
         <div className="bg-gradient-to-br from-[#142850] to-[#1B2F5E] rounded-2xl p-4 border border-[#D4AF37]/25 shadow-[0_4px_20px_rgba(212,175,55,0.08)]">
           <p className="text-xs text-[#A8B0C5] font-medium">20% Product Markup</p>
           <p className="text-lg font-bold text-[#D4AF37] mt-1">{formatNaira(stats.markupKobo)}</p>
-          <span className="text-[10px] text-emerald-600 font-semibold">+20% on vendor goods</span>
+          <span className="text-[10px] text-[#2ED573] font-semibold">+20% on vendor goods</span>
         </div>
         <div className="bg-gradient-to-br from-[#142850] to-[#1B2F5E] rounded-2xl p-4 border border-[#D4AF37]/25 shadow-[0_4px_20px_rgba(212,175,55,0.08)]">
           <p className="text-xs text-[#A8B0C5] font-medium">10% Commissions</p>
@@ -357,7 +357,7 @@ export default function AdminProfitWalletPage() {
         {revenueLedger.filter((item) => item.source === 'withdrawal').length === 0 ? (
           <div className="text-center py-8 bg-[#0A1931]/60 rounded-xl border border-dashed border-[#D4AF37]/25">
             <p className="text-sm font-medium text-gray-600">No bank withdrawals recorded yet</p>
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-xs text-[#A8B0C5] mt-1">
               When you withdraw profit to your bank account, amounts, bank names, timestamps, and transfer statuses will display here.
             </p>
           </div>
@@ -388,10 +388,10 @@ export default function AdminProfitWalletPage() {
                     </p>
                   </div>
                   <div className="text-left sm:text-right">
-                    <p className="text-sm font-black text-red-600">
+                    <p className="text-sm font-black text-red-400">
                       -{formatNaira(Math.abs(payout.amount_kobo))}
                     </p>
-                    <p className="text-[11px] text-gray-400 font-medium">
+                    <p className="text-[11px] text-[#A8B0C5] font-medium">
                       Treasury reserve: {formatNaira(payout.balance_after_kobo)}
                     </p>
                   </div>
@@ -431,16 +431,16 @@ export default function AdminProfitWalletPage() {
                       </span>
                       <span className="font-semibold text-gray-900">{item.description}</span>
                     </div>
-                    <span className="text-xs text-gray-400">
+                    <span className="text-xs text-[#A8B0C5]">
                       {new Date(item.created_at).toLocaleString('en-NG')}
                     </span>
                   </div>
                   <div className="text-right">
-                    <p className={`font-bold ${isDebit ? 'text-red-600' : 'text-emerald-600'}`}>
+                    <p className={`font-bold ${isDebit ? 'text-red-400' : 'text-[#2ED573]'}`}>
                       {isDebit ? '-' : '+'}
                       {formatNaira(Math.abs(item.amount_kobo))}
                     </p>
-                    <p className="text-[10px] text-gray-400">Bal: {formatNaira(item.balance_after_kobo)}</p>
+                    <p className="text-[10px] text-[#A8B0C5]">Bal: {formatNaira(item.balance_after_kobo)}</p>
                   </div>
                 </div>
               );
@@ -507,7 +507,7 @@ export default function AdminProfitWalletPage() {
                     ✓ {accountName}
                   </span>
                 ) : (
-                  <span className="text-gray-400 italic">Enter 10-digit account number</span>
+                  <span className="text-[#A8B0C5] italic">Enter 10-digit account number</span>
                 )}
               </div>
 
@@ -527,7 +527,7 @@ export default function AdminProfitWalletPage() {
                 </p>
               </div>
 
-              {withdrawError && <p className="text-xs text-red-600 font-medium">{withdrawError}</p>}
+              {withdrawError && <p className="text-xs text-red-400 font-medium">{withdrawError}</p>}
 
               <div className="flex gap-2 pt-2">
                 <button

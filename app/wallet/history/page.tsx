@@ -43,7 +43,7 @@ export default async function WalletHistoryPage({
       <h1 className="mb-4 text-xl font-bold">Transaction History</h1>
 
       {!transactions || transactions.length === 0 ? (
-        <p className="py-16 text-center text-sm text-gray-400">No transactions yet.</p>
+        <p className="py-16 text-center text-sm text-[#A8B0C5]">No transactions yet.</p>
       ) : (
         <div className="divide-y rounded-lg border bg-gradient-to-b from-[#142850] to-[#1B2F5E] text-[#F5F7FA] border-[#D4AF37]/20">
           {transactions.map((tx) => (
