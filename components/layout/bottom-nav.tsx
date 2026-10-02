@@ -31,7 +31,7 @@ export function BottomNav({ unreadNotifications = 0 }: BottomNavProps) {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[#0A1931]/95 backdrop-blur-md border-t border-[#D4AF37]/25 px-2 py-2 flex items-center justify-around sm:hidden">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[#0A1A3A]/95 backdrop-blur-md border-t border-[#E9C86A]/30 px-2 py-2 flex items-center justify-around sm:hidden shadow-[0_-4px_20px_rgba(0,0,0,0.4)]">
       {items.map((item) => {
         const Icon = item.icon;
         const isActive = item.matchExact
@@ -43,24 +43,24 @@ export function BottomNav({ unreadNotifications = 0 }: BottomNavProps) {
             key={item.label}
             href={item.href}
             className={`flex flex-col items-center relative transition-colors ${
-              isActive ? 'text-[#D4AF37]' : 'text-[#8A94B0] hover:text-[#F5F7FA]'
+              isActive ? 'text-[#F5EAC2]' : 'text-[#E9C86A]/80 hover:text-[#E9C86A]'
             }`}
           >
             <div
               className={`p-1.5 rounded-xl transition-all ${
                 isActive
-                  ? 'bg-[#142850] border border-[#D4AF37]/40 shadow-[0_0_12px_rgba(212,175,55,0.2)]'
+                  ? 'bg-gradient-to-b from-[#1E3A7A] to-[#142A5E] border border-[#E9C86A]/60 shadow-[0_0_12px_rgba(233,200,106,0.35)]'
                   : 'bg-transparent border border-transparent'
               }`}
             >
-              <Icon size={19} className={isActive ? 'text-[#D4AF37]' : 'text-[#8A94B0]'} />
+              <Icon size={19} className={isActive ? 'text-[#F5EAC2]' : 'text-[#E9C86A]'} />
             </div>
             {item.badge && item.badge > 0 ? (
               <span className="absolute -top-1 right-2 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-600 px-1 text-[9px] font-bold text-white shadow-sm">
                 {item.badge > 9 ? '9+' : item.badge}
               </span>
             ) : null}
-            <span className={`text-[10px] mt-0.5 ${isActive ? 'font-bold text-[#D4AF37]' : 'font-medium text-[#8A94B0]'}`}>
+            <span className={`text-[10px] mt-0.5 ${isActive ? 'font-bold text-[#F5EAC2]' : 'font-medium text-[#E9C86A]'}`}>
               {item.label}
             </span>
           </Link>

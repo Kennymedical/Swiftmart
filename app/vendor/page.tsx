@@ -16,8 +16,8 @@ export default async function VendorDashboardPage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0A1028] p-4 text-[#D4AF37]">
-        <p>Please log in.</p>
+      <div className="min-h-screen flex items-center justify-center bg-[#0A1A3A] p-4 text-[#E9C86A]">
+        <p className="font-semibold text-lg">Please log in.</p>
       </div>
     );
   }
@@ -30,19 +30,19 @@ export default async function VendorDashboardPage() {
 
   if (!vendor) {
     return (
-      <div className="min-h-screen bg-[#0A1028] text-white p-4">
-        <div className="max-w-md mx-auto bg-[#151B3D] border border-[#D4AF37]/30 rounded-2xl shadow-xl p-6 mt-6 text-center">
-          <h1 className="text-xl font-bold text-white mb-2">
+      <div className="min-h-screen bg-[#0A1A3A] bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(233,200,106,0.12),rgba(255,255,255,0))] text-[#F5EAC2] p-4 flex items-center justify-center">
+        <div className="max-w-md w-full bg-gradient-to-b from-[#1E3A7A] to-[#142A5E] border border-[#E9C86A]/60 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.45),0_0_20px_rgba(233,200,106,0.15)] p-6 text-center">
+          <h1 className="text-2xl font-serif font-bold text-[#E9C86A] mb-2 tracking-wide">
             You're not a vendor yet
           </h1>
-          <p className="text-sm text-slate-300 mb-5">
+          <p className="text-sm text-[#E9C86A]/80 mb-6 font-medium">
             Register as a vendor to start listing products and selling on SwiftMart with secure escrow payouts.
           </p>
           <Link
             href="/vendor/register"
-            className="inline-block bg-[#F5C445] text-black font-extrabold py-3 px-6 rounded-xl hover:bg-[#D4AF37] transition shadow-lg"
+            className="inline-block bg-gradient-to-r from-[#F2D57E] to-[#D4A937] text-[#0A1931] font-extrabold py-3.5 px-6 rounded-2xl shadow-[0_0_20px_rgba(233,200,106,0.4)] hover:shadow-[0_0_25px_rgba(233,200,106,0.6)] transition tracking-wide"
           >
-            Become a Vendor
+            Register as Vendor
           </Link>
         </div>
       </div>
@@ -153,40 +153,47 @@ export default async function VendorDashboardPage() {
   });
 
   return (
-    <div className="min-h-screen bg-[#0A1931] text-[#F5F7FA] pb-24">
-      <div className="bg-[#0F172A] px-4 py-5">
-        <h1 className="text-xl font-bold text-white">{vendor.business_name}</h1>
-        <p className="text-[#D4AF37] text-xs mt-1 capitalize">{vendor.status}</p>
+    <div className="min-h-screen bg-[#0A1A3A] bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(233,200,106,0.08),rgba(255,255,255,0))] text-[#F5EAC2] pb-28">
+      <div className="bg-gradient-to-b from-[#1E3A7A] to-[#0A1A3A] border-b border-[#E9C86A]/30 px-4 py-5 shadow-[0_4px_20px_rgba(0,0,0,0.35)]">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs uppercase tracking-widest text-[#E9C86A]/80 font-semibold mb-0.5">Vendor Dashboard</p>
+            <h1 className="text-2xl font-serif font-bold text-[#E9C86A] tracking-wide">{vendor.business_name}</h1>
+          </div>
+          <span className="text-xs font-semibold px-2.5 py-1 rounded-full border border-[#E9C86A]/40 bg-[#0F2550] text-[#F5EAC2] capitalize">
+            {vendor.status}
+          </span>
+        </div>
       </div>
 
       <div className="p-4">
         {/* Products Section */}
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold text-[#A8B0C5]">My Products</h2>
+          <h2 className="text-base font-serif font-bold text-[#E9C86A]">My Products</h2>
           <Link
             href="/vendor/products/add"
-            className="text-xs font-semibold bg-[#0F172A] text-[#D4AF37] px-3 py-1.5 rounded-lg border border-[#D4AF37]"
+            className="text-xs font-bold bg-gradient-to-r from-[#F2D57E] to-[#D4A937] text-[#0A1931] px-3.5 py-1.5 rounded-xl shadow-[0_0_12px_rgba(233,200,106,0.3)] hover:shadow-[0_0_16px_rgba(233,200,106,0.5)] transition"
           >
             + Add Product
           </Link>
         </div>
 
         {!products || products.length === 0 ? (
-          <p className="text-center text-[#8A94B0] text-sm py-8">No products yet.</p>
+          <p className="text-center text-[#E9C86A]/60 text-sm py-8 font-medium">No products yet.</p>
         ) : (
           <div className="grid grid-cols-3 gap-2 mb-8">
             {products.map((p) => (
-              <div key={p.id} className="bg-gradient-to-b from-[#142850] to-[#1B2F5E] rounded-xl overflow-hidden shadow-sm border border-[#D4AF37]/20">
-                <div className="aspect-square bg-[#0F2140]">
+              <div key={p.id} className="bg-gradient-to-b from-[#1E3A7A] to-[#142A5E] rounded-xl overflow-hidden shadow-md border border-[#E9C86A]/30">
+                <div className="aspect-square bg-[#0F2550]">
                   {p.images?.[0] && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={p.images[0]} alt={p.name} className="w-full h-full object-cover" />
                   )}
                 </div>
                 <div className="p-2">
-                  <p className="text-xs font-medium line-clamp-1">{p.name}</p>
-                  <p className="text-xs text-[#0F172A] font-bold">{naira(p.price_kobo)}</p>
-                  <p className={`text-[10px] mt-1 capitalize ${p.status === 'active' ? 'text-green-600' : 'text-amber-600'}`}>
+                  <p className="text-xs font-semibold text-[#F5EAC2] line-clamp-1">{p.name}</p>
+                  <p className="text-xs text-[#E9C86A] font-extrabold">{naira(p.price_kobo)}</p>
+                  <p className={`text-[10px] mt-1 capitalize font-medium ${p.status === 'active' ? 'text-[#2ED573]' : 'text-[#E9C86A]'}`}>
                     {p.status}
                   </p>
                   <VendorProductActions productId={p.id} />
@@ -197,7 +204,7 @@ export default async function VendorDashboardPage() {
         )}
 
         {/* Orders to Fulfill Section */}
-        <h2 className="text-sm font-semibold text-[#A8B0C5] mb-3">Orders to Fulfill</h2>
+        <h2 className="text-base font-serif font-bold text-[#E9C86A] mb-3">Orders to Fulfill</h2>
         <VendorOrdersList items={formattedItems} />
       </div>
     </div>
