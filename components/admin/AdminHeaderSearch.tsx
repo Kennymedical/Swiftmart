@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 
 interface SearchResults {
   vendors: { id: string; name: string; business_name?: string }[];
-  products: { id: string; title: string; price_kobo: number }[];
+  products: { id: string; name: string; price_kobo: number; images?: string[] }[];
   orders: { id: string; order_number: string; total_kobo: number; status: string }[];
 }
 
@@ -48,8 +48,8 @@ export function AdminHeaderSearch() {
           .limit(5),
         supabase
           .from('products')
-          .select('id, title, price_kobo')
-          .ilike('title', `%${cleanQ}%`)
+          .select('id, name, price_kobo, images')
+          .ilike('name', `%${cleanQ}%`)
           .limit(5),
         supabase
           .from('orders')
@@ -148,13 +148,22 @@ export function AdminHeaderSearch() {
                 {results.products.map((p) => (
                   <Link
                     key={p.id}
-                    href={`/admin/products`}
+                    href={`/admin/products/${p.id}`}
                     onClick={() => setIsOpen(false)}
                     className="flex items-center gap-2.5 p-2 rounded-lg hover:bg-[#142850] transition text-left"
                   >
-                    <Package className="w-3.5 h-3.5 text-[#D4AF37] shrink-0" />
+                    {p.images?.[0] ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={p.images[0]}
+                        alt=""
+                        className="w-7 h-7 rounded-md object-cover border border-[#D4AF37]/20 shrink-0"
+                      />
+                    ) : (
+                      <Package className="w-3.5 h-3.5 text-[#D4AF37] shrink-0" />
+                    )}
                     <div className="overflow-hidden flex-1">
-                      <p className="text-xs font-bold text-[#F5F7FA] truncate">{p.title}</p>
+                      <p className="text-xs font-bold text-[#F5F7FA] truncate">{p.name}</p>
                       <p className="text-[10px] text-[#D4AF37]">
                         ₦{(p.price_kobo / 100).toLocaleString('en-NG')}
                       </p>

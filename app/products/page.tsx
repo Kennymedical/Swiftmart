@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { AddToCartButton } from '@/components/AddToCartButton';
+import Link from 'next/link';
 
 function formatNaira(kobo: number) {
   return `₦${(kobo / 100).toLocaleString('en-NG')}`;
@@ -50,47 +51,53 @@ export default async function ProductsPage() {
             return (
               <div
                 key={product.id}
-                className="bg-gradient-to-br from-[#142850] to-[#1B2F5E] rounded-xl overflow-hidden border border-[#D4AF37]/25 shadow-[0_4px_20px_rgba(212,175,55,0.08)]"
+                className="bg-gradient-to-br from-[#142850] to-[#1B2F5E] rounded-xl overflow-hidden border border-[#D4AF37]/25 shadow-[0_4px_20px_rgba(212,175,55,0.08)] flex flex-col justify-between"
               >
-                <div className="relative aspect-square bg-[#0A1931]/80">
-                  {product.images?.[0] && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={product.images[0]}
-                      alt={product.name}
-                      className="w-full h-full object-cover"
-                    />
-                  )}
-                  {hasDiscount && (
-                    <span className="absolute top-1 left-1 bg-[#D4AF37] text-[#E9C86A] text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                      -{discountPercent}%
-                    </span>
-                  )}
-                </div>
-
-                <div className="p-2">
-                  <p className="text-xs text-[#F5F7FA] font-medium line-clamp-1 mb-1">
-                    {product.name}
-                  </p>
-
-                  <div className="flex flex-col gap-0.5 mb-1">
-                    <span className="text-[#E9C86A] font-bold text-sm">
-                      {formatNaira(displayPriceKobo)}
-                    </span>
+                <div>
+                  <Link href={`/products/${product.id}`} className="block relative aspect-square bg-[#0A1931]/80 group">
+                    {product.images?.[0] && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={product.images[0]}
+                        alt={product.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                      />
+                    )}
                     {hasDiscount && (
-                      <span className="text-[10px] text-gray-400 line-through">
-                        {formatNaira(compareAtKobo!)}
+                      <span className="absolute top-1 left-1 bg-[#D4AF37] text-[#0A1931] text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                        -{discountPercent}%
                       </span>
                     )}
-                  </div>
+                  </Link>
 
-                  {(product.rating > 0 || product.sold_count > 0) && (
-                    <div className="flex items-center gap-1 text-[10px] text-[#A8B0C5] mb-1">
-                      {product.rating > 0 && <span>⭐{product.rating.toFixed(1)}</span>}
-                      {product.sold_count > 0 && <span>{product.sold_count} sold</span>}
+                  <div className="p-2">
+                    <Link href={`/products/${product.id}`}>
+                      <p className="text-xs text-[#F5F7FA] font-medium line-clamp-1 mb-1 hover:text-[#D4AF37] transition">
+                        {product.name}
+                      </p>
+                    </Link>
+
+                    <div className="flex flex-col gap-0.5 mb-1">
+                      <span className="text-[#E9C86A] font-bold text-sm">
+                        {formatNaira(displayPriceKobo)}
+                      </span>
+                      {hasDiscount && (
+                        <span className="text-[10px] text-gray-400 line-through">
+                          {formatNaira(compareAtKobo!)}
+                        </span>
+                      )}
                     </div>
-                  )}
 
+                    {(product.rating > 0 || product.sold_count > 0) && (
+                      <div className="flex items-center gap-1 text-[10px] text-[#A8B0C5] mb-1">
+                        {product.rating > 0 && <span>⭐{product.rating.toFixed(1)}</span>}
+                        {product.sold_count > 0 && <span>{product.sold_count} sold</span>}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="p-2 pt-0">
                   <AddToCartButton productId={product.id} />
                 </div>
               </div>
@@ -101,4 +108,3 @@ export default async function ProductsPage() {
     </div>
   );
 }
-  
