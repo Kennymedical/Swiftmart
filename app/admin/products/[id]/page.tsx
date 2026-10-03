@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { ProductActions } from '../ProductActions';
 import Link from 'next/link';
 import { ArrowLeft, ExternalLink, Package } from 'lucide-react';
+import { notFound } from 'next/navigation';
 
 function naira(kobo: number) {
   return `₦${(kobo / 100).toLocaleString('en-NG', {
@@ -17,7 +18,7 @@ export default async function AdminProductDetailPage({
 }) {
   const supabase = createClient();
 
-  const { data: product } = await supabase
+  const { data: product, error } = await supabase
     .from('products')
     .select(
       'id, name, slug, description, images, price_kobo, compare_at_kobo, stock, status, rating, review_count, sold_count, created_at, vendor:vendors(id, business_name, status, user_id)'
@@ -25,18 +26,12 @@ export default async function AdminProductDetailPage({
     .eq('id', params.id)
     .single();
 
+  if (error && error.code !== 'PGRST116') {
+    throw new Error(error.message || 'Failed to load product');
+  }
+
   if (!product) {
-    return (
-      <div className="max-w-2xl mx-auto p-4 space-y-4">
-        <Link
-          href="/admin/products"
-          className="inline-flex items-center gap-1.5 text-xs text-[#D4AF37] hover:underline"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" /> Back to Products
-        </Link>
-        <p className="text-center text-[#A8B0C5] py-16">Product not found.</p>
-      </div>
-    );
+    notFound();
   }
 
   const vendorBasePrice = product.price_kobo;

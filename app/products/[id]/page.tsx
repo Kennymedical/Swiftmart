@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { AddToCartButton } from '@/components/AddToCartButton';
 import Link from 'next/link';
 import { ArrowLeft, Store, ShieldCheck, Truck } from 'lucide-react';
+import { notFound } from 'next/navigation';
 
 function formatNaira(kobo: number) {
   return `₦${(kobo / 100).toLocaleString('en-NG')}`;
@@ -14,7 +15,7 @@ export default async function ProductDetailPage({
 }) {
   const supabase = createClient();
 
-  const { data: product } = await supabase
+  const { data: product, error } = await supabase
     .from('products')
     .select(
       'id, name, slug, description, images, price_kobo, compare_at_kobo, stock, status, rating, review_count, sold_count, vendor:vendors(id, business_name, rating)'
@@ -22,18 +23,12 @@ export default async function ProductDetailPage({
     .eq('id', params.id)
     .single();
 
-  if (!product) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-[#0A1931] via-[#0D1D3A] to-[#0F2140] text-[#F5F7FA] p-6 flex flex-col items-center justify-center">
-        <p className="text-[#A8B0C5] text-sm mb-4">Product not found or unavailable.</p>
-        <Link
-          href="/products"
-          className="px-4 py-2 rounded-xl bg-[#142850] border border-[#D4AF37]/40 text-xs font-bold text-[#D4AF37]"
-        >
-          Return to Shop
-        </Link>
-      </div>
-    );
+  if (error && error.code !== 'PGRST116') {
+    throw new Error(error.message || 'Failed to load product');
+  }
+
+  if (!product || product.status !== 'active') {
+    notFound();
   }
 
   const displayPriceKobo = Math.round(product.price_kobo * 1.2);
