@@ -70,7 +70,7 @@ export function ProductGallery({ images, name }: ProductGalleryProps) {
                 onKeyDown={(e) => handleKeyDown(e, idx)}
                 aria-current={isSelected ? 'true' : undefined}
                 aria-label={`View photo ${idx + 1} of ${images.length} for ${name}`}
-                className={`w-16 h-16 rounded-xl overflow-hidden shrink-0 transition-all focus:outline-none ${
+                className={`w-16 h-16 rounded-xl overflow-hidden shrink-0 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A1931] ${
                   isSelected
                     ? 'ring-2 ring-[#D4AF37] border-2 border-[#D4AF37] shadow-[0_0_12px_rgba(212,175,55,0.4)] scale-105'
                     : 'border border-[#D4AF37]/20 opacity-70 hover:opacity-100 hover:border-[#D4AF37]/50'

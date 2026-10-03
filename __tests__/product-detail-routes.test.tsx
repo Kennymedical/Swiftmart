@@ -10,7 +10,6 @@ import AdminProductDetailLoading from '@/app/admin/products/[id]/loading';
 import AdminProductNotFound from '@/app/admin/products/[id]/not-found';
 import AdminProductDetailError from '@/app/admin/products/[id]/error';
 import { ProductGallery } from '@/components/products/ProductGallery';
-import { notFound } from 'next/navigation';
 
 const notFoundMock = vi.fn(() => {
   const err = new Error('NEXT_NOT_FOUND');
@@ -78,55 +77,153 @@ describe('Product Detail Routes & SEO & Gallery Accessibility', () => {
     vi.clearAllMocks();
   });
 
-  describe('Shopper Product Detail Route', () => {
-    it('renders active product details with 20% retail markup and JSON-LD schema (Product & BreadcrumbList)', async () => {
+  describe('Route-Level Metadata, Open Graph, Canonical URL & JSON-LD', () => {
+    it('generates accurate metadata, Open Graph tags, and canonical URL for active product', async () => {
       const productData = {
-        id: 'prod-123',
-        name: 'Luxury Wristwatch',
-        slug: 'luxury-wristwatch',
-        description: 'Handcrafted luxury wristwatch.',
-        images: ['https://images.unsplash.com/photo-watch-1.jpg'],
-        price_kobo: 1000000, // ₦10,000 base -> ₦12,000 retail
-        compare_at_kobo: null,
-        stock: 5,
+        id: 'prod-456',
+        name: 'Italian Leather Loafers',
+        description: 'Genuine calfskin handcrafted loafers.',
+        images: ['https://images.unsplash.com/photo-loafers-1.jpg'],
+        price_kobo: 2500000, // ₦25,000 base -> ₦30,000 retail
         status: 'active',
-        rating: 4.8,
-        review_count: 12,
-        sold_count: 25,
-        vendor: { id: 'vendor-1', business_name: 'Crown Watches', rating: 4.9 },
       };
 
       mockSupabase = buildProductMock({ data: productData });
 
-      const page = await ProductDetailPage({ params: { id: 'prod-123' } });
+      const metadata = await generateMetadata({ params: { id: 'prod-456' } });
+
+      expect(metadata.title).toBe('Italian Leather Loafers - ₦30,000 | SwiftMart');
+      expect(metadata.description).toBe('Genuine calfskin handcrafted loafers.');
+      expect(metadata.alternates?.canonical).toBe('https://swiftmart.ng/products/prod-456');
+      expect(metadata.openGraph?.title).toBe('Italian Leather Loafers - ₦30,000 | SwiftMart');
+      expect(metadata.openGraph?.url).toBe('https://swiftmart.ng/products/prod-456');
+      expect(metadata.openGraph?.images).toEqual([
+        { url: 'https://images.unsplash.com/photo-loafers-1.jpg', alt: 'Italian Leather Loafers' },
+      ]);
+      expect(metadata.twitter?.card).toBe('summary_large_image');
+      expect(metadata.twitter?.images).toEqual(['https://images.unsplash.com/photo-loafers-1.jpg']);
+    });
+
+    it('generates fallback metadata for missing product in generateMetadata', async () => {
+      mockSupabase = buildProductMock({ data: null });
+
+      const metadata = await generateMetadata({ params: { id: 'non-existent-id' } });
+
+      expect(metadata.title).toBe('Product Not Found | SwiftMart');
+      expect(metadata.description).toBe('The requested product is not available on SwiftMart.');
+    });
+
+    it('generates fallback metadata for inactive / draft product in generateMetadata', async () => {
+      const draftProduct = {
+        id: 'prod-draft-1',
+        name: 'Unreleased Gadget',
+        price_kobo: 100000,
+        status: 'draft',
+      };
+      mockSupabase = buildProductMock({ data: draftProduct });
+
+      const metadata = await generateMetadata({ params: { id: 'prod-draft-1' } });
+
+      expect(metadata.title).toBe('Product Not Found | SwiftMart');
+      expect(metadata.description).toBe('The requested product is not available on SwiftMart.');
+    });
+
+    it('calls notFound() when product does not exist in shopper page component', async () => {
+      mockSupabase = buildProductMock({ data: null });
+
+      await expect(ProductDetailPage({ params: { id: 'missing-id' } })).rejects.toThrow('NEXT_NOT_FOUND');
+      expect(notFoundMock).toHaveBeenCalled();
+    });
+
+    it('calls notFound() when product is inactive in shopper page component', async () => {
+      const inactiveProduct = {
+        id: 'prod-inactive-1',
+        name: 'Archived Item',
+        price_kobo: 500000,
+        status: 'archived',
+      };
+      mockSupabase = buildProductMock({ data: inactiveProduct });
+
+      await expect(ProductDetailPage({ params: { id: 'prod-inactive-1' } })).rejects.toThrow('NEXT_NOT_FOUND');
+      expect(notFoundMock).toHaveBeenCalled();
+    });
+
+    it('throws error when Supabase fails unexpectedly', async () => {
+      mockSupabase = buildProductMock({
+        data: null,
+        error: { code: '500', message: 'Database connection failed' },
+      });
+
+      await expect(
+        ProductDetailPage({ params: { id: 'prod-fail' } })
+      ).rejects.toThrow('Database connection failed');
+    });
+  });
+
+  describe('Automated Schema.org Validation (Product & BreadcrumbList JSON-LD)', () => {
+    it('validates Product JSON-LD price, stock availability, seller, and URL consistency with BreadcrumbList', async () => {
+      const productInStock = {
+        id: 'prod-in-stock',
+        name: 'Smart Fitness Tracker',
+        slug: 'smart-fitness-tracker',
+        description: 'Heart rate and sleep monitor with GPS.',
+        images: ['https://images.unsplash.com/tracker.jpg'],
+        price_kobo: 1500000, // ₦15,000 base -> ₦18,000 retail
+        compare_at_kobo: 2000000,
+        stock: 10,
+        status: 'active',
+        rating: 4.6,
+        review_count: 8,
+        sold_count: 14,
+        vendor: { id: 'vendor-tech', business_name: 'Apex Gadgets Ltd', rating: 4.8 },
+      };
+
+      mockSupabase = buildProductMock({ data: productInStock });
+
+      const page = await ProductDetailPage({ params: { id: 'prod-in-stock' } });
       const { container } = render(page);
 
-      expect(screen.getByRole('heading', { level: 1, name: 'Luxury Wristwatch' })).toBeInTheDocument();
-      expect(screen.getByText('₦12,000')).toBeInTheDocument();
-      expect(screen.getByText('Crown Watches')).toBeInTheDocument();
-      expect(screen.getByText('In Stock (5 available)')).toBeInTheDocument();
-      expect(screen.getByTestId('mock-add-to-cart')).toBeInTheDocument();
-
-      // JSON-LD structured data verification
       const scripts = Array.from(container.querySelectorAll('script[type="application/ld+json"]'));
-      expect(scripts.length).toBeGreaterThanOrEqual(2);
-
-      // 1. Product JSON-LD
       const productScript = scripts.find((s) => s.textContent?.includes('"@type":"Product"'));
-      expect(productScript).toBeDefined();
-      const productSchema = JSON.parse(productScript!.textContent || '{}');
-      expect(productSchema['@type']).toBe('Product');
-      expect(productSchema.name).toBe('Luxury Wristwatch');
-      expect(productSchema.offers.price).toBe('12000.00');
-      expect(productSchema.offers.seller.name).toBe('Crown Watches');
-      expect(productSchema.offers.availability).toBe('https://schema.org/InStock');
-
-      // 2. BreadcrumbList JSON-LD
       const breadcrumbScript = scripts.find((s) => s.textContent?.includes('"@type":"BreadcrumbList"'));
+
+      expect(productScript).toBeDefined();
       expect(breadcrumbScript).toBeDefined();
+
+      const productSchema = JSON.parse(productScript!.textContent || '{}');
       const breadcrumbSchema = JSON.parse(breadcrumbScript!.textContent || '{}');
+
+      // Product Schema Structure
+      expect(productSchema['@context']).toBe('https://schema.org');
+      expect(productSchema['@type']).toBe('Product');
+      expect(productSchema.name).toBe('Smart Fitness Tracker');
+      expect(productSchema.sku).toBe('prod-in-stock');
+      expect(productSchema.description).toBe('Heart rate and sleep monitor with GPS.');
+      expect(productSchema.image).toEqual(['https://images.unsplash.com/tracker.jpg']);
+
+      // Offer Verification: 20% markup (15000 * 1.2 = 18000.00)
+      expect(productSchema.offers['@type']).toBe('Offer');
+      expect(productSchema.offers.priceCurrency).toBe('NGN');
+      expect(productSchema.offers.price).toBe('18000.00');
+      expect(productSchema.offers.availability).toBe('https://schema.org/InStock');
+      expect(productSchema.offers.url).toBe('https://swiftmart.ng/products/prod-in-stock');
+      expect(productSchema.offers.seller).toEqual({
+        '@type': 'Organization',
+        name: 'Apex Gadgets Ltd',
+      });
+
+      // Rating verification
+      expect(productSchema.aggregateRating).toEqual({
+        '@type': 'AggregateRating',
+        ratingValue: 4.6,
+        reviewCount: 8,
+      });
+
+      // BreadcrumbList Schema Structure & Consistency
+      expect(breadcrumbSchema['@context']).toBe('https://schema.org');
       expect(breadcrumbSchema['@type']).toBe('BreadcrumbList');
       expect(breadcrumbSchema.itemListElement).toHaveLength(3);
+
       expect(breadcrumbSchema.itemListElement[0]).toEqual({
         '@type': 'ListItem',
         position: 1,
@@ -142,63 +239,135 @@ describe('Product Detail Routes & SEO & Gallery Accessibility', () => {
       expect(breadcrumbSchema.itemListElement[2]).toEqual({
         '@type': 'ListItem',
         position: 3,
-        name: 'Luxury Wristwatch',
-        item: 'https://swiftmart.ng/products/prod-123',
+        name: 'Smart Fitness Tracker',
+        item: 'https://swiftmart.ng/products/prod-in-stock',
       });
+
+      // Strict URL consistency between Breadcrumb leaf and Product Offer URL
+      expect(breadcrumbSchema.itemListElement[2].item).toBe(productSchema.offers.url);
     });
 
-    it('generates dynamic metadata and Open Graph tags for active products', async () => {
-      const productData = {
-        id: 'prod-123',
-        name: 'Leather Handbag',
-        description: 'Premium Italian leather handbag.',
-        images: ['https://images.unsplash.com/photo-bag-1.jpg'],
-        price_kobo: 2000000, // ₦20,000 base -> ₦24,000 retail
+    it('sets availability to OutOfStock when product inventory is 0', async () => {
+      const productOutOfStock = {
+        id: 'prod-oos-1',
+        name: 'Vintage Denim Jacket',
+        slug: 'vintage-denim-jacket',
+        description: 'Classic washed denim jacket.',
+        images: ['https://images.unsplash.com/jacket.jpg'],
+        price_kobo: 800000,
+        compare_at_kobo: null,
+        stock: 0,
         status: 'active',
+        rating: 0,
+        review_count: 0,
+        sold_count: 30,
+        vendor: { id: 'vendor-apparel', business_name: 'Denim House', rating: 4.5 },
       };
 
-      mockSupabase = buildProductMock({ data: productData });
+      mockSupabase = buildProductMock({ data: productOutOfStock });
 
-      const metadata = await generateMetadata({ params: { id: 'prod-123' } });
+      const page = await ProductDetailPage({ params: { id: 'prod-oos-1' } });
+      const { container } = render(page);
 
-      expect(metadata.title).toBe('Leather Handbag - ₦24,000 | SwiftMart');
-      expect(metadata.description).toBe('Premium Italian leather handbag.');
-      expect(metadata.openGraph?.title).toBe('Leather Handbag - ₦24,000 | SwiftMart');
-      expect(metadata.openGraph?.images).toEqual([
-        { url: 'https://images.unsplash.com/photo-bag-1.jpg', alt: 'Leather Handbag' },
-      ]);
-      expect(metadata.twitter?.card).toBe('summary_large_image');
+      const scripts = Array.from(container.querySelectorAll('script[type="application/ld+json"]'));
+      const productScript = scripts.find((s) => s.textContent?.includes('"@type":"Product"'));
+      const productSchema = JSON.parse(productScript!.textContent || '{}');
+
+      expect(productSchema.offers.availability).toBe('https://schema.org/OutOfStock');
+      expect(productSchema.aggregateRating).toBeUndefined();
+    });
+  });
+
+  describe('Browser-Level ProductGallery Keyboard Navigation & Focus Visibility', () => {
+    const galleryImages = [
+      'https://images.unsplash.com/photo-angle-1.jpg',
+      'https://images.unsplash.com/photo-angle-2.jpg',
+      'https://images.unsplash.com/photo-angle-3.jpg',
+    ];
+
+    it('manages active-image state and renders aria-current attribute correctly', () => {
+      render(<ProductGallery images={galleryImages} name="Luxury Sneaker" />);
+
+      const thumb1 = screen.getByLabelText(/View photo 1 of 3/);
+      const thumb2 = screen.getByLabelText(/View photo 2 of 3/);
+
+      // Initial active state
+      expect(thumb1).toHaveAttribute('aria-current', 'true');
+      expect(thumb1.className).toContain('ring-2 ring-[#D4AF37]');
+      expect(thumb2).not.toHaveAttribute('aria-current');
+
+      // Click second thumbnail
+      fireEvent.click(thumb2);
+
+      expect(thumb2).toHaveAttribute('aria-current', 'true');
+      expect(thumb2.className).toContain('ring-2 ring-[#D4AF37]');
+      expect(thumb1).not.toHaveAttribute('aria-current');
+      expect(screen.getByAltText('Luxury Sneaker - View 2')).toBeInTheDocument();
     });
 
-    it('calls notFound() when product does not exist', async () => {
-      mockSupabase = buildProductMock({ data: null });
+    it('supports keyboard ArrowRight and ArrowLeft cycling between thumbnails', () => {
+      render(<ProductGallery images={galleryImages} name="Luxury Sneaker" />);
 
-      await expect(ProductDetailPage({ params: { id: 'missing-id' } })).rejects.toThrow('NEXT_NOT_FOUND');
-      expect(notFoundMock).toHaveBeenCalled();
+      const thumb1 = screen.getByLabelText(/View photo 1 of 3/);
+
+      // ArrowRight: 1 -> 2
+      fireEvent.keyDown(thumb1, { key: 'ArrowRight' });
+      const thumb2 = screen.getByLabelText(/View photo 2 of 3/);
+      expect(thumb2).toHaveAttribute('aria-current', 'true');
+      expect(screen.getByAltText('Luxury Sneaker - View 2')).toBeInTheDocument();
+
+      // ArrowRight: 2 -> 3
+      fireEvent.keyDown(thumb2, { key: 'ArrowRight' });
+      const thumb3 = screen.getByLabelText(/View photo 3 of 3/);
+      expect(thumb3).toHaveAttribute('aria-current', 'true');
+      expect(screen.getByAltText('Luxury Sneaker - View 3')).toBeInTheDocument();
+
+      // ArrowRight wraps around: 3 -> 1
+      fireEvent.keyDown(thumb3, { key: 'ArrowRight' });
+      expect(thumb1).toHaveAttribute('aria-current', 'true');
+      expect(screen.getByAltText('Luxury Sneaker - View 1')).toBeInTheDocument();
+
+      // ArrowLeft wraps around backwards: 1 -> 3
+      fireEvent.keyDown(thumb1, { key: 'ArrowLeft' });
+      expect(thumb3).toHaveAttribute('aria-current', 'true');
+
+      // ArrowLeft: 3 -> 2
+      fireEvent.keyDown(thumb3, { key: 'ArrowLeft' });
+      expect(thumb2).toHaveAttribute('aria-current', 'true');
     });
 
-    it('calls notFound() when product is draft or inactive for shoppers', async () => {
-      const draftProduct = {
-        id: 'prod-draft',
-        name: 'Draft Product',
-        price_kobo: 500000,
-        status: 'draft',
-      };
-      mockSupabase = buildProductMock({ data: draftProduct });
+    it('activates thumbnail on Enter and Space keypress', () => {
+      render(<ProductGallery images={galleryImages} name="Luxury Sneaker" />);
 
-      await expect(ProductDetailPage({ params: { id: 'prod-draft' } })).rejects.toThrow('NEXT_NOT_FOUND');
-      expect(notFoundMock).toHaveBeenCalled();
+      const thumb3 = screen.getByLabelText(/View photo 3 of 3/);
+
+      // Space key activation
+      fireEvent.keyDown(thumb3, { key: ' ' });
+      expect(thumb3).toHaveAttribute('aria-current', 'true');
+      expect(screen.getByAltText('Luxury Sneaker - View 3')).toBeInTheDocument();
+
+      const thumb2 = screen.getByLabelText(/View photo 2 of 3/);
+
+      // Enter key activation
+      fireEvent.keyDown(thumb2, { key: 'Enter' });
+      expect(thumb2).toHaveAttribute('aria-current', 'true');
+      expect(screen.getByAltText('Luxury Sneaker - View 2')).toBeInTheDocument();
     });
 
-    it('throws error when Supabase fails unexpectedly', async () => {
-      mockSupabase = buildProductMock({
-        data: null,
-        error: { code: '500', message: 'Database timeout connection failure' },
+    it('ensures thumbnails have focus visibility ring classes for keyboard users', () => {
+      render(<ProductGallery images={galleryImages} name="Luxury Sneaker" />);
+
+      const thumbs = screen.getAllByRole('button');
+      thumbs.forEach((thumb) => {
+        expect(thumb.className).toContain('focus-visible:ring-2');
+        expect(thumb.className).toContain('focus-visible:ring-[#D4AF37]');
       });
+    });
 
-      await expect(
-        ProductDetailPage({ params: { id: 'prod-fail' } })
-      ).rejects.toThrow('Database timeout connection failure');
+    it('renders fallback placeholder when image list is empty', () => {
+      render(<ProductGallery images={[]} name="No Image Item" />);
+
+      expect(screen.getByText('No image available')).toBeInTheDocument();
     });
   });
 
@@ -255,41 +424,6 @@ describe('Product Detail Routes & SEO & Gallery Accessibility', () => {
       await expect(
         AdminProductDetailPage({ params: { id: 'admin-fail' } })
       ).rejects.toThrow('Fatal query failure');
-    });
-  });
-
-  describe('ProductGallery Keyboard Accessibility', () => {
-    const testImages = [
-      'https://images.unsplash.com/photo-1.jpg',
-      'https://images.unsplash.com/photo-2.jpg',
-      'https://images.unsplash.com/photo-3.jpg',
-    ];
-
-    it('updates active image when clicking a thumbnail', () => {
-      render(<ProductGallery images={testImages} name="Test Shoes" />);
-
-      const thumb2 = screen.getByLabelText(/View photo 2 of 3/);
-      expect(thumb2).not.toHaveAttribute('aria-current');
-
-      fireEvent.click(thumb2);
-      expect(thumb2).toHaveAttribute('aria-current', 'true');
-      expect(screen.getByAltText('Test Shoes - View 2')).toBeInTheDocument();
-    });
-
-    it('navigates next and previous thumbnails using ArrowRight and ArrowLeft', () => {
-      render(<ProductGallery images={testImages} name="Test Shoes" />);
-
-      const thumb1 = screen.getByLabelText(/View photo 1 of 3/);
-      expect(thumb1).toHaveAttribute('aria-current', 'true');
-
-      // Press ArrowRight to move to photo 2
-      fireEvent.keyDown(thumb1, { key: 'ArrowRight' });
-      const thumb2 = screen.getByLabelText(/View photo 2 of 3/);
-      expect(thumb2).toHaveAttribute('aria-current', 'true');
-
-      // Press ArrowLeft to move back to photo 1
-      fireEvent.keyDown(thumb2, { key: 'ArrowLeft' });
-      expect(thumb1).toHaveAttribute('aria-current', 'true');
     });
   });
 

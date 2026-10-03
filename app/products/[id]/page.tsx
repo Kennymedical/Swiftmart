@@ -38,14 +38,19 @@ export async function generateMetadata({
       ? product.description.slice(0, 160)
       : `Buy ${product.name} on SwiftMart. Escrow protected marketplace with doorstep delivery across Nigeria.`;
   const primaryImage = product.images?.[0];
+  const canonicalUrl = `https://swiftmart.ng/products/${params.id}`;
 
   return {
     title,
     description,
+    alternates: {
+      canonical: canonicalUrl,
+    },
     openGraph: {
       title,
       description,
       type: 'website',
+      url: canonicalUrl,
       images: primaryImage ? [{ url: primaryImage, alt: product.name }] : [],
     },
     twitter: {
@@ -87,6 +92,7 @@ export default async function ProductDetailPage({
 
   const vendorData = Array.isArray(product.vendor) ? product.vendor[0] : product.vendor;
   const vendorName = vendorData?.business_name || 'SwiftMart Merchant';
+  const productCanonicalUrl = `https://swiftmart.ng/products/${product.id}`;
 
   const productJsonLd = {
     '@context': 'https://schema.org',
@@ -106,6 +112,7 @@ export default async function ProductDetailPage({
         product.stock > 0
           ? 'https://schema.org/InStock'
           : 'https://schema.org/OutOfStock',
+      url: productCanonicalUrl,
       seller: {
         '@type': 'Organization',
         name: vendorName,
@@ -142,7 +149,7 @@ export default async function ProductDetailPage({
         '@type': 'ListItem',
         position: 3,
         name: product.name,
-        item: `https://swiftmart.ng/products/${product.id}`,
+        item: productCanonicalUrl,
       },
     ],
   };
