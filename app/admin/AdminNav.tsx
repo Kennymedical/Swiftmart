@@ -38,7 +38,7 @@ const PILLARS: Pillar[] = [
     icon: WalletCards,
     matches: (path) => path.startsWith('/admin/wallet') || path.startsWith('/admin/payouts'),
     subTabs: [
-      { href: '/admin/wallet', label: 'Profit Wallet' },
+      { href: '/admin/wallet', label: 'Profit Wallet & Escrow' },
       { href: '/admin/payouts', label: 'Payout Queue' },
     ],
   },
@@ -47,9 +47,16 @@ const PILLARS: Pillar[] = [
     label: 'Directory',
     href: '/admin/vendors',
     icon: Users,
-    matches: (path) => path.startsWith('/admin/vendors'),
+    matches: (path) =>
+      path.startsWith('/admin/vendors') ||
+      path.startsWith('/admin/users') ||
+      path.startsWith('/admin/logistics') ||
+      path.startsWith('/admin/kyc'),
     subTabs: [
-      { href: '/admin/vendors', label: 'Active & Pending Vendors' },
+      { href: '/admin/vendors', label: 'Vendors' },
+      { href: '/admin/users', label: 'Users & Customers' },
+      { href: '/admin/logistics', label: 'Logistics Partners' },
+      { href: '/admin/kyc', label: 'KYC Approvals' },
     ],
   },
   {

@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
-import { DollarSign, Store, Package, ArrowUpRight, Clock, ShieldCheck } from 'lucide-react';
+import { DollarSign, Store, Package, ArrowUpRight, Clock, ShieldCheck, Lock } from 'lucide-react';
 import Link from 'next/link';
+import { AdminTrendCharts } from '@/components/admin/AdminTrendCharts';
 
 function naira(kobo: number) {
   return `₦${(kobo / 100).toLocaleString('en-NG', {
@@ -18,6 +19,9 @@ export default async function AdminOverviewPage() {
     { count: pendingProducts },
     { count: pendingPayouts },
     { data: recentTxns },
+    { data: escrowOrders },
+    { data: historicalTxns },
+    { data: historicalVendors },
   ] = await Promise.all([
     supabase.from('wallets').select('balance_kobo'),
     supabase.from('vendors').select('id', { count: 'exact', head: true }).in('status', ['pending', 'under_review']),
@@ -28,9 +32,64 @@ export default async function AdminOverviewPage() {
       .select('id, type, status, amount_kobo, description, created_at')
       .order('created_at', { ascending: false })
       .limit(25),
+    supabase
+      .from('orders')
+      .select('total_kobo')
+      .in('status', ['paid', 'processing', 'shipped']),
+    supabase
+      .from('transactions')
+      .select('amount_kobo, type, status, created_at')
+      .order('created_at', { ascending: true })
+      .limit(500),
+    supabase
+      .from('vendors')
+      .select('created_at, status')
+      .order('created_at', { ascending: true })
+      .limit(200),
   ]);
 
   const totalUserBalances = (wallets ?? []).reduce((sum, w) => sum + w.balance_kobo, 0);
+  const totalEscrowKobo = (escrowOrders ?? []).reduce((sum, o) => sum + (o.total_kobo || 0), 0);
+
+  // Group trend data by day for charts
+  const dayMap = new Map<string, { liabilityKobo: number; vendorApprovals: number; payoutKobo: number }>();
+  
+  // Seed last 14 days
+  for (let i = 13; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().split('T')[0];
+    dayMap.set(dateStr, { liabilityKobo: totalUserBalances, vendorApprovals: 0, payoutKobo: 0 });
+  }
+
+  (historicalTxns ?? []).forEach((t) => {
+    const dateStr = t.created_at.split('T')[0];
+    if (dayMap.has(dateStr)) {
+      const entry = dayMap.get(dateStr)!;
+      if (t.type === 'payout' && (t.status === 'success' || t.status === 'completed')) {
+        entry.payoutKobo += Math.abs(t.amount_kobo);
+      }
+    }
+  });
+
+  (historicalVendors ?? []).forEach((v) => {
+    const dateStr = v.created_at.split('T')[0];
+    if (dayMap.has(dateStr)) {
+      const entry = dayMap.get(dateStr)!;
+      entry.vendorApprovals += 1;
+    }
+  });
+
+  const trendData = Array.from(dayMap.entries()).map(([date, val]) => ({
+    date,
+    liabilityKobo: val.liabilityKobo,
+    vendorApprovals: val.vendorApprovals,
+    payoutKobo: val.payoutKobo,
+  }));
+
+  const totalPayoutsKobo = (historicalTxns ?? [])
+    .filter((t) => t.type === 'payout' && (t.status === 'success' || t.status === 'completed'))
+    .reduce((sum, t) => sum + Math.abs(t.amount_kobo), 0);
 
   const stats = [
     {
@@ -42,20 +101,20 @@ export default async function AdminOverviewPage() {
       actionText: 'View Treasury',
     },
     {
+      label: 'Funds Held in Escrow',
+      sublabel: 'Active customer orders pending delivery',
+      value: naira(totalEscrowKobo),
+      icon: Lock,
+      href: '/admin/orders',
+      actionText: 'View Escrow Orders',
+    },
+    {
       label: 'Pending Vendor Approvals',
       sublabel: 'Awaiting KYC and merchant verification',
       value: pendingVendors ?? 0,
       icon: Store,
       href: '/admin/vendors',
       actionText: 'Review Vendors',
-    },
-    {
-      label: 'Draft Products In Review',
-      sublabel: 'Vendor submissions pending marketplace approval',
-      value: pendingProducts ?? 0,
-      icon: Package,
-      href: '/admin/products',
-      actionText: 'Inspect Catalog',
     },
     {
       label: 'Pending Payout Requests',
@@ -66,12 +125,6 @@ export default async function AdminOverviewPage() {
       actionText: 'Process Payouts',
     },
   ];
-
-  const payoutAccount = {
-    bank: process.env.PAYOUT_BANK_NAME,
-    number: process.env.PAYOUT_ACCOUNT_NUMBER,
-    name: process.env.PAYOUT_ACCOUNT_NAME,
-  };
 
   return (
     <div className="space-y-6">
@@ -85,7 +138,7 @@ export default async function AdminOverviewPage() {
             SwiftMart System Pulse
           </h2>
           <p className="text-xs sm:text-sm text-[#A8B0C5] mt-0.5">
-            Real-time multi-vendor activity, platform liability, and treasury reconciliation.
+            Real-time multi-vendor activity, escrow tracking, and treasury reconciliation.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -131,24 +184,13 @@ export default async function AdminOverviewPage() {
         })}
       </div>
 
-      {/* External Payout Channel Account Info */}
-      {payoutAccount.number && (
-        <div className="bg-gradient-to-br from-[#142850] to-[#1B2F5E] border border-[#D4AF37]/30 rounded-2xl shadow-[0_4px_20px_rgba(212,175,55,0.08)] p-5">
-          <p className="text-xs font-semibold text-[#A8B0C5] mb-2 uppercase tracking-wider">
-            SwiftMart Payouts — External Operating Account
-          </p>
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <div>
-              <p className="text-[#F5F7FA] font-bold text-base">{payoutAccount.bank}</p>
-              <p className="text-[#E8C874] text-xl font-black tracking-wider mt-0.5">{payoutAccount.number}</p>
-              <p className="text-[#A8B0C5] text-sm mt-0.5">{payoutAccount.name}</p>
-            </div>
-            <span className="self-start sm:self-center px-3 py-1 rounded-full text-xs font-bold bg-[#142850] text-[#2ED573] border border-[#2ED573]/30">
-              Verified Channel
-            </span>
-          </div>
-        </div>
-      )}
+      {/* Date-Range Trend Charts Section */}
+      <AdminTrendCharts
+        trendData={trendData}
+        totalLiabilityKobo={totalUserBalances}
+        totalPayoutsKobo={totalPayoutsKobo}
+        totalNewVendors={(historicalVendors ?? []).length}
+      />
 
       {/* Structured Real-Time Activity Log */}
       <div>

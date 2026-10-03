@@ -1,7 +1,8 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { AdminNav } from './AdminNav';
-import { ShieldCheck, Search, Store } from 'lucide-react';
+import { ShieldCheck, Store } from 'lucide-react';
+import { AdminHeaderSearch } from '@/components/admin/AdminHeaderSearch';
 import Link from 'next/link';
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -23,8 +24,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#0A1931] via-[#0D1D3A] to-[#0F2140] text-[#F5F7FA]">
-      {/* Admin Console Top Bar */}
-      <header className="sticky top-0 z-50 bg-[#0A1931]/95 backdrop-blur-md border-b border-[#D4AF37]/25 px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between shadow-md">
+      {/* Top Header Bar */}
+      <header className="sticky top-0 z-50 bg-[#0A1931]/95 backdrop-blur-md border-b border-[#D4AF37]/25 px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between shadow-md">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-xl bg-gradient-to-br from-[#142850] to-[#1B2F5E] border border-[#D4AF37]/35 text-[#D4AF37] shadow-[0_0_12px_rgba(212,175,55,0.15)]">
             <ShieldCheck className="w-5 h-5" />
@@ -45,18 +46,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="hidden md:flex items-center gap-2 bg-[#0F2550] border border-[#D4AF37]/25 px-3 py-1.5 rounded-xl text-xs text-[#A8B0C5]">
-            <Search className="w-3.5 h-3.5 text-[#D4AF37]" />
-            <input
-              type="text"
-              placeholder="Search vendors, txns, orders..."
-              className="bg-transparent border-none outline-none text-[#F5F7FA] placeholder-[#8A94B0] w-48 text-xs"
-              readOnly
-            />
-          </div>
+          {/* Live Search for Vendors, Products, Orders */}
+          <AdminHeaderSearch />
+
           <Link
             href="/"
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#D4AF37] border border-[#D4AF37]/40 rounded-xl hover:bg-[#142850] transition"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#D4AF37] border border-[#D4AF37]/40 rounded-xl hover:bg-[#142850] transition shrink-0"
           >
             <Store className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Storefront</span>
@@ -64,10 +59,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         </div>
       </header>
 
-      {/* Navigation Tabs */}
+      {/* Hierarchical Navigation */}
       <AdminNav />
 
-      {/* Main Screen Content */}
+      {/* Main Responsive Body */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-16">{children}</main>
     </div>
   );
