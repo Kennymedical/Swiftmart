@@ -1,5 +1,7 @@
+import type { Metadata } from 'next';
 import { createClient } from '@/lib/supabase/server';
 import { AddToCartButton } from '@/components/AddToCartButton';
+import { ProductGallery } from '@/components/products/ProductGallery';
 import Link from 'next/link';
 import { ArrowLeft, Store, ShieldCheck, Truck } from 'lucide-react';
 import { notFound } from 'next/navigation';
@@ -8,11 +10,56 @@ function formatNaira(kobo: number) {
   return `₦${(kobo / 100).toLocaleString('en-NG')}`;
 }
 
+interface ProductPageProps {
+  params: { id: string };
+}
+
+export async function generateMetadata({
+  params,
+}: ProductPageProps): Promise<Metadata> {
+  const supabase = createClient();
+  const { data: product } = await supabase
+    .from('products')
+    .select('id, name, slug, description, images, price_kobo, status')
+    .eq('id', params.id)
+    .single();
+
+  if (!product || product.status !== 'active') {
+    return {
+      title: 'Product Not Found | SwiftMart',
+      description: 'The requested product is not available on SwiftMart.',
+    };
+  }
+
+  const retailPrice = Math.round((product.price_kobo * 1.2) / 100).toLocaleString('en-NG');
+  const title = `${product.name} - ₦${retailPrice} | SwiftMart`;
+  const description =
+    product.description && product.description.trim().length > 0
+      ? product.description.slice(0, 160)
+      : `Buy ${product.name} on SwiftMart. Escrow protected marketplace with doorstep delivery across Nigeria.`;
+  const primaryImage = product.images?.[0];
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: 'website',
+      images: primaryImage ? [{ url: primaryImage, alt: product.name }] : [],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: primaryImage ? [primaryImage] : [],
+    },
+  };
+}
+
 export default async function ProductDetailPage({
   params,
-}: {
-  params: { id: string };
-}) {
+}: ProductPageProps) {
   const supabase = createClient();
 
   const { data: product, error } = await supabase
@@ -38,8 +85,51 @@ export default async function ProductDetailPage({
     ? Math.round(((compareAtKobo - displayPriceKobo) / compareAtKobo) * 100)
     : 0;
 
+  const vendorData = Array.isArray(product.vendor) ? product.vendor[0] : product.vendor;
+  const vendorName = vendorData?.business_name || 'SwiftMart Merchant';
+
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: product.name,
+    image: product.images || [],
+    description:
+      product.description && product.description.trim().length > 0
+        ? product.description
+        : `Buy ${product.name} on SwiftMart. Escrow protected marketplace with doorstep delivery.`,
+    sku: product.id,
+    offers: {
+      '@type': 'Offer',
+      priceCurrency: 'NGN',
+      price: (displayPriceKobo / 100).toFixed(2),
+      availability:
+        product.stock > 0
+          ? 'https://schema.org/InStock'
+          : 'https://schema.org/OutOfStock',
+      seller: {
+        '@type': 'Organization',
+        name: vendorName,
+      },
+    },
+    ...(product.rating > 0
+      ? {
+          aggregateRating: {
+            '@type': 'AggregateRating',
+            ratingValue: product.rating,
+            reviewCount: product.review_count || 1,
+          },
+        }
+      : {}),
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#0A1931] via-[#0D1D3A] to-[#0F2140] text-[#F5F7FA] pb-24">
+      {/* Schema.org JSON-LD */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+
       <div className="sticky top-0 z-40 bg-[#0A1931]/90 backdrop-blur-md border-b border-[#D4AF37]/20 px-4 py-3 flex items-center justify-between">
         <Link href="/products" className="flex items-center gap-1.5 text-xs font-semibold text-[#D4AF37]">
           <ArrowLeft className="w-4 h-4" />
@@ -52,42 +142,23 @@ export default async function ProductDetailPage({
       </div>
 
       <div className="max-w-2xl mx-auto p-4 space-y-4">
-        <div className="relative aspect-square rounded-2xl bg-[#0A1931] border border-[#D4AF37]/25 overflow-hidden shadow-[0_4px_25px_rgba(212,175,55,0.1)]">
-          {product.images?.[0] ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-[#8A94B0]">No image available</div>
-          )}
+        <div className="relative">
+          <ProductGallery images={product.images || []} name={product.name} />
           {hasDiscount && (
-            <span className="absolute top-3 left-3 bg-[#D4AF37] text-[#0A1931] text-xs font-black px-2.5 py-1 rounded-full shadow-md">
+            <span className="absolute top-3 left-3 bg-[#D4AF37] text-[#0A1931] text-xs font-black px-2.5 py-1 rounded-full shadow-md z-10 pointer-events-none">
               -{discountPercent}% OFF
             </span>
           )}
         </div>
 
-        {product.images && product.images.length > 1 && (
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            {product.images.map((img: string, idx: number) => (
-              <div
-                key={idx}
-                className="w-16 h-16 rounded-xl bg-[#0A1931] border border-[#D4AF37]/20 overflow-hidden shrink-0"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={img} alt="" className="w-full h-full object-cover" />
-              </div>
-            ))}
-          </div>
-        )}
-
         <div className="bg-gradient-to-br from-[#142850] to-[#1B2F5E] border border-[#D4AF37]/25 rounded-2xl p-5 shadow-[0_4px_20px_rgba(212,175,55,0.08)] space-y-4">
           <div>
-            {product.vendor && (
+            {vendorData && (
               <div className="flex items-center gap-1.5 text-xs text-[#A8B0C5] mb-1">
                 <Store className="w-3.5 h-3.5 text-[#D4AF37]" />
-                <span>{product.vendor.business_name}</span>
-                {product.vendor.rating > 0 && (
-                  <span className="text-[#E8C874]">★ {product.vendor.rating.toFixed(1)}</span>
+                <span>{vendorData.business_name}</span>
+                {vendorData.rating > 0 && (
+                  <span className="text-[#E8C874]">★ {vendorData.rating.toFixed(1)}</span>
                 )}
               </div>
             )}
