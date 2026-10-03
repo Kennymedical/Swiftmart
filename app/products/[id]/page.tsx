@@ -88,7 +88,7 @@ export default async function ProductDetailPage({
   const vendorData = Array.isArray(product.vendor) ? product.vendor[0] : product.vendor;
   const vendorName = vendorData?.business_name || 'SwiftMart Merchant';
 
-  const jsonLd = {
+  const productJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Product',
     name: product.name,
@@ -122,12 +122,41 @@ export default async function ProductDetailPage({
       : {}),
   };
 
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: 'Home',
+        item: 'https://swiftmart.ng/',
+      },
+      {
+        '@type': 'ListItem',
+        position: 2,
+        name: 'Shop',
+        item: 'https://swiftmart.ng/products',
+      },
+      {
+        '@type': 'ListItem',
+        position: 3,
+        name: product.name,
+        item: `https://swiftmart.ng/products/${product.id}`,
+      },
+    ],
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#0A1931] via-[#0D1D3A] to-[#0F2140] text-[#F5F7FA] pb-24">
-      {/* Schema.org JSON-LD */}
+      {/* Schema.org Structured Data */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
 
       <div className="sticky top-0 z-40 bg-[#0A1931]/90 backdrop-blur-md border-b border-[#D4AF37]/20 px-4 py-3 flex items-center justify-between">

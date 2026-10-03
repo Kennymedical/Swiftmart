@@ -1,13 +1,25 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import ProductDetailPage, { generateMetadata } from '@/app/products/[id]/page';
 import AdminProductDetailPage from '@/app/admin/products/[id]/page';
+import ProductDetailLoading from '@/app/products/[id]/loading';
+import ProductNotFound from '@/app/products/[id]/not-found';
+import ProductDetailError from '@/app/products/[id]/error';
+import AdminProductDetailLoading from '@/app/admin/products/[id]/loading';
+import AdminProductNotFound from '@/app/admin/products/[id]/not-found';
+import AdminProductDetailError from '@/app/admin/products/[id]/error';
 import { ProductGallery } from '@/components/products/ProductGallery';
 import { notFound } from 'next/navigation';
 
+const notFoundMock = vi.fn(() => {
+  const err = new Error('NEXT_NOT_FOUND');
+  (err as any).digest = 'NEXT_NOT_FOUND';
+  throw err;
+});
+
 vi.mock('next/navigation', () => ({
-  notFound: vi.fn(),
+  notFound: () => notFoundMock(),
   usePathname: vi.fn(() => '/'),
   useRouter: vi.fn(() => ({ push: vi.fn(), refresh: vi.fn() })),
 }));
@@ -67,7 +79,7 @@ describe('Product Detail Routes & SEO & Gallery Accessibility', () => {
   });
 
   describe('Shopper Product Detail Route', () => {
-    it('renders active product details with 20% retail markup and JSON-LD schema', async () => {
+    it('renders active product details with 20% retail markup and JSON-LD schema (Product & BreadcrumbList)', async () => {
       const productData = {
         id: 'prod-123',
         name: 'Luxury Wristwatch',
@@ -89,21 +101,50 @@ describe('Product Detail Routes & SEO & Gallery Accessibility', () => {
       const page = await ProductDetailPage({ params: { id: 'prod-123' } });
       const { container } = render(page);
 
-      expect(screen.getByText('Luxury Wristwatch')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { level: 1, name: 'Luxury Wristwatch' })).toBeInTheDocument();
       expect(screen.getByText('₦12,000')).toBeInTheDocument();
       expect(screen.getByText('Crown Watches')).toBeInTheDocument();
       expect(screen.getByText('In Stock (5 available)')).toBeInTheDocument();
       expect(screen.getByTestId('mock-add-to-cart')).toBeInTheDocument();
 
       // JSON-LD structured data verification
-      const scriptTag = container.querySelector('script[type="application/ld+json"]');
-      expect(scriptTag).not.toBeNull();
-      const schema = JSON.parse(scriptTag!.textContent || '{}');
-      expect(schema['@type']).toBe('Product');
-      expect(schema.name).toBe('Luxury Wristwatch');
-      expect(schema.offers.price).toBe('12000.00');
-      expect(schema.offers.seller.name).toBe('Crown Watches');
-      expect(schema.offers.availability).toBe('https://schema.org/InStock');
+      const scripts = Array.from(container.querySelectorAll('script[type="application/ld+json"]'));
+      expect(scripts.length).toBeGreaterThanOrEqual(2);
+
+      // 1. Product JSON-LD
+      const productScript = scripts.find((s) => s.textContent?.includes('"@type":"Product"'));
+      expect(productScript).toBeDefined();
+      const productSchema = JSON.parse(productScript!.textContent || '{}');
+      expect(productSchema['@type']).toBe('Product');
+      expect(productSchema.name).toBe('Luxury Wristwatch');
+      expect(productSchema.offers.price).toBe('12000.00');
+      expect(productSchema.offers.seller.name).toBe('Crown Watches');
+      expect(productSchema.offers.availability).toBe('https://schema.org/InStock');
+
+      // 2. BreadcrumbList JSON-LD
+      const breadcrumbScript = scripts.find((s) => s.textContent?.includes('"@type":"BreadcrumbList"'));
+      expect(breadcrumbScript).toBeDefined();
+      const breadcrumbSchema = JSON.parse(breadcrumbScript!.textContent || '{}');
+      expect(breadcrumbSchema['@type']).toBe('BreadcrumbList');
+      expect(breadcrumbSchema.itemListElement).toHaveLength(3);
+      expect(breadcrumbSchema.itemListElement[0]).toEqual({
+        '@type': 'ListItem',
+        position: 1,
+        name: 'Home',
+        item: 'https://swiftmart.ng/',
+      });
+      expect(breadcrumbSchema.itemListElement[1]).toEqual({
+        '@type': 'ListItem',
+        position: 2,
+        name: 'Shop',
+        item: 'https://swiftmart.ng/products',
+      });
+      expect(breadcrumbSchema.itemListElement[2]).toEqual({
+        '@type': 'ListItem',
+        position: 3,
+        name: 'Luxury Wristwatch',
+        item: 'https://swiftmart.ng/products/prod-123',
+      });
     });
 
     it('generates dynamic metadata and Open Graph tags for active products', async () => {
@@ -132,8 +173,8 @@ describe('Product Detail Routes & SEO & Gallery Accessibility', () => {
     it('calls notFound() when product does not exist', async () => {
       mockSupabase = buildProductMock({ data: null });
 
-      await ProductDetailPage({ params: { id: 'missing-id' } });
-      expect(notFound).toHaveBeenCalled();
+      await expect(ProductDetailPage({ params: { id: 'missing-id' } })).rejects.toThrow('NEXT_NOT_FOUND');
+      expect(notFoundMock).toHaveBeenCalled();
     });
 
     it('calls notFound() when product is draft or inactive for shoppers', async () => {
@@ -145,8 +186,8 @@ describe('Product Detail Routes & SEO & Gallery Accessibility', () => {
       };
       mockSupabase = buildProductMock({ data: draftProduct });
 
-      await ProductDetailPage({ params: { id: 'prod-draft' } });
-      expect(notFound).toHaveBeenCalled();
+      await expect(ProductDetailPage({ params: { id: 'prod-draft' } })).rejects.toThrow('NEXT_NOT_FOUND');
+      expect(notFoundMock).toHaveBeenCalled();
     });
 
     it('throws error when Supabase fails unexpectedly', async () => {
@@ -201,8 +242,8 @@ describe('Product Detail Routes & SEO & Gallery Accessibility', () => {
     it('calls notFound() in admin if product ID does not exist', async () => {
       mockSupabase = buildProductMock({ data: null });
 
-      await AdminProductDetailPage({ params: { id: 'missing-admin-prod' } });
-      expect(notFound).toHaveBeenCalled();
+      await expect(AdminProductDetailPage({ params: { id: 'missing-admin-prod' } })).rejects.toThrow('NEXT_NOT_FOUND');
+      expect(notFoundMock).toHaveBeenCalled();
     });
 
     it('throws error when Supabase fails in admin', async () => {
@@ -249,6 +290,72 @@ describe('Product Detail Routes & SEO & Gallery Accessibility', () => {
       // Press ArrowLeft to move back to photo 1
       fireEvent.keyDown(thumb2, { key: 'ArrowLeft' });
       expect(thumb1).toHaveAttribute('aria-current', 'true');
+    });
+  });
+
+  describe('Browser-Level Route States (Loading, Not-Found, Error)', () => {
+    describe('Shopper Route States', () => {
+      it('renders shopper ProductDetailLoading skeleton with pulse animation and shop link', () => {
+        const { container } = render(<ProductDetailLoading />);
+
+        const pulseWrapper = container.firstChild as HTMLElement;
+        expect(pulseWrapper).toHaveClass('animate-pulse');
+        expect(screen.getByRole('link', { name: /shop/i })).toHaveAttribute('href', '/products');
+      });
+
+      it('renders shopper ProductNotFound with browse and home action links', () => {
+        render(<ProductNotFound />);
+
+        expect(screen.getByRole('heading', { level: 1, name: /product not found/i })).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: /browse available products/i })).toHaveAttribute('href', '/products');
+        expect(screen.getByRole('link', { name: /back to home/i })).toHaveAttribute('href', '/');
+      });
+
+      it('renders shopper ProductDetailError and executes reset callback on Retry', () => {
+        const resetMock = vi.fn();
+        const testError = Object.assign(new Error('Connection dropped'), { digest: 'ERR_1' });
+
+        render(<ProductDetailError error={testError} reset={resetMock} />);
+
+        expect(screen.getByRole('heading', { level: 1, name: /unable to load product/i })).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: /return to shop/i })).toHaveAttribute('href', '/products');
+
+        const tryAgainBtn = screen.getByRole('button', { name: /try again/i });
+        fireEvent.click(tryAgainBtn);
+        expect(resetMock).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    describe('Admin Route States', () => {
+      it('renders admin AdminProductDetailLoading skeleton with catalog navigation link', () => {
+        const { container } = render(<AdminProductDetailLoading />);
+
+        const pulseWrapper = container.firstChild as HTMLElement;
+        expect(pulseWrapper).toHaveClass('animate-pulse');
+        expect(screen.getByRole('link', { name: /back to product catalog/i })).toHaveAttribute('href', '/admin/products');
+      });
+
+      it('renders admin AdminProductNotFound with search and overview action links', () => {
+        render(<AdminProductNotFound />);
+
+        expect(screen.getByRole('heading', { level: 1, name: /product not found in catalog/i })).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: /search catalog/i })).toHaveAttribute('href', '/admin/products');
+        expect(screen.getByRole('link', { name: /admin overview/i })).toHaveAttribute('href', '/admin');
+      });
+
+      it('renders admin AdminProductDetailError and executes reset callback on Retry', () => {
+        const resetMock = vi.fn();
+        const testError = Object.assign(new Error('Failed Supabase query'), { digest: 'ERR_ADMIN_1' });
+
+        render(<AdminProductDetailError error={testError} reset={resetMock} />);
+
+        expect(screen.getByRole('heading', { level: 1, name: /error loading product details/i })).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: /back to catalog/i })).toHaveAttribute('href', '/admin/products');
+
+        const retryBtn = screen.getByRole('button', { name: /retry query/i });
+        fireEvent.click(retryBtn);
+        expect(resetMock).toHaveBeenCalledTimes(1);
+      });
     });
   });
 });
