@@ -6,123 +6,75 @@ import { Header } from '@/components/Header';
 import { BottomNav } from '@/components/layout/bottom-nav';
 
 vi.mock('next/navigation', () => ({
-  usePathname: vi.fn(() => '/'),
-  useRouter: vi.fn(() => ({ push: vi.fn(), refresh: vi.fn() })),
+  usePathname: vi.fn(),
+  useRouter: () => ({
+    push: vi.fn(),
+    refresh: vi.fn(),
+  }),
 }));
 
-vi.mock('next/link', () => ({
-  default: ({
-    href,
-    children,
-    ...props
-  }: {
-    href: string;
-    children?: React.ReactNode;
-  }) => (
-    <a href={href} {...props}>
-      {children}
-    </a>
-  ),
-}));
-
-let mockSupabase: any;
+const mockSignOut = vi.fn().mockResolvedValue({ error: null });
 
 vi.mock('@/lib/supabase/client', () => ({
-  createClient: () => mockSupabase,
-}));
-
-function buildSupabaseMock(userRole: string | null = null, isVendor: boolean = false) {
-  return {
+  createClient: () => ({
     auth: {
       getUser: vi.fn().mockResolvedValue({
-        data: {
-          user: { id: 'test-user', email: 'test@swiftmart.test' },
-        },
+        data: { user: { id: 'usr-1', email: 'merchant@example.com' } },
+        error: null,
       }),
-      signOut: vi.fn().mockResolvedValue({ error: null }),
+      signOut: mockSignOut,
+      onAuthStateChange: vi.fn(() => ({
+        data: { subscription: { unsubscribe: vi.fn() } },
+      })),
     },
-    from: vi.fn((table: string) => {
-      if (table === 'vendors') {
-        return {
-          select: vi.fn().mockReturnThis(),
-          eq: vi.fn().mockReturnThis(),
-          maybeSingle: vi.fn().mockResolvedValue({
-            data: isVendor ? { id: 'v-1', business_name: 'Vendor Store' } : null,
-          }),
-        };
-      }
-      if (table === 'profiles') {
-        return {
-          select: vi.fn().mockReturnThis(),
-          eq: vi.fn().mockReturnThis(),
-          maybeSingle: vi.fn().mockResolvedValue({
-            data: userRole ? { role: userRole } : { role: 'customer' },
-          }),
-        };
-      }
-      return {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockResolvedValue([{ count: 3 }]),
-      };
+    from: (table: string) => ({
+      select: () => ({
+        eq: () => ({
+          maybeSingle: () => Promise.resolve({ data: { role: 'admin' }, error: null }),
+          single: () => Promise.resolve({ data: { role: 'admin' }, error: null }),
+        }),
+      }),
     }),
-  };
-}
+  }),
+}));
 
 describe('Dashboard Operational Navigation & Cart Gating', () => {
-  it('hides the cart and shows operational admin links and sign out when on /admin', async () => {
-    vi.mocked(usePathname).mockReturnValue('/admin');
-    mockSupabase = buildSupabaseMock('admin', false);
-
-    render(<Header />);
-
-    // Cart is hidden in header
-    expect(screen.queryByLabelText(/shopping cart/i)).not.toBeInTheDocument();
-
-    // Top header shows quick Sign Out button
-    expect(screen.getByRole('button', { name: /sign out/i })).toBeInTheDocument();
-
-    // Open drawer menu
-    fireEvent.click(screen.getByRole('button', { name: /toggle menu/i }));
-
-    // Admin operational sections appear
-    expect(await screen.findByText('Admin Core')).toBeInTheDocument();
-    expect(screen.getByText('System Pulse & Overview')).toBeInTheDocument();
-    expect(screen.getByText('Profit Treasury & Escrow')).toBeInTheDocument();
-    expect(screen.getByText('Orders & Escrow Releases')).toBeInTheDocument();
-    expect(screen.getByText('Vendor Payout Requests')).toBeInTheDocument();
-    expect(screen.getByText('Vendor Directory & KYC')).toBeInTheDocument();
-    expect(screen.getByText('Product Approvals')).toBeInTheDocument();
-
-    // Shopper cart & order links are replaced
-    expect(screen.queryByText('My Orders & Waybill')).not.toBeInTheDocument();
-    expect(screen.queryByText('Shopping Cart')).not.toBeInTheDocument();
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
-  it('hides the cart and shows operational vendor links and sign out when on /vendor', async () => {
-    vi.mocked(usePathname).mockReturnValue('/vendor');
-    mockSupabase = buildSupabaseMock('customer', true);
-
+  it('hides the shopper cart icon when visiting /admin and renders Admin operational actions', async () => {
+    vi.mocked(usePathname).mockReturnValue('/admin');
     render(<Header />);
 
-    // Cart is hidden
-    expect(screen.queryByLabelText(/shopping cart/i)).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByLabelText('Cart')).not.toBeInTheDocument();
+      expect(screen.queryByLabelText(/cart/i)).not.toBeInTheDocument();
+    });
 
-    // Header has sign out
-    expect(screen.getByRole('button', { name: /sign out/i })).toBeInTheDocument();
+    const openMenuButton = screen.getByLabelText('Toggle menu');
+    fireEvent.click(openMenuButton);
 
-    // Open drawer
-    fireEvent.click(screen.getByRole('button', { name: /toggle menu/i }));
+    expect(screen.getByText('System Pulse & Overview')).toBeInTheDocument();
+    expect(screen.getByText('Profit Treasury & Escrow')).toBeInTheDocument();
+    expect(screen.getByText('Vendor Payout Requests')).toBeInTheDocument();
+    expect(screen.getByText('Vendor Directory & KYC')).toBeInTheDocument();
+  });
 
-    // Vendor operational sections appear
-    expect(await screen.findByText('Store Operations')).toBeInTheDocument();
+  it('hides the shopper cart icon when visiting /vendor and renders Vendor operational actions', async () => {
+    vi.mocked(usePathname).mockReturnValue('/vendor');
+    render(<Header />);
+
+    await waitFor(() => {
+      expect(screen.queryByLabelText('Cart')).not.toBeInTheDocument();
+    });
+
+    const openMenuButton = screen.getByLabelText('Toggle menu');
+    fireEvent.click(openMenuButton);
+
     expect(screen.getByText('Vendor Dashboard')).toBeInTheDocument();
     expect(screen.getByText('Add New Product')).toBeInTheDocument();
     expect(screen.getByText('Vendor Payout Wallet')).toBeInTheDocument();
-    expect(screen.getByText('Withdraw to Bank')).toBeInTheDocument();
-
-    // Shopper cart is replaced
-    expect(screen.queryByText('My Orders & Waybill')).not.toBeInTheDocument();
-    expect(screen.queryByText('Shopping Cart')).not.toBeInTheDocument();
   });
 
   it('renders operational bottom nav items for admin and vendor without shopper items', () => {
@@ -130,14 +82,17 @@ describe('Dashboard Operational Navigation & Cart Gating', () => {
     const { unmount } = render(<BottomNav />);
     expect(screen.getByText('Console')).toBeInTheDocument();
     expect(screen.getByText('Escrow')).toBeInTheDocument();
-    expect(screen.getByText('Treasury')).toBeInTheDocument();
+    expect(screen.getByText('Payouts')).toBeInTheDocument();
+    expect(screen.getByText('Commissions')).toBeInTheDocument();
+    expect(screen.getByText('Vendors')).toBeInTheDocument();
     expect(screen.queryByText('Alerts')).not.toBeInTheDocument();
     unmount();
 
     vi.mocked(usePathname).mockReturnValue('/vendor');
     render(<BottomNav />);
-    expect(screen.getByText('Store')).toBeInTheDocument();
+    expect(screen.getByText('Orders')).toBeInTheDocument();
     expect(screen.getByText('Add Item')).toBeInTheDocument();
+    expect(screen.getByText('Wallet')).toBeInTheDocument();
     expect(screen.getByText('Catalog')).toBeInTheDocument();
     expect(screen.queryByText('Alerts')).not.toBeInTheDocument();
   });

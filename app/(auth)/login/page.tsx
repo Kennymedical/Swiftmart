@@ -4,11 +4,13 @@ import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import { AlertCircle } from 'lucide-react';
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams?.get('redirect') || '/';
+  const isSessionExpired = searchParams?.get('session_expired') === 'true';
 
   const supabase = createClient();
   const [email, setEmail] = useState('');
@@ -44,13 +46,20 @@ function LoginForm() {
       <h1 className="text-center text-4xl font-bold text-[#E9C86A] mb-1">
         SwiftMart
       </h1>
-      <p className="text-center text-[#A8B0C5] mb-8">
+      <p className="text-center text-[#A8B0C5] mb-6">
         {redirectTo.startsWith('/admin')
           ? 'Admin Console Access'
           : redirectTo.startsWith('/vendor')
           ? 'Merchant Portal Access'
           : 'Welcome back'}
       </p>
+
+      {isSessionExpired && (
+        <div className="mb-6 p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-2.5 text-xs text-amber-200">
+          <AlertCircle size={16} className="text-amber-400 shrink-0 mt-0.5" />
+          <span>Your session has expired. Please log in again to continue to your dashboard.</span>
+        </div>
+      )}
 
       <form onSubmit={handleLogin}>
         <input

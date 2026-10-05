@@ -1,6 +1,5 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { AdminNav } from './AdminNav';
 import { ShieldCheck, Store } from 'lucide-react';
 import { AdminHeaderSearch } from '@/components/admin/AdminHeaderSearch';
 import Link from 'next/link';
@@ -10,9 +9,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   const {
     data: { user },
+    error: authError,
   } = await supabase.auth.getUser();
 
-  if (!user) redirect('/');
+  if (authError || !user) {
+    redirect('/login?session_expired=true&redirect=/admin');
+  }
 
   const { data: profile } = await supabase
     .from('profiles')
@@ -20,7 +22,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     .eq('id', user.id)
     .single();
 
-  if (profile?.role !== 'admin') redirect('/');
+  if (profile?.role !== 'admin') {
+    redirect('/');
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#0A1931] via-[#0D1D3A] to-[#0F2140] text-[#F5F7FA]">
@@ -58,8 +62,6 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           </Link>
         </div>
       </header>
-
-      {/* Admin Navigation condensed into search bar */}
 
       {/* Main Responsive Body */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-16">{children}</main>

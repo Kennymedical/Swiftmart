@@ -13,7 +13,7 @@ import {
   CreditCard,
   Store,
   PlusCircle,
-  History
+  Percent
 } from 'lucide-react';
 
 export interface BottomNavProps {
@@ -43,7 +43,7 @@ export function BottomNav({ unreadNotifications = 0 }: BottomNavProps) {
       { href: '/admin', label: 'Console', icon: ShieldCheck, matchExact: true },
       { href: '/admin/orders', label: 'Escrow', icon: PackageCheck, matchExact: false },
       { href: '/admin/payouts', label: 'Payouts', icon: CreditCard, matchExact: false },
-      { href: '/admin/wallet', label: 'Treasury', icon: Wallet, matchExact: false },
+      { href: '/admin/commissions', label: 'Commissions', icon: Percent, matchExact: false },
       { href: '/admin/vendors', label: 'Vendors', icon: Store, matchExact: false },
     ];
 
@@ -85,7 +85,7 @@ export function BottomNav({ unreadNotifications = 0 }: BottomNavProps) {
   // Operational items for Vendor
   if (isVendor) {
     const vendorItems = [
-      { href: '/vendor', label: 'Store', icon: Store, matchExact: true },
+      { href: '/vendor', label: 'Orders', icon: Store, matchExact: true },
       { href: '/vendor/products/add', label: 'Add Item', icon: PlusCircle, matchExact: true },
       { href: '/vendor/wallet', label: 'Wallet', icon: Wallet, matchExact: false },
       { href: '/products', label: 'Catalog', icon: ShoppingBag, matchExact: false },

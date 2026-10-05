@@ -296,6 +296,14 @@ export function Header() {
                         <span>Profit Treasury & Escrow</span>
                         <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] group-hover:translate-x-0.5 transition" />
                       </Link>
+                      <Link
+                        href="/admin/commissions"
+                        onClick={() => setMenuOpen(false)}
+                        className="flex items-center justify-between p-2.5 rounded-xl text-sm font-medium text-[#F5F7FA] hover:bg-white/5 hover:text-[#F5C445] transition group"
+                      >
+                        <span>Commission & Fee Governance</span>
+                        <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] group-hover:translate-x-0.5 transition" />
+                      </Link>
                     </div>
                   </div>
 
