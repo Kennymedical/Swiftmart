@@ -28,6 +28,10 @@ export function Header() {
   const [cartCount, setCartCount] = useState(0);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [isVendor, setIsVendor] = useState(false);
+  const isDashboard = pathname?.startsWith('/admin') || pathname?.startsWith('/vendor');
+  const isAdminDashboard = pathname?.startsWith('/admin');
+  const isVendorDashboard = pathname?.startsWith('/vendor');
+
 
   useEffect(() => {
     async function loadUserData() {
@@ -125,7 +129,7 @@ export function Header() {
         </div>
 
         {/* Right: Cart Button */}
-        <Link
+        {!isDashboard && (<Link
           href="/cart"
           className="relative p-2 text-[#D4AF37] hover:text-[#F5C445] transition rounded-lg hover:bg-white/5 active:scale-95"
           aria-label="Shopping Cart"
@@ -136,7 +140,7 @@ export function Header() {
               {cartCount > 9 ? '9+' : cartCount}
             </span>
           )}
-        </Link>
+        </Link>)}
       </div>
 
       {/* Top-to-Bottom (Head-to-Down) Drawer Menu */}

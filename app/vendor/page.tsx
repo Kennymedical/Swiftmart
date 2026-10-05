@@ -154,15 +154,9 @@ export default async function VendorDashboardPage() {
 
   return (
     <div className="min-h-screen bg-[#0A1A3A] bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(233,200,106,0.08),rgba(255,255,255,0))] text-[#F5EAC2] pb-28">
-      <div className="bg-gradient-to-b from-[#1E3A7A] to-[#0A1A3A] border-b border-[#E9C86A]/30 px-4 py-5 shadow-[0_4px_20px_rgba(0,0,0,0.35)]">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-xs uppercase tracking-widest text-[#E9C86A]/80 font-semibold mb-0.5">Vendor Dashboard</p>
-            <h1 className="text-2xl font-serif font-bold text-[#E9C86A] tracking-wide">{vendor.business_name}</h1>
-          </div>
-          <span className="text-xs font-semibold px-2.5 py-1 rounded-full border border-[#E9C86A]/40 bg-[#0F2550] text-[#F5EAC2] capitalize">
-            {vendor.status}
-          </span>
+      <div className="bg-gradient-to-b from-[#1E3A7A] to-[#0A1A3A] border-b border-[#E9C86A]/30 px-4 py-4 shadow-[0_4px_20px_rgba(0,0,0,0.35)]">
+        <div>
+          <h1 className="text-2xl font-serif font-bold text-[#E9C86A] tracking-wide">{vendor.business_name}</h1>
         </div>
       </div>
 

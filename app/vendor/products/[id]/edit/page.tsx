@@ -250,11 +250,11 @@ export default function EditProductPage() {
               <select
                 value={selectedCategoryId}
                 onChange={(e) => setSelectedCategoryId(e.target.value)}
-                className="w-full rounded-xl border-2 border-[#D4AF37]/20 bg-[#0F2140] text-[#F5F7FA] p-3 focus:border-[#D4AF37] outline-none"
+                className="w-full rounded-xl border border-[#D4AF37]/30 bg-[#0F2140] text-[#F5F7FA] p-3 focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] outline-none transition appearance-none"
               >
-                <option value="">-- Select Category --</option>
+                <option value="" className="bg-[#0A1931] text-[#A8B0C5]">-- Select Category --</option>
                 {categories.map((c) => (
-                  <option key={c.id} value={c.id}>
+                  <option key={c.id} value={c.id} className="bg-[#0A1931] text-[#F5F7FA] py-1">
                     {c.name}
                   </option>
                 ))}

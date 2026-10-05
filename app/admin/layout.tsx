@@ -59,8 +59,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         </div>
       </header>
 
-      {/* Hierarchical Navigation */}
-      <AdminNav />
+      {/* Admin Navigation condensed into search bar */}
 
       {/* Main Responsive Body */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-16">{children}</main>
