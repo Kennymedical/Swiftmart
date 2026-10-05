@@ -100,7 +100,7 @@ describe('Product Detail Routes & SEO & Gallery Accessibility', () => {
       expect(metadata.openGraph?.images).toEqual([
         { url: 'https://images.unsplash.com/photo-loafers-1.jpg', alt: 'Italian Leather Loafers' },
       ]);
-      expect(metadata.twitter?.card).toBe('summary_large_image');
+      expect((metadata.twitter as any)?.card).toBe('summary_large_image');
       expect(metadata.twitter?.images).toEqual(['https://images.unsplash.com/photo-loafers-1.jpg']);
     });
 

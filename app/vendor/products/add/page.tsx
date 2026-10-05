@@ -3,6 +3,23 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { Plus, Tag } from 'lucide-react';
+
+interface Category {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+const DEFAULT_CATEGORIES = [
+  { name: 'Electronics', slug: 'electronics' },
+  { name: "Fashion (Men's Wear)", slug: 'fashion-mens-wear' },
+  { name: "Fashion (Women's Wear)", slug: 'fashion-womens-wear' },
+  { name: "Fashion (Children's Wear)", slug: 'fashion-childrens-wear' },
+  { name: 'Groceries & Food', slug: 'groceries-food' },
+  { name: 'Health & Beauty', slug: 'health-beauty' },
+  { name: 'Home & Kitchen', slug: 'home-kitchen' },
+];
 
 export default function AddProductPage() {
   const router = useRouter();
@@ -21,8 +38,15 @@ export default function AddProductPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Category state
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
+  const [isCreatingCustom, setIsCreatingCustom] = useState(false);
+  const [customCategoryName, setCustomCategoryName] = useState('');
+  const [categoryLoading, setCategoryLoading] = useState(false);
+
   useEffect(() => {
-    async function checkVendor() {
+    async function init() {
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -36,9 +60,24 @@ export default function AddProductPage() {
         .eq('user_id', user.id)
         .single();
       setVendorId(vendor?.id ?? null);
+
+      // Load existing categories from DB
+      const { data: dbCategories } = await supabase
+        .from('categories')
+        .select('id, name, slug')
+        .order('name', { ascending: true });
+
+      if (dbCategories && dbCategories.length > 0) {
+        setCategories(dbCategories);
+        setSelectedCategoryId(dbCategories[0].id);
+      } else {
+        // Fallback: seed or show defaults
+        setCategories([]);
+      }
+
       setChecking(false);
     }
-    checkVendor();
+    init();
   }, []);
 
   function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -55,6 +94,37 @@ export default function AddProductPage() {
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/(^-|-$)/g, '') + '-' + Date.now().toString(36)
     );
+  }
+
+  async function handleCreateCustomCategory() {
+    if (!customCategoryName.trim()) return;
+    setCategoryLoading(true);
+    setError('');
+
+    const newSlug = slugify(customCategoryName);
+    const { data, error: catError } = await supabase
+      .from('categories')
+      .insert({
+        name: customCategoryName.trim(),
+        slug: newSlug,
+      })
+      .select('id, name, slug')
+      .single();
+
+    setCategoryLoading(false);
+
+    if (catError) {
+      // If table doesn't have insert policy yet or unique conflict, fallback gracefully
+      setError(`Could not add category: ${catError.message}`);
+      return;
+    }
+
+    if (data) {
+      setCategories((prev) => [...prev, data]);
+      setSelectedCategoryId(data.id);
+      setCustomCategoryName('');
+      setIsCreatingCustom(false);
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -100,6 +170,7 @@ export default function AddProductPage() {
 
     const { error: insertError } = await supabase.from('products').insert({
       vendor_id: vendorId,
+      category_id: selectedCategoryId || null,
       name: name.trim(),
       slug: slugify(name),
       description: description.trim() || null,
@@ -169,6 +240,60 @@ export default function AddProductPage() {
               className="w-full rounded-xl border-2 border-[#D4AF37]/20 bg-[#0F2140] text-[#F5F7FA] p-3 focus:border-[#D4AF37] outline-none"
               placeholder="e.g. Wireless Earbuds"
             />
+          </div>
+
+          {/* Category Selector & Custom Creation */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium text-[#A8B0C5] flex items-center gap-1.5">
+                <Tag className="w-3.5 h-3.5 text-[#D4AF37]" />
+                <span>Product Category / Filter</span>
+              </label>
+              <button
+                type="button"
+                onClick={() => setIsCreatingCustom(!isCreatingCustom)}
+                className="text-xs text-[#E8C874] hover:underline flex items-center gap-1 font-semibold"
+              >
+                <Plus className="w-3 h-3" />
+                <span>{isCreatingCustom ? 'Select existing' : 'Add custom'}</span>
+              </button>
+            </div>
+
+            {!isCreatingCustom ? (
+              <select
+                value={selectedCategoryId}
+                onChange={(e) => setSelectedCategoryId(e.target.value)}
+                className="w-full rounded-xl border-2 border-[#D4AF37]/20 bg-[#0F2140] text-[#F5F7FA] p-3 focus:border-[#D4AF37] outline-none"
+              >
+                <option value="">-- Select Category --</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={customCategoryName}
+                  onChange={(e) => setCustomCategoryName(e.target.value)}
+                  placeholder="New category (e.g. Smart Watches)"
+                  className="flex-1 rounded-xl border-2 border-[#D4AF37]/20 bg-[#0F2140] text-[#F5F7FA] p-2.5 text-sm focus:border-[#D4AF37] outline-none"
+                />
+                <button
+                  type="button"
+                  disabled={categoryLoading || !customCategoryName.trim()}
+                  onClick={handleCreateCustomCategory}
+                  className="px-4 py-2 rounded-xl bg-[#D4AF37] text-[#0A1931] font-bold text-xs disabled:opacity-50"
+                >
+                  {categoryLoading ? 'Saving...' : 'Save'}
+                </button>
+              </div>
+            )}
+            <p className="text-[11px] text-[#8A94B0]">
+              Categorizing your product helps shoppers find it using catalog filter chips.
+            </p>
           </div>
 
           <div>
@@ -248,5 +373,4 @@ export default function AddProductPage() {
       </div>
     </div>
   );
-  }
-  
+}

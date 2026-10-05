@@ -1,8 +1,9 @@
 import { createClient } from '@/lib/supabase/server';
 import { ProductActions } from '../ProductActions';
+import { AdminProductMedia } from './AdminProductMedia';
 import Link from 'next/link';
-import { ArrowLeft, ExternalLink, Package } from 'lucide-react';
 import { notFound } from 'next/navigation';
+import { ArrowLeft, ExternalLink } from 'lucide-react';
 
 function naira(kobo: number) {
   return `₦${(kobo / 100).toLocaleString('en-NG', {
@@ -26,13 +27,21 @@ export default async function AdminProductDetailPage({
     .eq('id', params.id)
     .single();
 
-  if (error && error.code !== 'PGRST116') {
-    throw new Error(error.message || 'Failed to load product');
+  if (error) {
+    throw new Error(error.message);
   }
 
   if (!product) {
     notFound();
   }
+
+  const rawVendor = product.vendor;
+  const vendor = (Array.isArray(rawVendor) ? rawVendor[0] : rawVendor) as {
+    id: string;
+    business_name: string;
+    status: string;
+    user_id: string;
+  } | null;
 
   const vendorBasePrice = product.price_kobo;
   const swiftmartMarkupPrice = Math.round(vendorBasePrice * 1.2); // 20% SwiftMart markup
@@ -85,26 +94,7 @@ export default async function AdminProductDetailPage({
 
         {/* Media & Financial Breakdown */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-3">
-            <div className="aspect-square rounded-xl bg-[#0A1931] border border-[#D4AF37]/20 overflow-hidden flex items-center justify-center">
-              {product.images?.[0] ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover" />
-              ) : (
-                <Package className="w-16 h-16 text-[#A8B0C5]/40" />
-              )}
-            </div>
-            {product.images && product.images.length > 1 && (
-              <div className="grid grid-cols-4 gap-2">
-                {product.images.map((img: string, i: number) => (
-                  <div key={i} className="aspect-square rounded-lg bg-[#0A1931] border border-[#D4AF37]/15 overflow-hidden">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={img} alt="" className="w-full h-full object-cover" />
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          <AdminProductMedia images={product.images} name={product.name} />
 
           <div className="space-y-4">
             <div className="bg-[#0A1931]/70 border border-[#D4AF37]/20 rounded-xl p-4 space-y-3">
@@ -140,14 +130,14 @@ export default async function AdminProductDetailPage({
               </div>
             </div>
 
-            {product.vendor && (
+            {vendor && (
               <div className="bg-[#0A1931]/70 border border-[#D4AF37]/20 rounded-xl p-4 flex items-center justify-between">
                 <div>
                   <p className="text-[10px] text-[#A8B0C5] uppercase tracking-wider">Merchant / Vendor</p>
-                  <p className="text-sm font-bold text-[#F5F7FA] mt-0.5">{product.vendor.business_name}</p>
+                  <p className="text-sm font-bold text-[#F5F7FA] mt-0.5">{vendor.business_name}</p>
                 </div>
                 <Link
-                  href={`/admin/vendors/${product.vendor.id}`}
+                  href={`/admin/vendors/${vendor.id}`}
                   className="px-3 py-1.5 rounded-lg bg-[#142850] border border-[#D4AF37]/30 text-xs font-semibold text-[#D4AF37] hover:bg-[#1B2F5E] transition"
                 >
                   View Merchant
