@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
@@ -20,7 +20,10 @@ import {
   PlusCircle,
   Truck,
   Users,
-  Plus
+  Plus,
+  Search,
+  Lock,
+  UserCog
 } from 'lucide-react';
 
 export function Header() {
@@ -30,8 +33,14 @@ export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [cartCount, setCartCount] = useState(0);
   const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [isVendor, setIsVendor] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [userRole, setUserRole] = useState<'customer' | 'vendor' | 'admin' | 'staff'>('customer');
+  const [isVendorApproved, setIsVendorApproved] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Live operational badges
+  const [pendingPayoutCount, setPendingPayoutCount] = useState(0);
+  const [pendingEscrowCount, setPendingEscrowCount] = useState(0);
+  const [vendorPendingCashout, setVendorPendingCashout] = useState(0);
 
   const isAdminDashboard = pathname?.startsWith('/admin');
   const isVendorDashboard = pathname?.startsWith('/vendor');
@@ -40,55 +49,90 @@ export function Header() {
   useEffect(() => {
     async function loadUserData() {
       try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
+        const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
-
         setUserEmail(user.email ?? null);
 
+        // Cart items
         try {
           const { count } = await supabase
             .from('cart_items')
             .select('id', { count: 'exact', head: true })
             .eq('user_id', user.id);
           setCartCount(count ?? 0);
-        } catch (e) {
-          // ignore
-        }
+        } catch (e) {}
 
+        // User profile & role
         try {
-          const vendorQuery = supabase.from('vendors').select('id').eq('user_id', user.id);
-          const vendorRes = typeof vendorQuery.maybeSingle === 'function' 
-            ? await vendorQuery.maybeSingle() 
-            : await vendorQuery;
-          const vendorRow = vendorRes?.data ? (Array.isArray(vendorRes.data) ? vendorRes.data[0] : vendorRes.data) : null;
-          setIsVendor(!!vendorRow);
-        } catch (e) {
-          // ignore
-        }
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .maybeSingle();
+          if (profile?.role) {
+            setUserRole(profile.role);
+          }
+        } catch (e) {}
 
+        // Vendor status
         try {
-          const profileQuery = supabase.from('profiles').select('role').eq('id', user.id);
-          const profileRes = typeof profileQuery.maybeSingle === 'function'
-            ? await profileQuery.maybeSingle()
-            : await profileQuery;
-          const profileRow = profileRes?.data ? (Array.isArray(profileRes.data) ? profileRes.data[0] : profileRes.data) : null;
-          setIsAdmin(profileRow?.role === 'admin');
-        } catch (e) {
-          // ignore
-        }
+          const { data: vendor } = await supabase
+            .from('vendors')
+            .select('id, status')
+            .eq('user_id', user.id)
+            .maybeSingle();
+          if (vendor?.status === 'approved') {
+            setIsVendorApproved(true);
+          }
+        } catch (e) {}
+
+        // Admin badge metrics
+        try {
+          const { count: payoutCount } = await supabase
+            .from('transactions')
+            .select('id', { count: 'exact', head: true })
+            .eq('type', 'payout')
+            .eq('status', 'pending');
+          setPendingPayoutCount(payoutCount ?? 0);
+
+          const { count: escrowOrders } = await supabase
+            .from('orders')
+            .select('id', { count: 'exact', head: true })
+            .eq('status', 'paid');
+          setPendingEscrowCount(escrowOrders ?? 0);
+        } catch (e) {}
+
+        // Vendor badge metrics
+        try {
+          const { data: userWallet } = await supabase
+            .from('wallets')
+            .select('id')
+            .eq('user_id', user.id)
+            .maybeSingle();
+          if (userWallet) {
+            const { count: vPending } = await supabase
+              .from('transactions')
+              .select('id', { count: 'exact', head: true })
+              .eq('wallet_id', userWallet.id)
+              .eq('type', 'payout')
+              .eq('status', 'pending');
+            setVendorPendingCashout(vPending ?? 0);
+          }
+        } catch (e) {}
+
       } catch (err) {
         console.warn('Failed loading user context in Header:', err);
       }
     }
     loadUserData();
-  }, [supabase]);
+  }, [supabase, pathname]);
 
   if (
     pathname?.startsWith('/login') ||
     pathname?.startsWith('/register') ||
-    pathname?.startsWith('/signup')
+    pathname?.startsWith('/signup') ||
+    pathname === '/admin/login' ||
+    pathname === '/vendor/login'
   ) {
     return null;
   }
@@ -99,6 +143,8 @@ export function Header() {
   };
 
   const handleSignOut = async () => {
+    sessionStorage.removeItem('swiftmart_admin_pin_verified');
+    sessionStorage.removeItem('swiftmart_vendor_pin_verified');
     await supabase.auth.signOut();
     setMenuOpen(false);
     router.push('/login');
@@ -120,16 +166,13 @@ export function Header() {
     }
 
     if (isVendorDashboard) {
-      let sub = 'Merchant Operations';
-      if (pathname?.startsWith('/vendor/wallet')) sub = 'Payout Wallet';
-      else if (pathname?.startsWith('/vendor/products/add')) sub = 'Add Product';
       return (
         <div className="flex flex-col items-center">
           <span className="text-base sm:text-lg font-black text-[#D4AF37] tracking-wider uppercase flex items-center gap-1.5">
             <Store className="w-4 h-4 text-[#D4AF37]" /> Vendor Portal
           </span>
           <span className="text-[10px] text-[#A8B0C5] tracking-wide">
-            {sub}
+            Merchant Operations
           </span>
         </div>
       );
@@ -164,6 +207,8 @@ export function Header() {
       </h1>
     );
   };
+
+  const q = searchQuery.toLowerCase().trim();
 
   return (
     <header className="sticky top-0 z-50 w-full bg-[#0A1931] border-b border-[#D4AF37]/20 shadow-md">
@@ -212,7 +257,8 @@ export function Header() {
             onClick={() => setMenuOpen(false)}
           />
 
-          <div className="relative w-full max-h-[90vh] overflow-y-auto bg-[#0A1931] border-b-2 border-[#D4AF37]/40 shadow-2xl z-10 flex flex-col animate-in slide-in-from-top duration-300">
+          <div className="relative w-full max-h-[92vh] overflow-y-auto bg-[#0A1931] border-b-2 border-[#D4AF37]/40 shadow-2xl z-10 flex flex-col animate-in slide-in-from-top duration-300">
+            {/* Top drawer header */}
             <div className="px-5 pt-5 pb-4 border-b border-white/10 bg-gradient-to-b from-[#111A3E] to-[#0A1028]">
               <div className="flex items-start justify-between">
                 <div>
@@ -222,16 +268,9 @@ export function Header() {
                       <span className="text-[#D4AF37]">Mart</span>
                     </span>
                     <span className="flex items-center gap-1 text-[10px] bg-[#D4AF37]/20 text-[#F5C445] border border-[#D4AF37]/40 px-2 py-0.5 rounded-full font-semibold">
-                      <Sparkles size={11} /> {isAdminDashboard ? 'Admin Operations' : isVendorDashboard ? 'Merchant Console' : 'Quick Access Hub'}
+                      <Sparkles size={11} /> {isAdminDashboard ? 'Admin Hub' : isVendorDashboard ? 'Merchant Hub' : 'Quick Access Hub'}
                     </span>
                   </div>
-                  <p className="text-xs text-[#D4AF37] font-medium mt-1 tracking-wide">
-                    {isAdminDashboard
-                      ? 'Direct deep-link access to escrow releases, fee governance, payouts, and logistics.'
-                      : isVendorDashboard
-                      ? 'Quick tools: list new items, direct bank cashout, and public catalog.'
-                      : 'Quick actions: tracked orders, instant P2P transfer, wallet top-up, and vendor registration.'}
-                  </p>
                 </div>
 
                 <button
@@ -243,151 +282,168 @@ export function Header() {
                 </button>
               </div>
 
-              {userEmail && (
-                <div className="mt-3 flex items-center justify-between bg-white/[0.04] border border-white/10 rounded-lg px-3 py-1.5 text-xs">
-                  <span className="text-[#A8B0C5]">Signed in as:</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[#F5F7FA] font-medium truncate max-w-[160px] sm:max-w-xs">{userEmail}</span>
-                    {isAdminDashboard ? (
-                      <span className="text-[10px] bg-amber-500/20 text-[#F5C445] border border-amber-500/30 px-1.5 py-0.5 rounded font-bold uppercase">
-                        Admin
-                      </span>
-                    ) : isVendor ? (
-                      <span className="text-[10px] bg-green-500/20 text-green-400 border border-green-500/30 px-1.5 py-0.5 rounded font-bold uppercase">
-                        Vendor
-                      </span>
-                    ) : null}
-                  </div>
-                </div>
-              )}
+              {/* Compact in-drawer live search */}
+              <div className="mt-3 relative">
+                <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#D4AF37]" />
+                <input
+                  type="text"
+                  placeholder="Quick search shortcuts, actions & hidden tools..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-[#0A152B] border border-[#D4AF37]/40 text-xs text-white placeholder-[#8A94B0] rounded-xl pl-9 pr-8 py-2 focus:outline-none focus:ring-1 focus:ring-[#D4AF37] focus:border-[#D4AF37]"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#8A94B0] hover:text-white"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
             </div>
 
-            {/* CURATED UNSEEN ACTIONS ONLY */}
+            {/* CURATED SHORTCUT TILES WITH ROLE ENFORCEMENT & LIVE BADGES */}
             <div className="p-4 sm:p-6 grid grid-cols-1 md:grid-cols-3 gap-4 max-w-6xl mx-auto w-full">
-              {isAdminDashboard ? (
-                /* ADMIN: Hidden tools not present on top/bottom bars */
+              {isAdminDashboard && (userRole === 'admin' || userRole === 'staff') ? (
                 <>
-                  <div className="bg-gradient-to-br from-[#142850] to-[#1B2F5E] border border-[#D4AF37]/25 shadow-[0_4px_20px_rgba(212,175,55,0.08)] rounded-2xl p-4 transition">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Percent size={18} className="text-[#D4AF37]" />
-                      <h3 className="text-xs uppercase tracking-wider font-bold text-[#D4AF37]">
-                        Treasury & Commissions
-                      </h3>
+                  {/* ADMIN SECTION 1: Treasury */}
+                  {('commissions payouts treasury governance'.includes(q) || !q) && (
+                    <div className="bg-gradient-to-br from-[#142850] to-[#1B2F5E] border border-[#D4AF37]/25 rounded-2xl p-4 shadow-lg">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Percent size={18} className="text-[#D4AF37]" />
+                        <h3 className="text-xs uppercase tracking-wider font-bold text-[#D4AF37]">
+                          Treasury & Commissions
+                        </h3>
+                      </div>
+                      <div className="space-y-1">
+                        <Link
+                          href="/admin/commissions"
+                          onClick={() => setMenuOpen(false)}
+                          className="flex items-center justify-between p-2.5 rounded-xl text-sm font-medium text-[#F5F7FA] hover:bg-white/5 hover:text-[#F5C445] transition group"
+                        >
+                          <div>
+                            <div className="font-semibold">Commission & Fee Rules</div>
+                            <div className="text-[11px] text-[#A8B0C5]">Audit trail & scheduled markups</div>
+                          </div>
+                          <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] shrink-0" />
+                        </Link>
+                        <Link
+                          href="/admin/payouts"
+                          onClick={() => setMenuOpen(false)}
+                          className="flex items-center justify-between p-2.5 rounded-xl text-sm font-medium text-[#F5F7FA] hover:bg-white/5 hover:text-[#F5C445] transition group"
+                        >
+                          <div className="flex items-center gap-2">
+                            <div>
+                              <div className="font-semibold">Vendor Payout Queue</div>
+                              <div className="text-[11px] text-[#A8B0C5]">Approve manual bank payouts</div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            {pendingPayoutCount > 0 && (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-black animate-pulse shadow-sm">
+                                {pendingPayoutCount} pending
+                              </span>
+                            )}
+                            <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] shrink-0" />
+                          </div>
+                        </Link>
+                      </div>
                     </div>
-                    <div className="space-y-1">
-                      <Link
-                        href="/admin/commissions"
-                        onClick={() => setMenuOpen(false)}
-                        className="flex items-center justify-between p-2.5 rounded-xl text-sm font-medium text-[#F5F7FA] hover:bg-white/5 hover:text-[#F5C445] transition group"
-                      >
-                        <div>
-                          <div className="font-semibold">Commission & Fee Governance</div>
-                          <div className="text-[11px] text-[#A8B0C5]">Adjust markups, commissions & audit trail</div>
-                        </div>
-                        <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] group-hover:translate-x-0.5 transition shrink-0" />
-                      </Link>
-                      <Link
-                        href="/admin/payouts"
-                        onClick={() => setMenuOpen(false)}
-                        className="flex items-center justify-between p-2.5 rounded-xl text-sm font-medium text-[#F5F7FA] hover:bg-white/5 hover:text-[#F5C445] transition group"
-                      >
-                        <div>
-                          <div className="font-semibold">Vendor Payout Queue</div>
-                          <div className="text-[11px] text-[#A8B0C5]">Verify bank payout requests</div>
-                        </div>
-                        <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] group-hover:translate-x-0.5 transition shrink-0" />
-                      </Link>
-                    </div>
-                  </div>
+                  )}
 
-                  <div className="bg-gradient-to-br from-[#142850] to-[#1B2F5E] border border-[#D4AF37]/25 shadow-[0_4px_20px_rgba(212,175,55,0.08)] rounded-2xl p-4 transition">
-                    <div className="flex items-center gap-2 mb-3">
-                      <PackageCheck size={18} className="text-[#D4AF37]" />
-                      <h3 className="text-xs uppercase tracking-wider font-bold text-[#D4AF37]">
-                        Fulfillment & Escrow
-                      </h3>
+                  {/* ADMIN SECTION 2: Fulfillment & Logistics */}
+                  {('orders escrow logistics shipping delivery'.includes(q) || !q) && (
+                    <div className="bg-gradient-to-br from-[#142850] to-[#1B2F5E] border border-[#D4AF37]/25 rounded-2xl p-4 shadow-lg">
+                      <div className="flex items-center gap-2 mb-3">
+                        <PackageCheck size={18} className="text-[#D4AF37]" />
+                        <h3 className="text-xs uppercase tracking-wider font-bold text-[#D4AF37]">
+                          Fulfillment & Escrow
+                        </h3>
+                      </div>
+                      <div className="space-y-1">
+                        <Link
+                          href="/admin/orders"
+                          onClick={() => setMenuOpen(false)}
+                          className="flex items-center justify-between p-2.5 rounded-xl text-sm font-medium text-[#F5F7FA] hover:bg-white/5 hover:text-[#F5C445] transition group"
+                        >
+                          <div>
+                            <div className="font-semibold">Orders & Escrow Releases</div>
+                            <div className="text-[11px] text-[#A8B0C5]">Release funds to vendors</div>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            {pendingEscrowCount > 0 && (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#D4AF37]/20 border border-[#D4AF37]/50 text-[#F5C445]">
+                                {pendingEscrowCount} active
+                              </span>
+                            )}
+                            <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] shrink-0" />
+                          </div>
+                        </Link>
+                        <Link
+                          href="/admin/logistics"
+                          onClick={() => setMenuOpen(false)}
+                          className="flex items-center justify-between p-2.5 rounded-xl text-sm font-medium text-[#F5F7FA] hover:bg-white/5 hover:text-[#F5C445] transition group"
+                        >
+                          <div>
+                            <div className="font-semibold">Logistics & Waybill Surcharges</div>
+                            <div className="text-[11px] text-[#A8B0C5]">Configure distance & profit margin</div>
+                          </div>
+                          <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] shrink-0" />
+                        </Link>
+                      </div>
                     </div>
-                    <div className="space-y-1">
-                      <Link
-                        href="/admin/orders"
-                        onClick={() => setMenuOpen(false)}
-                        className="flex items-center justify-between p-2.5 rounded-xl text-sm font-medium text-[#F5F7FA] hover:bg-white/5 hover:text-[#F5C445] transition group"
-                      >
-                        <div>
-                          <div className="font-semibold">Orders & Escrow Releases</div>
-                          <div className="text-[11px] text-[#A8B0C5]">Release funds upon delivery</div>
-                        </div>
-                        <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] group-hover:translate-x-0.5 transition shrink-0" />
-                      </Link>
-                      <Link
-                        href="/admin/logistics"
-                        onClick={() => setMenuOpen(false)}
-                        className="flex items-center justify-between p-2.5 rounded-xl text-sm font-medium text-[#F5F7FA] hover:bg-white/5 hover:text-[#F5C445] transition group"
-                      >
-                        <div>
-                          <div className="font-semibold">Logistics & Waybill Surcharges</div>
-                          <div className="text-[11px] text-[#A8B0C5]">Configure delivery fee calculations</div>
-                        </div>
-                        <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] group-hover:translate-x-0.5 transition shrink-0" />
-                      </Link>
-                    </div>
-                  </div>
+                  )}
 
-                  <div className="bg-gradient-to-br from-[#142850] to-[#1B2F5E] border border-[#D4AF37]/25 shadow-[0_4px_20px_rgba(212,175,55,0.08)] rounded-2xl p-4 transition">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Users size={18} className="text-[#D4AF37]" />
-                      <h3 className="text-xs uppercase tracking-wider font-bold text-[#D4AF37]">
-                        Identity & Moderation
-                      </h3>
+                  {/* ADMIN SECTION 3: Identity & Staff Administration */}
+                  {('staff kyc identity moderation users roles'.includes(q) || !q) && (
+                    <div className="bg-gradient-to-br from-[#142850] to-[#1B2F5E] border border-[#D4AF37]/25 rounded-2xl p-4 shadow-lg">
+                      <div className="flex items-center gap-2 mb-3">
+                        <UserCog size={18} className="text-[#D4AF37]" />
+                        <h3 className="text-xs uppercase tracking-wider font-bold text-[#D4AF37]">
+                          Identity & Staff Roles
+                        </h3>
+                      </div>
+                      <div className="space-y-1">
+                        <Link
+                          href="/admin/staff"
+                          onClick={() => setMenuOpen(false)}
+                          className="flex items-center justify-between p-2.5 rounded-xl text-sm font-semibold bg-[#D4AF37]/15 text-[#F5C445] border border-[#D4AF37]/30 hover:bg-[#D4AF37]/25 transition group"
+                        >
+                          <div>
+                            <div className="font-bold flex items-center gap-1.5">
+                              <UserCog size={15} /> Staff Role Management
+                            </div>
+                            <div className="text-[11px] text-[#A8B0C5]">Assign roles & modular permissions</div>
+                          </div>
+                          <ChevronRight size={16} className="text-[#D4AF37] group-hover:translate-x-0.5 shrink-0" />
+                        </Link>
+                        <Link
+                          href="/admin/kyc"
+                          onClick={() => setMenuOpen(false)}
+                          className="flex items-center justify-between p-2.5 rounded-xl text-sm font-medium text-[#F5F7FA] hover:bg-white/5 hover:text-[#F5C445] transition group"
+                        >
+                          <div>
+                            <div className="font-semibold">Paystack NIN & KYC Verification</div>
+                            <div className="text-[11px] text-[#A8B0C5]">Audit vendor applications</div>
+                          </div>
+                          <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] shrink-0" />
+                        </Link>
+                      </div>
                     </div>
-                    <div className="space-y-1">
-                      <Link
-                        href="/admin/kyc"
-                        onClick={() => setMenuOpen(false)}
-                        className="flex items-center justify-between p-2.5 rounded-xl text-sm font-medium text-[#F5F7FA] hover:bg-white/5 hover:text-[#F5C445] transition group"
-                      >
-                        <div>
-                          <div className="font-semibold">Paystack NIN & KYC Verification</div>
-                          <div className="text-[11px] text-[#A8B0C5]">Audit pending merchant identities</div>
-                        </div>
-                        <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] group-hover:translate-x-0.5 transition shrink-0" />
-                      </Link>
-                      <Link
-                        href="/admin/users"
-                        onClick={() => setMenuOpen(false)}
-                        className="flex items-center justify-between p-2.5 rounded-xl text-sm font-medium text-[#F5F7FA] hover:bg-white/5 hover:text-[#F5C445] transition group"
-                      >
-                        <div>
-                          <div className="font-semibold">User Role Administration</div>
-                          <div className="text-[11px] text-[#A8B0C5]">Audit shopper & vendor privileges</div>
-                        </div>
-                        <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] group-hover:translate-x-0.5 transition shrink-0" />
-                      </Link>
-                      <Link
-                        href="/admin/posts"
-                        onClick={() => setMenuOpen(false)}
-                        className="flex items-center justify-between p-2.5 rounded-xl text-sm font-medium text-[#F5F7FA] hover:bg-white/5 hover:text-[#F5C445] transition group"
-                      >
-                        <div>
-                          <div className="font-semibold">Community Feed Moderation</div>
-                          <div className="text-[11px] text-[#A8B0C5]">Review user posts & reports</div>
-                        </div>
-                        <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] group-hover:translate-x-0.5 transition shrink-0" />
-                      </Link>
-                    </div>
-                  </div>
+                  )}
                 </>
-              ) : isVendorDashboard ? (
-                /* VENDOR: Hidden actions not present on bottom bar (Overview & Wallet) */
+              ) : isVendorDashboard && isVendorApproved ? (
                 <>
-                  <div className="bg-gradient-to-br from-[#142850] to-[#1B2F5E] border border-[#D4AF37]/25 shadow-[0_4px_20px_rgba(212,175,55,0.08)] rounded-2xl p-4 transition">
-                    <div className="flex items-center gap-2 mb-3">
-                      <PlusCircle size={18} className="text-[#D4AF37]" />
-                      <h3 className="text-xs uppercase tracking-wider font-bold text-[#D4AF37]">
-                        Product Management
-                      </h3>
-                    </div>
-                    <div className="space-y-1">
+                  {/* VENDOR TILES */}
+                  {('add product listing create'.includes(q) || !q) && (
+                    <div className="bg-gradient-to-br from-[#142850] to-[#1B2F5E] border border-[#D4AF37]/25 rounded-2xl p-4 shadow-lg">
+                      <div className="flex items-center gap-2 mb-3">
+                        <PlusCircle size={18} className="text-[#D4AF37]" />
+                        <h3 className="text-xs uppercase tracking-wider font-bold text-[#D4AF37]">
+                          Product Catalog
+                        </h3>
+                      </div>
                       <Link
                         href="/vendor/products/add"
                         onClick={() => setMenuOpen(false)}
@@ -400,16 +456,16 @@ export function Header() {
                         <ChevronRight size={16} className="group-hover:translate-x-0.5 transition" />
                       </Link>
                     </div>
-                  </div>
+                  )}
 
-                  <div className="bg-gradient-to-br from-[#142850] to-[#1B2F5E] border border-[#D4AF37]/25 shadow-[0_4px_20px_rgba(212,175,55,0.08)] rounded-2xl p-4 transition">
-                    <div className="flex items-center gap-2 mb-3">
-                      <CreditCard size={18} className="text-[#D4AF37]" />
-                      <h3 className="text-xs uppercase tracking-wider font-bold text-[#D4AF37]">
-                        Banking & Cashout
-                      </h3>
-                    </div>
-                    <div className="space-y-1">
+                  {('withdraw bank payout cashout money'.includes(q) || !q) && (
+                    <div className="bg-gradient-to-br from-[#142850] to-[#1B2F5E] border border-[#D4AF37]/25 rounded-2xl p-4 shadow-lg">
+                      <div className="flex items-center gap-2 mb-3">
+                        <CreditCard size={18} className="text-[#D4AF37]" />
+                        <h3 className="text-xs uppercase tracking-wider font-bold text-[#D4AF37]">
+                          Banking & Payouts
+                        </h3>
+                      </div>
                       <Link
                         href="/wallet/send?mode=bank"
                         onClick={() => setMenuOpen(false)}
@@ -419,161 +475,192 @@ export function Header() {
                           <div className="font-semibold">Withdraw to Bank</div>
                           <div className="text-[11px] text-[#A8B0C5]">Instant payout to Nigerian account</div>
                         </div>
-                        <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] group-hover:translate-x-0.5 transition shrink-0" />
+                        <div className="flex items-center gap-1">
+                          {vendorPendingCashout > 0 && (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                              {vendorPendingCashout} processing
+                            </span>
+                          )}
+                          <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] shrink-0" />
+                        </div>
                       </Link>
                     </div>
-                  </div>
+                  )}
 
-                  <div className="bg-gradient-to-br from-[#142850] to-[#1B2F5E] border border-[#D4AF37]/25 shadow-[0_4px_20px_rgba(212,175,55,0.08)] rounded-2xl p-4 transition">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Store size={18} className="text-[#D4AF37]" />
-                      <h3 className="text-xs uppercase tracking-wider font-bold text-[#D4AF37]">
-                        Catalog & Profile
-                      </h3>
+                  {('catalog profile store kyc'.includes(q) || !q) && (
+                    <div className="bg-gradient-to-br from-[#142850] to-[#1B2F5E] border border-[#D4AF37]/25 rounded-2xl p-4 shadow-lg">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Store size={18} className="text-[#D4AF37]" />
+                        <h3 className="text-xs uppercase tracking-wider font-bold text-[#D4AF37]">
+                          Store & Credentials
+                        </h3>
+                      </div>
+                      <div className="space-y-1">
+                        <Link
+                          href="/products"
+                          onClick={() => setMenuOpen(false)}
+                          className="flex items-center justify-between p-2.5 rounded-xl text-sm font-medium text-[#F5F7FA] hover:bg-white/5 hover:text-[#F5C445] transition group"
+                        >
+                          <div>
+                            <div className="font-semibold">Live Marketplace Catalog</div>
+                            <div className="text-[11px] text-[#A8B0C5]">View public listings</div>
+                          </div>
+                          <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] shrink-0" />
+                        </Link>
+                        <Link
+                          href="/profile"
+                          onClick={() => setMenuOpen(false)}
+                          className="flex items-center justify-between p-2.5 rounded-xl text-sm font-medium text-[#F5F7FA] hover:bg-white/5 hover:text-[#F5C445] transition group"
+                        >
+                          <div>
+                            <div className="font-semibold">Merchant Profile & KYC</div>
+                            <div className="text-[11px] text-[#A8B0C5]">Store credentials & bank</div>
+                          </div>
+                          <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] shrink-0" />
+                        </Link>
+                      </div>
                     </div>
-                    <div className="space-y-1">
-                      <Link
-                        href="/products"
-                        onClick={() => setMenuOpen(false)}
-                        className="flex items-center justify-between p-2.5 rounded-xl text-sm font-medium text-[#F5F7FA] hover:bg-white/5 hover:text-[#F5C445] transition group"
-                      >
-                        <div>
-                          <div className="font-semibold">Live Marketplace Catalog</div>
-                          <div className="text-[11px] text-[#A8B0C5]">Check your products in store</div>
-                        </div>
-                        <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] group-hover:translate-x-0.5 transition shrink-0" />
-                      </Link>
-                      <Link
-                        href="/profile"
-                        onClick={() => setMenuOpen(false)}
-                        className="flex items-center justify-between p-2.5 rounded-xl text-sm font-medium text-[#F5F7FA] hover:bg-white/5 hover:text-[#F5C445] transition group"
-                      >
-                        <div>
-                          <div className="font-semibold">Merchant Profile & KYC</div>
-                          <div className="text-[11px] text-[#A8B0C5]">View business & bank info</div>
-                        </div>
-                        <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] group-hover:translate-x-0.5 transition shrink-0" />
-                      </Link>
-                    </div>
-                  </div>
+                  )}
                 </>
               ) : (
-                /* SHOPPER: Quick actions not present on bottom nav */
                 <>
-                  <div className="bg-gradient-to-br from-[#142850] to-[#1B2F5E] border border-[#D4AF37]/25 shadow-[0_4px_20px_rgba(212,175,55,0.08)] rounded-2xl p-4 transition">
-                    <div className="flex items-center gap-2 mb-3">
-                      <PackageCheck size={18} className="text-[#D4AF37]" />
-                      <h3 className="text-xs uppercase tracking-wider font-bold text-[#D4AF37]">
-                        Track & Orders
-                      </h3>
+                  {/* SHOPPER TILES */}
+                  {('orders waybill cart tracking'.includes(q) || !q) && (
+                    <div className="bg-gradient-to-br from-[#142850] to-[#1B2F5E] border border-[#D4AF37]/25 rounded-2xl p-4 shadow-lg">
+                      <div className="flex items-center gap-2 mb-3">
+                        <PackageCheck size={18} className="text-[#D4AF37]" />
+                        <h3 className="text-xs uppercase tracking-wider font-bold text-[#D4AF37]">
+                          Track & Orders
+                        </h3>
+                      </div>
+                      <div className="space-y-1">
+                        <Link
+                          href="/orders"
+                          onClick={() => setMenuOpen(false)}
+                          className="flex items-center justify-between p-2.5 rounded-xl text-sm font-medium text-[#F5F7FA] hover:bg-white/5 hover:text-[#F5C445] transition group"
+                        >
+                          <div>
+                            <div className="font-semibold">My Orders & Waybill</div>
+                            <div className="text-[11px] text-[#A8B0C5]">Track shipments & escrow status</div>
+                          </div>
+                          <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] shrink-0" />
+                        </Link>
+                        <Link
+                          href="/cart"
+                          onClick={() => setMenuOpen(false)}
+                          className="flex items-center justify-between p-2.5 rounded-xl text-sm font-medium text-[#F5F7FA] hover:bg-white/5 hover:text-[#F5C445] transition group"
+                        >
+                          <div>
+                            <div className="font-semibold">Shopping Cart ({cartCount})</div>
+                            <div className="text-[11px] text-[#A8B0C5]">Checkout pending items</div>
+                          </div>
+                          <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] shrink-0" />
+                        </Link>
+                      </div>
                     </div>
-                    <div className="space-y-1">
-                      <Link
-                        href="/orders"
-                        onClick={() => setMenuOpen(false)}
-                        className="flex items-center justify-between p-2.5 rounded-xl text-sm font-medium text-[#F5F7FA] hover:bg-white/5 hover:text-[#F5C445] transition group"
-                      >
-                        <div>
-                          <div className="font-semibold">My Orders & Waybill</div>
-                          <div className="text-[11px] text-[#A8B0C5]">Track shipments & escrow deliveries</div>
-                        </div>
-                        <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] group-hover:translate-x-0.5 transition shrink-0" />
-                      </Link>
-                      <Link
-                        href="/cart"
-                        onClick={() => setMenuOpen(false)}
-                        className="flex items-center justify-between p-2.5 rounded-xl text-sm font-medium text-[#F5F7FA] hover:bg-white/5 hover:text-[#F5C445] transition group"
-                      >
-                        <div>
-                          <div className="font-semibold">Shopping Cart ({cartCount})</div>
-                          <div className="text-[11px] text-[#A8B0C5]">Checkout pending items</div>
-                        </div>
-                        <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] group-hover:translate-x-0.5 transition shrink-0" />
-                      </Link>
-                    </div>
-                  </div>
+                  )}
 
-                  <div className="bg-gradient-to-br from-[#142850] to-[#1B2F5E] border border-[#D4AF37]/25 shadow-[0_4px_20px_rgba(212,175,55,0.08)] rounded-2xl p-4 transition">
-                    <div className="flex items-center gap-2 mb-3">
-                      <CreditCard size={18} className="text-[#D4AF37]" />
-                      <h3 className="text-xs uppercase tracking-wider font-bold text-[#D4AF37]">
-                        Fintech Services
-                      </h3>
+                  {('fintech transfer send fund wallet statement'.includes(q) || !q) && (
+                    <div className="bg-gradient-to-br from-[#142850] to-[#1B2F5E] border border-[#D4AF37]/25 rounded-2xl p-4 shadow-lg">
+                      <div className="flex items-center gap-2 mb-3">
+                        <CreditCard size={18} className="text-[#D4AF37]" />
+                        <h3 className="text-xs uppercase tracking-wider font-bold text-[#D4AF37]">
+                          Fintech Services
+                        </h3>
+                      </div>
+                      <div className="space-y-1">
+                        <Link
+                          href="/wallet/send"
+                          onClick={() => setMenuOpen(false)}
+                          className="flex items-center justify-between p-2.5 rounded-xl text-sm font-medium text-[#F5F7FA] hover:bg-white/5 hover:text-[#F5C445] transition group"
+                        >
+                          <div>
+                            <div className="font-semibold">Send Money (P2P / Bank)</div>
+                            <div className="text-[11px] text-[#A8B0C5]">Transfer to users & banks</div>
+                          </div>
+                          <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] shrink-0" />
+                        </Link>
+                        <Link
+                          href="/wallet/fund"
+                          onClick={() => setMenuOpen(false)}
+                          className="flex items-center justify-between p-2.5 rounded-xl text-sm font-medium text-[#F5F7FA] hover:bg-white/5 hover:text-[#F5C445] transition group"
+                        >
+                          <div>
+                            <div className="font-semibold">Fund / Top-up Wallet</div>
+                            <div className="text-[11px] text-[#A8B0C5]">Virtual account & cards</div>
+                          </div>
+                          <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] shrink-0" />
+                        </Link>
+                        <Link
+                          href="/wallet/history"
+                          onClick={() => setMenuOpen(false)}
+                          className="flex items-center justify-between p-2.5 rounded-xl text-sm font-medium text-[#F5F7FA] hover:bg-white/5 hover:text-[#F5C445] transition group"
+                        >
+                          <div>
+                            <div className="font-semibold">Transaction Statement</div>
+                            <div className="text-[11px] text-[#A8B0C5]">Past deposits & receipts</div>
+                          </div>
+                          <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] shrink-0" />
+                        </Link>
+                      </div>
                     </div>
-                    <div className="space-y-1">
-                      <Link
-                        href="/wallet/send"
-                        onClick={() => setMenuOpen(false)}
-                        className="flex items-center justify-between p-2.5 rounded-xl text-sm font-medium text-[#F5F7FA] hover:bg-white/5 hover:text-[#F5C445] transition group"
-                      >
-                        <div>
-                          <div className="font-semibold">Send Money (P2P / Bank)</div>
-                          <div className="text-[11px] text-[#A8B0C5]">Instant transfer to users & banks</div>
-                        </div>
-                        <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] group-hover:translate-x-0.5 transition shrink-0" />
-                      </Link>
-                      <Link
-                        href="/wallet/fund"
-                        onClick={() => setMenuOpen(false)}
-                        className="flex items-center justify-between p-2.5 rounded-xl text-sm font-medium text-[#F5F7FA] hover:bg-white/5 hover:text-[#F5C445] transition group"
-                      >
-                        <div>
-                          <div className="font-semibold">Fund / Top-up Wallet</div>
-                          <div className="text-[11px] text-[#A8B0C5]">Virtual account & Paystack card</div>
-                        </div>
-                        <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] group-hover:translate-x-0.5 transition shrink-0" />
-                      </Link>
-                      <Link
-                        href="/wallet/history"
-                        onClick={() => setMenuOpen(false)}
-                        className="flex items-center justify-between p-2.5 rounded-xl text-sm font-medium text-[#F5F7FA] hover:bg-white/5 hover:text-[#F5C445] transition group"
-                      >
-                        <div>
-                          <div className="font-semibold">Transaction Statement</div>
-                          <div className="text-[11px] text-[#A8B0C5]">View and download past receipts</div>
-                        </div>
-                        <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] group-hover:translate-x-0.5 transition shrink-0" />
-                      </Link>
-                    </div>
-                  </div>
+                  )}
 
-                  <div className="bg-gradient-to-br from-[#142850] to-[#1B2F5E] border border-[#D4AF37]/25 shadow-[0_4px_20px_rgba(212,175,55,0.08)] rounded-2xl p-4 transition">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Store size={18} className="text-[#D4AF37]" />
-                      <h3 className="text-xs uppercase tracking-wider font-bold text-[#D4AF37]">
-                        Merchant Onboarding & Feed
-                      </h3>
+                  {('vendor merchant register onboarding feed'.includes(q) || !q) && (
+                    <div className="bg-gradient-to-br from-[#142850] to-[#1B2F5E] border border-[#D4AF37]/25 rounded-2xl p-4 shadow-lg">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Store size={18} className="text-[#D4AF37]" />
+                        <h3 className="text-xs uppercase tracking-wider font-bold text-[#D4AF37]">
+                          Merchant Portals
+                        </h3>
+                      </div>
+                      <div className="space-y-2">
+                        {isVendorApproved ? (
+                          <Link
+                            href="/vendor/login"
+                            onClick={() => setMenuOpen(false)}
+                            className="flex items-center justify-between p-2.5 rounded-xl text-sm font-semibold bg-[#D4AF37]/20 text-[#F5C445] border border-[#D4AF37]/40 hover:bg-[#D4AF37]/30 transition group"
+                          >
+                            <div className="flex items-center gap-1.5">
+                              <Lock size={14} className="text-[#D4AF37]" />
+                              <span>Vendor Portal Access</span>
+                            </div>
+                            <ArrowUpRight size={16} className="group-hover:translate-x-0.5 shrink-0" />
+                          </Link>
+                        ) : (
+                          <Link
+                            href="/vendor/register"
+                            onClick={() => setMenuOpen(false)}
+                            className="flex items-center justify-between p-2.5 rounded-xl text-sm font-semibold bg-[#D4AF37]/15 text-[#F5C445] border border-[#D4AF37]/30 hover:bg-[#D4AF37]/25 transition group"
+                          >
+                            <div>
+                              <div>Become a Vendor</div>
+                              <div className="text-[11px] text-[#A8B0C5]">Register store & verify NIN</div>
+                            </div>
+                            <ArrowUpRight size={16} className="group-hover:translate-x-0.5 shrink-0" />
+                          </Link>
+                        )}
+                        {(userRole === 'admin' || userRole === 'staff') && (
+                          <Link
+                            href="/admin/login"
+                            onClick={() => setMenuOpen(false)}
+                            className="flex items-center justify-between p-2.5 rounded-xl text-sm font-semibold bg-red-950/30 text-red-300 border border-red-500/30 hover:bg-red-900/40 transition group"
+                          >
+                            <div className="flex items-center gap-1.5">
+                              <ShieldCheck size={14} className="text-red-400" />
+                              <span>Admin Console Gateway</span>
+                            </div>
+                            <ArrowUpRight size={16} className="group-hover:translate-x-0.5 shrink-0" />
+                          </Link>
+                        )}
+                      </div>
                     </div>
-                    <div className="space-y-2">
-                      <Link
-                        href="/vendor/register"
-                        onClick={() => setMenuOpen(false)}
-                        className="flex items-center justify-between p-2.5 rounded-xl text-sm font-semibold bg-[#D4AF37]/15 text-[#F5C445] border border-[#D4AF37]/30 hover:bg-[#D4AF37]/25 transition group"
-                      >
-                        <div>
-                          <div>Become a Vendor</div>
-                          <div className="text-[11px] text-[#A8B0C5]">Register store & verify Paystack NIN</div>
-                        </div>
-                        <ArrowUpRight size={16} className="group-hover:translate-x-0.5 transition shrink-0" />
-                      </Link>
-
-                      <Link
-                        href="/post"
-                        onClick={() => setMenuOpen(false)}
-                        className="flex items-center justify-between p-2.5 rounded-xl text-sm font-medium text-[#F5F7FA] hover:bg-white/5 hover:text-[#F5C445] transition group"
-                      >
-                        <div>
-                          <div className="font-semibold">Share to Community Feed</div>
-                          <div className="text-[11px] text-[#A8B0C5]">Post updates and products</div>
-                        </div>
-                        <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] group-hover:translate-x-0.5 transition shrink-0" />
-                      </Link>
-                    </div>
-                  </div>
+                  )}
                 </>
               )}
             </div>
 
+            {/* Bottom actions */}
             <div className="mt-auto px-5 py-4 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3 bg-[#080D21]">
               <div className="flex items-center gap-3">
                 {isDashboard && (
