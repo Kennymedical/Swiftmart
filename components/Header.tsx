@@ -10,15 +10,17 @@ import {
   X,
   PackageCheck,
   Store,
-  PlusCircle,
   CreditCard,
   LogOut,
   ChevronRight,
   Sparkles,
   ArrowUpRight,
   ShieldCheck,
-  LayoutDashboard,
-  ShoppingBag
+  Percent,
+  PlusCircle,
+  Truck,
+  Users,
+  Plus
 } from 'lucide-react';
 
 export function Header() {
@@ -45,7 +47,6 @@ export function Header() {
 
         setUserEmail(user.email ?? null);
 
-        // Fetch cart count
         try {
           const { count } = await supabase
             .from('cart_items')
@@ -56,7 +57,6 @@ export function Header() {
           // ignore
         }
 
-        // Fetch vendor status
         try {
           const vendorQuery = supabase.from('vendors').select('id').eq('user_id', user.id);
           const vendorRes = typeof vendorQuery.maybeSingle === 'function' 
@@ -68,7 +68,6 @@ export function Header() {
           // ignore
         }
 
-        // Fetch admin status
         try {
           const profileQuery = supabase.from('profiles').select('role').eq('id', user.id);
           const profileRes = typeof profileQuery.maybeSingle === 'function'
@@ -86,7 +85,6 @@ export function Header() {
     loadUserData();
   }, [supabase]);
 
-  // Hide header completely on login and signup/register pages
   if (
     pathname?.startsWith('/login') ||
     pathname?.startsWith('/register') ||
@@ -95,14 +93,18 @@ export function Header() {
     return null;
   }
 
-  const handleLogout = async () => {
+  const handleExitDashboard = () => {
+    setMenuOpen(false);
+    router.push('/');
+  };
+
+  const handleSignOut = async () => {
     await supabase.auth.signOut();
     setMenuOpen(false);
     router.push('/login');
     router.refresh();
   };
 
-  // Determine dynamic title based on path
   const getHeaderTitle = () => {
     if (isAdminDashboard) {
       return (
@@ -111,14 +113,14 @@ export function Header() {
             <ShieldCheck className="w-4 h-4 text-[#D4AF37]" /> SwiftMart Admin
           </span>
           <span className="text-[10px] text-[#A8B0C5] tracking-wide">
-            Enterprise Console
+            Console Quick Access
           </span>
         </div>
       );
     }
 
     if (isVendorDashboard) {
-      let sub = 'Merchant Portal';
+      let sub = 'Merchant Operations';
       if (pathname?.startsWith('/vendor/wallet')) sub = 'Payout Wallet';
       else if (pathname?.startsWith('/vendor/products/add')) sub = 'Add Product';
       return (
@@ -154,7 +156,7 @@ export function Header() {
     else if (pathname?.startsWith('/notifications')) titleText = 'Notifications';
     else if (pathname?.startsWith('/profile')) titleText = 'Profile';
     else if (pathname?.startsWith('/orders')) titleText = 'My Orders';
-    else if (pathname?.startsWith('/post')) titleText = 'Create Post';
+    else if (pathname?.startsWith('/post')) titleText = 'Community Feed';
 
     return (
       <h1 className="text-base sm:text-lg font-bold text-[#D4AF37] tracking-wide">
@@ -166,7 +168,6 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 w-full bg-[#0A1931] border-b border-[#D4AF37]/20 shadow-md">
       <div className="flex items-center justify-between px-3 py-2.5 max-w-7xl mx-auto">
-        {/* Left: Hamburger menu toggle */}
         <button
           onClick={() => setMenuOpen(!menuOpen)}
           aria-label="Toggle menu"
@@ -175,20 +176,18 @@ export function Header() {
           {menuOpen ? <X size={24} className="text-[#D4AF37]" /> : <Menu size={24} />}
         </button>
 
-        {/* Center: Title / App Branding */}
         <div className="flex-1 text-center">
           {getHeaderTitle()}
         </div>
 
-        {/* Right: Cart Button for Shoppers OR Sign Out for Dashboards */}
         {isDashboard ? (
           <button
-            onClick={handleLogout}
+            onClick={handleExitDashboard}
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-400 hover:text-white bg-red-950/40 hover:bg-red-600/80 border border-red-500/30 rounded-xl transition active:scale-95"
-            aria-label="Sign out"
+            aria-label="Exit dashboard"
           >
             <LogOut size={15} />
-            <span className="hidden sm:inline">Sign Out</span>
+            <span className="hidden sm:inline">Exit</span>
           </button>
         ) : (
           <Link
@@ -206,18 +205,14 @@ export function Header() {
         )}
       </div>
 
-      {/* Top-to-Bottom Drawer Menu */}
       {menuOpen && (
         <div className="fixed inset-0 z-50 flex flex-col">
-          {/* Backdrop */}
           <div
             className="fixed inset-0 bg-black/75 backdrop-blur-sm transition-opacity"
             onClick={() => setMenuOpen(false)}
           />
 
-          {/* Menu Container: Slides down from top */}
           <div className="relative w-full max-h-[90vh] overflow-y-auto bg-[#0A1931] border-b-2 border-[#D4AF37]/40 shadow-2xl z-10 flex flex-col animate-in slide-in-from-top duration-300">
-            {/* Top Branding Header */}
             <div className="px-5 pt-5 pb-4 border-b border-white/10 bg-gradient-to-b from-[#111A3E] to-[#0A1028]">
               <div className="flex items-start justify-between">
                 <div>
@@ -227,15 +222,15 @@ export function Header() {
                       <span className="text-[#D4AF37]">Mart</span>
                     </span>
                     <span className="flex items-center gap-1 text-[10px] bg-[#D4AF37]/20 text-[#F5C445] border border-[#D4AF37]/40 px-2 py-0.5 rounded-full font-semibold">
-                      <Sparkles size={11} /> {isAdminDashboard ? 'Admin Operations' : isVendorDashboard ? 'Merchant Console' : 'Royal Hub'}
+                      <Sparkles size={11} /> {isAdminDashboard ? 'Admin Operations' : isVendorDashboard ? 'Merchant Console' : 'Quick Access Hub'}
                     </span>
                   </div>
                   <p className="text-xs text-[#D4AF37] font-medium mt-1 tracking-wide">
                     {isAdminDashboard
-                      ? 'Operational controls for marketplace treasury, orders, and directory.'
+                      ? 'Direct deep-link access to escrow releases, fee governance, payouts, and logistics.'
                       : isVendorDashboard
-                      ? 'Manage store products, fulfill orders, and monitor payout balances.'
-                      : 'Shop like a king and pay and send money to your loved ones.'}
+                      ? 'Quick tools: list new items, direct bank cashout, and public catalog.'
+                      : 'Quick actions: tracked orders, instant P2P transfer, wallet top-up, and vendor registration.'}
                   </p>
                 </div>
 
@@ -267,42 +262,40 @@ export function Header() {
               )}
             </div>
 
-            {/* Menu Sections Grid */}
+            {/* CURATED UNSEEN ACTIONS ONLY */}
             <div className="p-4 sm:p-6 grid grid-cols-1 md:grid-cols-3 gap-4 max-w-6xl mx-auto w-full">
               {isAdminDashboard ? (
-                /* ADMIN OPERATIONAL LINKS */
+                /* ADMIN: Hidden tools not present on top/bottom bars */
                 <>
                   <div className="bg-gradient-to-br from-[#142850] to-[#1B2F5E] border border-[#D4AF37]/25 shadow-[0_4px_20px_rgba(212,175,55,0.08)] rounded-2xl p-4 transition">
                     <div className="flex items-center gap-2 mb-3">
-                      <LayoutDashboard size={18} className="text-[#D4AF37]" />
+                      <Percent size={18} className="text-[#D4AF37]" />
                       <h3 className="text-xs uppercase tracking-wider font-bold text-[#D4AF37]">
-                        Admin Core
+                        Treasury & Commissions
                       </h3>
                     </div>
                     <div className="space-y-1">
-                      <Link
-                        href="/admin"
-                        onClick={() => setMenuOpen(false)}
-                        className="flex items-center justify-between p-2.5 rounded-xl text-sm font-medium text-[#F5F7FA] hover:bg-white/5 hover:text-[#F5C445] transition group"
-                      >
-                        <span>System Pulse & Overview</span>
-                        <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] group-hover:translate-x-0.5 transition" />
-                      </Link>
-                      <Link
-                        href="/admin/wallet"
-                        onClick={() => setMenuOpen(false)}
-                        className="flex items-center justify-between p-2.5 rounded-xl text-sm font-medium text-[#F5F7FA] hover:bg-white/5 hover:text-[#F5C445] transition group"
-                      >
-                        <span>Profit Treasury & Escrow</span>
-                        <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] group-hover:translate-x-0.5 transition" />
-                      </Link>
                       <Link
                         href="/admin/commissions"
                         onClick={() => setMenuOpen(false)}
                         className="flex items-center justify-between p-2.5 rounded-xl text-sm font-medium text-[#F5F7FA] hover:bg-white/5 hover:text-[#F5C445] transition group"
                       >
-                        <span>Commission & Fee Governance</span>
-                        <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] group-hover:translate-x-0.5 transition" />
+                        <div>
+                          <div className="font-semibold">Commission & Fee Governance</div>
+                          <div className="text-[11px] text-[#A8B0C5]">Adjust markups, commissions & audit trail</div>
+                        </div>
+                        <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] group-hover:translate-x-0.5 transition shrink-0" />
+                      </Link>
+                      <Link
+                        href="/admin/payouts"
+                        onClick={() => setMenuOpen(false)}
+                        className="flex items-center justify-between p-2.5 rounded-xl text-sm font-medium text-[#F5F7FA] hover:bg-white/5 hover:text-[#F5C445] transition group"
+                      >
+                        <div>
+                          <div className="font-semibold">Vendor Payout Queue</div>
+                          <div className="text-[11px] text-[#A8B0C5]">Verify bank payout requests</div>
+                        </div>
+                        <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] group-hover:translate-x-0.5 transition shrink-0" />
                       </Link>
                     </div>
                   </div>
@@ -311,7 +304,7 @@ export function Header() {
                     <div className="flex items-center gap-2 mb-3">
                       <PackageCheck size={18} className="text-[#D4AF37]" />
                       <h3 className="text-xs uppercase tracking-wider font-bold text-[#D4AF37]">
-                        Orders & Payouts
+                        Fulfillment & Escrow
                       </h3>
                     </div>
                     <div className="space-y-1">
@@ -320,81 +313,91 @@ export function Header() {
                         onClick={() => setMenuOpen(false)}
                         className="flex items-center justify-between p-2.5 rounded-xl text-sm font-medium text-[#F5F7FA] hover:bg-white/5 hover:text-[#F5C445] transition group"
                       >
-                        <span>Orders & Escrow Releases</span>
-                        <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] group-hover:translate-x-0.5 transition" />
+                        <div>
+                          <div className="font-semibold">Orders & Escrow Releases</div>
+                          <div className="text-[11px] text-[#A8B0C5]">Release funds upon delivery</div>
+                        </div>
+                        <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] group-hover:translate-x-0.5 transition shrink-0" />
                       </Link>
                       <Link
-                        href="/admin/payouts"
+                        href="/admin/logistics"
                         onClick={() => setMenuOpen(false)}
                         className="flex items-center justify-between p-2.5 rounded-xl text-sm font-medium text-[#F5F7FA] hover:bg-white/5 hover:text-[#F5C445] transition group"
                       >
-                        <span>Vendor Payout Requests</span>
-                        <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] group-hover:translate-x-0.5 transition" />
+                        <div>
+                          <div className="font-semibold">Logistics & Waybill Surcharges</div>
+                          <div className="text-[11px] text-[#A8B0C5]">Configure delivery fee calculations</div>
+                        </div>
+                        <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] group-hover:translate-x-0.5 transition shrink-0" />
                       </Link>
                     </div>
                   </div>
 
                   <div className="bg-gradient-to-br from-[#142850] to-[#1B2F5E] border border-[#D4AF37]/25 shadow-[0_4px_20px_rgba(212,175,55,0.08)] rounded-2xl p-4 transition">
                     <div className="flex items-center gap-2 mb-3">
-                      <Store size={18} className="text-[#D4AF37]" />
+                      <Users size={18} className="text-[#D4AF37]" />
                       <h3 className="text-xs uppercase tracking-wider font-bold text-[#D4AF37]">
-                        Directory & Storefront
+                        Identity & Moderation
                       </h3>
                     </div>
                     <div className="space-y-1">
                       <Link
-                        href="/admin/vendors"
+                        href="/admin/kyc"
                         onClick={() => setMenuOpen(false)}
                         className="flex items-center justify-between p-2.5 rounded-xl text-sm font-medium text-[#F5F7FA] hover:bg-white/5 hover:text-[#F5C445] transition group"
                       >
-                        <span>Vendor Directory & KYC</span>
-                        <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] group-hover:translate-x-0.5 transition" />
+                        <div>
+                          <div className="font-semibold">Paystack NIN & KYC Verification</div>
+                          <div className="text-[11px] text-[#A8B0C5]">Audit pending merchant identities</div>
+                        </div>
+                        <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] group-hover:translate-x-0.5 transition shrink-0" />
                       </Link>
                       <Link
-                        href="/admin/products"
+                        href="/admin/users"
                         onClick={() => setMenuOpen(false)}
                         className="flex items-center justify-between p-2.5 rounded-xl text-sm font-medium text-[#F5F7FA] hover:bg-white/5 hover:text-[#F5C445] transition group"
                       >
-                        <span>Product Approvals</span>
-                        <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] group-hover:translate-x-0.5 transition" />
+                        <div>
+                          <div className="font-semibold">User Role Administration</div>
+                          <div className="text-[11px] text-[#A8B0C5]">Audit shopper & vendor privileges</div>
+                        </div>
+                        <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] group-hover:translate-x-0.5 transition shrink-0" />
                       </Link>
                       <Link
-                        href="/"
+                        href="/admin/posts"
                         onClick={() => setMenuOpen(false)}
-                        className="flex items-center justify-between p-2.5 rounded-xl text-sm font-medium text-[#D4AF37] hover:bg-white/5 hover:text-[#F5C445] transition group"
+                        className="flex items-center justify-between p-2.5 rounded-xl text-sm font-medium text-[#F5F7FA] hover:bg-white/5 hover:text-[#F5C445] transition group"
                       >
-                        <span>Switch to Customer Storefront</span>
-                        <ArrowUpRight size={16} className="group-hover:translate-x-0.5 transition" />
+                        <div>
+                          <div className="font-semibold">Community Feed Moderation</div>
+                          <div className="text-[11px] text-[#A8B0C5]">Review user posts & reports</div>
+                        </div>
+                        <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] group-hover:translate-x-0.5 transition shrink-0" />
                       </Link>
                     </div>
                   </div>
                 </>
               ) : isVendorDashboard ? (
-                /* VENDOR OPERATIONAL LINKS */
+                /* VENDOR: Hidden actions not present on bottom bar (Overview & Wallet) */
                 <>
                   <div className="bg-gradient-to-br from-[#142850] to-[#1B2F5E] border border-[#D4AF37]/25 shadow-[0_4px_20px_rgba(212,175,55,0.08)] rounded-2xl p-4 transition">
                     <div className="flex items-center gap-2 mb-3">
-                      <Store size={18} className="text-[#D4AF37]" />
+                      <PlusCircle size={18} className="text-[#D4AF37]" />
                       <h3 className="text-xs uppercase tracking-wider font-bold text-[#D4AF37]">
-                        Store Operations
+                        Product Management
                       </h3>
                     </div>
                     <div className="space-y-1">
                       <Link
-                        href="/vendor"
-                        onClick={() => setMenuOpen(false)}
-                        className="flex items-center justify-between p-2.5 rounded-xl text-sm font-medium text-[#F5F7FA] hover:bg-white/5 hover:text-[#F5C445] transition group"
-                      >
-                        <span>Vendor Dashboard</span>
-                        <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] group-hover:translate-x-0.5 transition" />
-                      </Link>
-                      <Link
                         href="/vendor/products/add"
                         onClick={() => setMenuOpen(false)}
-                        className="flex items-center justify-between p-2.5 rounded-xl text-sm font-medium text-[#F5F7FA] hover:bg-white/5 hover:text-[#F5C445] transition group"
+                        className="flex items-center justify-between p-2.5 rounded-xl text-sm font-semibold bg-[#D4AF37]/15 text-[#F5C445] border border-[#D4AF37]/30 hover:bg-[#D4AF37]/25 transition group"
                       >
-                        <span>Add New Product</span>
-                        <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] group-hover:translate-x-0.5 transition" />
+                        <div className="flex items-center gap-2">
+                          <Plus size={16} />
+                          <span>Add New Listing</span>
+                        </div>
+                        <ChevronRight size={16} className="group-hover:translate-x-0.5 transition" />
                       </Link>
                     </div>
                   </div>
@@ -403,64 +406,65 @@ export function Header() {
                     <div className="flex items-center gap-2 mb-3">
                       <CreditCard size={18} className="text-[#D4AF37]" />
                       <h3 className="text-xs uppercase tracking-wider font-bold text-[#D4AF37]">
-                        Payouts & Wallet
+                        Banking & Cashout
                       </h3>
                     </div>
                     <div className="space-y-1">
-                      <Link
-                        href="/vendor/wallet"
-                        onClick={() => setMenuOpen(false)}
-                        className="flex items-center justify-between p-2.5 rounded-xl text-sm font-medium text-[#F5F7FA] hover:bg-white/5 hover:text-[#F5C445] transition group"
-                      >
-                        <span>Vendor Payout Wallet</span>
-                        <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] group-hover:translate-x-0.5 transition" />
-                      </Link>
                       <Link
                         href="/wallet/send?mode=bank"
                         onClick={() => setMenuOpen(false)}
                         className="flex items-center justify-between p-2.5 rounded-xl text-sm font-medium text-[#F5F7FA] hover:bg-white/5 hover:text-[#F5C445] transition group"
                       >
-                        <span>Withdraw to Bank</span>
-                        <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] group-hover:translate-x-0.5 transition" />
+                        <div>
+                          <div className="font-semibold">Withdraw to Bank</div>
+                          <div className="text-[11px] text-[#A8B0C5]">Instant payout to Nigerian account</div>
+                        </div>
+                        <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] group-hover:translate-x-0.5 transition shrink-0" />
                       </Link>
                     </div>
                   </div>
 
                   <div className="bg-gradient-to-br from-[#142850] to-[#1B2F5E] border border-[#D4AF37]/25 shadow-[0_4px_20px_rgba(212,175,55,0.08)] rounded-2xl p-4 transition">
                     <div className="flex items-center gap-2 mb-3">
-                      <ShoppingBag size={18} className="text-[#D4AF37]" />
+                      <Store size={18} className="text-[#D4AF37]" />
                       <h3 className="text-xs uppercase tracking-wider font-bold text-[#D4AF37]">
-                        Marketplace View
+                        Catalog & Profile
                       </h3>
                     </div>
                     <div className="space-y-1">
-                      <Link
-                        href="/"
-                        onClick={() => setMenuOpen(false)}
-                        className="flex items-center justify-between p-2.5 rounded-xl text-sm font-medium text-[#D4AF37] hover:bg-white/5 hover:text-[#F5C445] transition group"
-                      >
-                        <span>Customer Storefront</span>
-                        <ArrowUpRight size={16} className="group-hover:translate-x-0.5 transition" />
-                      </Link>
                       <Link
                         href="/products"
                         onClick={() => setMenuOpen(false)}
                         className="flex items-center justify-between p-2.5 rounded-xl text-sm font-medium text-[#F5F7FA] hover:bg-white/5 hover:text-[#F5C445] transition group"
                       >
-                        <span>Live Catalog</span>
-                        <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] group-hover:translate-x-0.5 transition" />
+                        <div>
+                          <div className="font-semibold">Live Marketplace Catalog</div>
+                          <div className="text-[11px] text-[#A8B0C5]">Check your products in store</div>
+                        </div>
+                        <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] group-hover:translate-x-0.5 transition shrink-0" />
+                      </Link>
+                      <Link
+                        href="/profile"
+                        onClick={() => setMenuOpen(false)}
+                        className="flex items-center justify-between p-2.5 rounded-xl text-sm font-medium text-[#F5F7FA] hover:bg-white/5 hover:text-[#F5C445] transition group"
+                      >
+                        <div>
+                          <div className="font-semibold">Merchant Profile & KYC</div>
+                          <div className="text-[11px] text-[#A8B0C5]">View business & bank info</div>
+                        </div>
+                        <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] group-hover:translate-x-0.5 transition shrink-0" />
                       </Link>
                     </div>
                   </div>
                 </>
               ) : (
-                /* SHOPPER LINKS */
+                /* SHOPPER: Quick actions not present on bottom nav */
                 <>
-                  <div className="bg-gradient-to-br from-[#142850] to-[#1B2F5E] border border-[#D4AF37]/25 shadow-[0_4px_20px_rgba(212,175,55,0.08)] rounded-2xl p-4 shadow-sm hover:border-[#D4AF37]/30 transition">
+                  <div className="bg-gradient-to-br from-[#142850] to-[#1B2F5E] border border-[#D4AF37]/25 shadow-[0_4px_20px_rgba(212,175,55,0.08)] rounded-2xl p-4 transition">
                     <div className="flex items-center gap-2 mb-3">
                       <PackageCheck size={18} className="text-[#D4AF37]" />
                       <h3 className="text-xs uppercase tracking-wider font-bold text-[#D4AF37]">
-                        Orders & Tracking
+                        Track & Orders
                       </h3>
                     </div>
                     <div className="space-y-1">
@@ -469,76 +473,31 @@ export function Header() {
                         onClick={() => setMenuOpen(false)}
                         className="flex items-center justify-between p-2.5 rounded-xl text-sm font-medium text-[#F5F7FA] hover:bg-white/5 hover:text-[#F5C445] transition group"
                       >
-                        <span>My Orders & Waybill</span>
-                        <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] group-hover:translate-x-0.5 transition" />
+                        <div>
+                          <div className="font-semibold">My Orders & Waybill</div>
+                          <div className="text-[11px] text-[#A8B0C5]">Track shipments & escrow deliveries</div>
+                        </div>
+                        <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] group-hover:translate-x-0.5 transition shrink-0" />
                       </Link>
                       <Link
                         href="/cart"
                         onClick={() => setMenuOpen(false)}
                         className="flex items-center justify-between p-2.5 rounded-xl text-sm font-medium text-[#F5F7FA] hover:bg-white/5 hover:text-[#F5C445] transition group"
                       >
-                        <span>Shopping Cart</span>
-                        <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] group-hover:translate-x-0.5 transition" />
+                        <div>
+                          <div className="font-semibold">Shopping Cart ({cartCount})</div>
+                          <div className="text-[11px] text-[#A8B0C5]">Checkout pending items</div>
+                        </div>
+                        <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] group-hover:translate-x-0.5 transition shrink-0" />
                       </Link>
                     </div>
                   </div>
 
-                  <div className="bg-gradient-to-br from-[#142850] to-[#1B2F5E] border border-[#D4AF37]/25 shadow-[0_4px_20px_rgba(212,175,55,0.08)] rounded-2xl p-4 shadow-sm hover:border-[#D4AF37]/30 transition">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Store size={18} className="text-[#D4AF37]" />
-                      <h3 className="text-xs uppercase tracking-wider font-bold text-[#D4AF37]">
-                        Merchant Portal
-                      </h3>
-                    </div>
-                    {isVendor ? (
-                      <div className="space-y-1">
-                        <Link
-                          href="/vendor"
-                          onClick={() => setMenuOpen(false)}
-                          className="flex items-center justify-between p-2.5 rounded-xl text-sm font-medium text-[#F5F7FA] hover:bg-white/5 hover:text-[#F5C445] transition group"
-                        >
-                          <span>Vendor Dashboard</span>
-                          <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] group-hover:translate-x-0.5 transition" />
-                        </Link>
-                        <Link
-                          href="/vendor/products/add"
-                          onClick={() => setMenuOpen(false)}
-                          className="flex items-center justify-between p-2.5 rounded-xl text-sm font-medium text-[#F5F7FA] hover:bg-white/5 hover:text-[#F5C445] transition group"
-                        >
-                          <span>Add New Product</span>
-                          <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] group-hover:translate-x-0.5 transition" />
-                        </Link>
-                        <Link
-                          href="/vendor/wallet"
-                          onClick={() => setMenuOpen(false)}
-                          className="flex items-center justify-between p-2.5 rounded-xl text-sm font-medium text-[#F5F7FA] hover:bg-white/5 hover:text-[#F5C445] transition group"
-                        >
-                          <span>Vendor Payout Wallet</span>
-                          <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] group-hover:translate-x-0.5 transition" />
-                        </Link>
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        <p className="text-xs text-[#A8B0C5] leading-relaxed">
-                          Sell to thousands of shoppers on SwiftMart with guaranteed escrow payouts.
-                        </p>
-                        <Link
-                          href="/vendor/register"
-                          onClick={() => setMenuOpen(false)}
-                          className="flex items-center justify-between p-2.5 rounded-xl text-sm font-semibold bg-[#D4AF37]/15 text-[#F5C445] border border-[#D4AF37]/30 hover:bg-[#D4AF37]/25 transition group"
-                        >
-                          <span>Become a Vendor</span>
-                          <ArrowUpRight size={16} className="group-hover:translate-x-0.5 transition" />
-                        </Link>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="bg-gradient-to-br from-[#142850] to-[#1B2F5E] border border-[#D4AF37]/25 shadow-[0_4px_20px_rgba(212,175,55,0.08)] rounded-2xl p-4 shadow-sm hover:border-[#D4AF37]/30 transition">
+                  <div className="bg-gradient-to-br from-[#142850] to-[#1B2F5E] border border-[#D4AF37]/25 shadow-[0_4px_20px_rgba(212,175,55,0.08)] rounded-2xl p-4 transition">
                     <div className="flex items-center gap-2 mb-3">
                       <CreditCard size={18} className="text-[#D4AF37]" />
                       <h3 className="text-xs uppercase tracking-wider font-bold text-[#D4AF37]">
-                        Fintech Actions
+                        Fintech Services
                       </h3>
                     </div>
                     <div className="space-y-1">
@@ -547,24 +506,67 @@ export function Header() {
                         onClick={() => setMenuOpen(false)}
                         className="flex items-center justify-between p-2.5 rounded-xl text-sm font-medium text-[#F5F7FA] hover:bg-white/5 hover:text-[#F5C445] transition group"
                       >
-                        <span>Send Money (P2P / Bank)</span>
-                        <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] group-hover:translate-x-0.5 transition" />
+                        <div>
+                          <div className="font-semibold">Send Money (P2P / Bank)</div>
+                          <div className="text-[11px] text-[#A8B0C5]">Instant transfer to users & banks</div>
+                        </div>
+                        <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] group-hover:translate-x-0.5 transition shrink-0" />
                       </Link>
                       <Link
                         href="/wallet/fund"
                         onClick={() => setMenuOpen(false)}
                         className="flex items-center justify-between p-2.5 rounded-xl text-sm font-medium text-[#F5F7FA] hover:bg-white/5 hover:text-[#F5C445] transition group"
                       >
-                        <span>Top-up / Fund Wallet</span>
-                        <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] group-hover:translate-x-0.5 transition" />
+                        <div>
+                          <div className="font-semibold">Fund / Top-up Wallet</div>
+                          <div className="text-[11px] text-[#A8B0C5]">Virtual account & Paystack card</div>
+                        </div>
+                        <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] group-hover:translate-x-0.5 transition shrink-0" />
                       </Link>
                       <Link
                         href="/wallet/history"
                         onClick={() => setMenuOpen(false)}
                         className="flex items-center justify-between p-2.5 rounded-xl text-sm font-medium text-[#F5F7FA] hover:bg-white/5 hover:text-[#F5C445] transition group"
                       >
-                        <span>Transaction Statements</span>
-                        <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] group-hover:translate-x-0.5 transition" />
+                        <div>
+                          <div className="font-semibold">Transaction Statement</div>
+                          <div className="text-[11px] text-[#A8B0C5]">View and download past receipts</div>
+                        </div>
+                        <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] group-hover:translate-x-0.5 transition shrink-0" />
+                      </Link>
+                    </div>
+                  </div>
+
+                  <div className="bg-gradient-to-br from-[#142850] to-[#1B2F5E] border border-[#D4AF37]/25 shadow-[0_4px_20px_rgba(212,175,55,0.08)] rounded-2xl p-4 transition">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Store size={18} className="text-[#D4AF37]" />
+                      <h3 className="text-xs uppercase tracking-wider font-bold text-[#D4AF37]">
+                        Merchant Onboarding & Feed
+                      </h3>
+                    </div>
+                    <div className="space-y-2">
+                      <Link
+                        href="/vendor/register"
+                        onClick={() => setMenuOpen(false)}
+                        className="flex items-center justify-between p-2.5 rounded-xl text-sm font-semibold bg-[#D4AF37]/15 text-[#F5C445] border border-[#D4AF37]/30 hover:bg-[#D4AF37]/25 transition group"
+                      >
+                        <div>
+                          <div>Become a Vendor</div>
+                          <div className="text-[11px] text-[#A8B0C5]">Register store & verify Paystack NIN</div>
+                        </div>
+                        <ArrowUpRight size={16} className="group-hover:translate-x-0.5 transition shrink-0" />
+                      </Link>
+
+                      <Link
+                        href="/post"
+                        onClick={() => setMenuOpen(false)}
+                        className="flex items-center justify-between p-2.5 rounded-xl text-sm font-medium text-[#F5F7FA] hover:bg-white/5 hover:text-[#F5C445] transition group"
+                      >
+                        <div>
+                          <div className="font-semibold">Share to Community Feed</div>
+                          <div className="text-[11px] text-[#A8B0C5]">Post updates and products</div>
+                        </div>
+                        <ChevronRight size={16} className="text-[#8A94B0] group-hover:text-[#F5C445] group-hover:translate-x-0.5 transition shrink-0" />
                       </Link>
                     </div>
                   </div>
@@ -572,15 +574,27 @@ export function Header() {
               )}
             </div>
 
-            {/* Bottom Actions: Log Out + Tagline */}
             <div className="mt-auto px-5 py-4 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3 bg-[#080D21]">
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-red-400 hover:text-white hover:bg-red-600/80 border border-red-500/40 transition active:scale-95"
-              >
-                <LogOut size={16} />
-                <span>Sign Out</span>
-              </button>
+              <div className="flex items-center gap-3">
+                {isDashboard && (
+                  <button
+                    onClick={handleExitDashboard}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-[#D4AF37] border border-[#D4AF37]/40 hover:bg-[#142850] transition active:scale-95"
+                  >
+                    <ArrowUpRight size={14} />
+                    <span>Exit to Customer Storefront</span>
+                  </button>
+                )}
+
+                <button
+                  onClick={handleSignOut}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-red-400 hover:text-white hover:bg-red-600/80 border border-red-500/40 transition active:scale-95"
+                >
+                  <LogOut size={14} />
+                  <span>Sign Out of SwiftMart</span>
+                </button>
+              </div>
+
               <p className="text-[11px] text-[#8A94B0] text-center sm:text-right">
                 SwiftMart • Fast, Secure Marketplace & Fintech
               </p>
