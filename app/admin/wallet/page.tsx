@@ -1,9 +1,21 @@
 'use client';
 
 import { extractAdminPayoutError } from '@/lib/error-utils';
-
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import {
+  Wallet,
+  ArrowUpRight,
+  RefreshCw,
+  TrendingUp,
+  Percent,
+  Truck,
+  Receipt,
+  AlertCircle,
+  CheckCircle2,
+  Lock,
+  X
+} from 'lucide-react';
 
 const BANK_LIST = [
   { code: '100004', name: 'OPay Digital Services' },
@@ -117,7 +129,7 @@ export default function AdminProfitWalletPage() {
       const items: RevenueItem[] = (revenue as RevenueItem[]) || [];
       setRevenueLedger(items);
 
-      // Compute stats
+      // Compute stats dynamically from platform_revenue
       let comm = 0;
       let markup = 0;
       let log = 0;
@@ -150,7 +162,7 @@ export default function AdminProfitWalletPage() {
     }
   }
 
-  // Account resolution via Supabase Edge Function & Paystack
+  // Account resolution via Paystack
   async function handleResolveAccount(num: string, bCode: string) {
     if (num.length !== 10) {
       setAccountName('');
@@ -190,284 +202,278 @@ export default function AdminProfitWalletPage() {
       return;
     }
     if (!accountName || accountNumber.length !== 10) {
-      setWithdrawError('Verify recipient account name first.');
+      setWithdrawError('Please enter and verify a valid 10-digit NUBAN account.');
       return;
     }
 
     setWithdrawing(true);
     try {
-      const selectedBank = banks.find((b) => b.code === bankCode) || BANK_LIST.find((b) => b.code === bankCode);
-
-      // Call secure admin-payout Edge Function that executes via Paystack
-      const { data: payoutData, error: payoutErr } = await supabase.functions.invoke('admin-payout', {
+      const { data, error } = await supabase.functions.invoke('admin-withdraw', {
         body: {
-          amountKobo,
-          bankCode,
-          accountNumber,
-          bankName: selectedBank?.name || bankCode,
-          accountName,
+          amount_kobo: amountKobo,
+          bank_code: bankCode,
+          account_number: accountNumber,
+          account_name: accountName,
         },
       });
 
-      if (payoutErr || payoutData?.error) {
-        const errMsg = await extractAdminPayoutError(payoutErr, payoutData);
-        throw new Error(errMsg);
+      if (error) {
+        const parsed = await extractAdminPayoutError(error);
+        throw new Error(parsed);
       }
 
       setShowWithdrawModal(false);
-      setWithdrawAmountNaira('');
       setAccountNumber('');
       setAccountName('');
+      setWithdrawAmountNaira('');
+      setSyncSuccess('Treasury withdrawal initiated successfully through Paystack.');
       await fetchWalletData();
     } catch (err: any) {
-      setWithdrawError(err.message || 'Withdrawal failed');
+      setWithdrawError(err.message || 'Withdrawal request failed');
     } finally {
       setWithdrawing(false);
     }
   }
 
-  // Calculate & Sync Historical Profits from past orders and transactions
-  async function handleSyncHistorical() {
+  // Historical sync
+  async function handleSyncPastProfits() {
     setSyncing(true);
     setSyncSuccess(null);
     try {
       const { data, error } = await supabase.rpc('sync_historical_platform_profits');
-      if (error) {
-        // Fallback: calculate client-side if RPC not yet created
-        const { data: orders } = await supabase
-          .from('orders')
-          .select('id, commission_kobo, shipping_kobo, status')
-          .eq('status', 'paid');
-
-        let totalHistKobo = 0;
-        if (orders) {
-          for (const ord of orders) {
-            const comm = Number(ord.commission_kobo) || 0;
-            totalHistKobo += comm;
-          }
-        }
-
-        if (totalHistKobo > 0 && treasuryBalance === 0) {
-          await supabase.from('platform_treasury').update({ balance_kobo: totalHistKobo });
-          await supabase.from('platform_revenue').insert({
-            source: 'commission',
-            amount_kobo: totalHistKobo,
-            balance_after_kobo: totalHistKobo,
-            description: 'Calculated and synced historical marketplace commissions',
-          });
-        }
-        setSyncSuccess(`Historical calculation completed! Synced ₦${(totalHistKobo / 100).toLocaleString()}`);
-      } else {
-        setSyncSuccess(`Historical profits successfully synced! New balance: ₦${((data || 0) / 100).toLocaleString()}`);
-      }
+      if (error) throw error;
+      setSyncSuccess('Historical ledger successfully computed and credited to treasury.');
       await fetchWalletData();
-    } catch (err: any) {
-      console.error(err);
-      setSyncSuccess('Sync completed.');
-      await fetchWalletData();
+    } catch (e: any) {
+      console.error('Error syncing past profits:', e);
+      setSyncSuccess(`Sync note: ${e.message || 'Already synchronized.'}`);
     } finally {
       setSyncing(false);
     }
   }
 
   return (
-    <div className="space-y-6 pb-20">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-black text-[#D4AF37] tracking-tight">
-            SwiftMart <span className="text-[#D4AF37]">Profit Wallet</span>
-          </h1>
-          <p className="text-sm text-[#A8B0C5]">
-            Internal company treasury holding earned markups, commissions, logistics margins, and fees.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={handleSyncHistorical}
-            disabled={syncing}
-            className="text-xs font-semibold px-4 py-2.5 bg-transparent hover:bg-[#142850] text-[#D4AF37] border border-[#D4AF37]/50 rounded-xl transition disabled:opacity-50"
-          >
-            {syncing ? 'Calculating...' : '⚡ Calculate Past Profits'}
-          </button>
-          <button
-            onClick={() => setShowWithdrawModal(true)}
-            className="text-sm font-bold px-5 py-2.5 bg-gradient-to-r from-[#F2D57E] to-[#D4A937] hover:opacity-95 text-[#0A1931] rounded-xl shadow-[0_0_15px_rgba(212,175,55,0.2)] transition"
-          >
-            Withdraw Profit
-          </button>
-        </div>
-      </div>
-
-      {syncSuccess && (
-        <div className="mb-4 p-3 bg-[#142850] border border-[#2ED573]/30 rounded-xl text-[#2ED573] text-sm font-medium">
-          {syncSuccess}
-        </div>
-      )}
-
-      {/* Main Treasury Balance Card */}
-      <div className="bg-gradient-to-br from-[#142850] to-[#1B2F5E] rounded-3xl p-6 sm:p-8 text-white shadow-[0_4px_25px_rgba(212,175,55,0.12)] mb-6 relative overflow-hidden border border-[#D4AF37]/30">
-        <div className="absolute right-0 top-0 translate-x-8 -translate-y-8 w-44 h-44 bg-[#D4AF37]/10 rounded-full blur-2xl pointer-events-none" />
-        <span className="text-xs font-bold uppercase tracking-widest text-[#D4AF37]">
-          SwiftMart Total Earned Profit
-        </span>
-        <div className="mt-2 text-3xl sm:text-5xl font-black tracking-tight text-white">
-          {loading ? '₦...' : formatNaira(treasuryBalance)}
-        </div>
-        <p className="text-xs text-[#F5EAC2] mt-2">
-          100% available for admin withdrawal to corporate or personal bank account via Paystack.
+    <div className="space-y-6">
+      {/* Page Title & Subtitle */}
+      <div>
+        <h1 className="text-2xl font-black text-[#D4AF37] uppercase tracking-wider flex items-center gap-2">
+          <Wallet className="w-6 h-6 text-[#D4AF37]" /> SwiftMart Profit Wallet
+        </h1>
+        <p className="text-xs text-[#A8B0C5] mt-1">
+          Internal treasury holding earned markups and fees.
         </p>
       </div>
 
-      {/* Profit Stream Breakdown */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
-        <div className="bg-gradient-to-br from-[#142850] to-[#1B2F5E] rounded-2xl p-4 border border-[#D4AF37]/25 shadow-[0_4px_20px_rgba(212,175,55,0.08)]">
-          <p className="text-xs text-[#A8B0C5] font-medium">20% Product Markup</p>
-          <p className="text-lg font-bold text-[#D4AF37] mt-1">{formatNaira(stats.markupKobo)}</p>
-          <span className="text-[10px] text-[#2ED573] font-semibold">+20% on vendor goods</span>
+      {syncSuccess && (
+        <div className="p-3.5 rounded-2xl bg-green-950/60 border border-green-500/40 text-green-300 text-xs flex items-center gap-2">
+          <CheckCircle2 size={16} className="shrink-0 text-green-400" />
+          <span>{syncSuccess}</span>
         </div>
-        <div className="bg-gradient-to-br from-[#142850] to-[#1B2F5E] rounded-2xl p-4 border border-[#D4AF37]/25 shadow-[0_4px_20px_rgba(212,175,55,0.08)]">
-          <p className="text-xs text-[#A8B0C5] font-medium">10% Commissions</p>
-          <p className="text-lg font-bold text-[#D4AF37] mt-1">{formatNaira(stats.commissionKobo)}</p>
-          <span className="text-[10px] text-[#E8C874] font-semibold">Vendor sales cut</span>
-        </div>
-        <div className="bg-gradient-to-br from-[#142850] to-[#1B2F5E] rounded-2xl p-4 border border-[#D4AF37]/25 shadow-[0_4px_20px_rgba(212,175,55,0.08)]">
-          <p className="text-xs text-[#A8B0C5] font-medium">Waybill Logistics</p>
-          <p className="text-lg font-bold text-[#D4AF37] mt-1">{formatNaira(stats.logisticsKobo)}</p>
-          <span className="text-[10px] text-[#F5C445] font-semibold">Shipbubble margin</span>
-        </div>
-        <div className="bg-gradient-to-br from-[#142850] to-[#1B2F5E] rounded-2xl p-4 border border-[#D4AF37]/25 shadow-[0_4px_20px_rgba(212,175,55,0.08)]">
-          <p className="text-xs text-[#A8B0C5] font-medium">Transfer & Fees</p>
-          <p className="text-lg font-bold text-[#D4AF37] mt-1">{formatNaira(stats.transferFeeKobo)}</p>
-          <span className="text-[10px] text-[#D4AF37] font-semibold">Stamp duty & VAT</span>
-        </div>
-      </div>
+      )}
 
-      {/* Recent Payout Transactions Section */}
-      <div className="bg-gradient-to-br from-[#142850] to-[#1B2F5E] rounded-2xl border border-[#D4AF37]/25 shadow-[0_4px_20px_rgba(212,175,55,0.08)] p-5">
-        <div className="flex items-center justify-between mb-4">
+      {/* Hero Section: Primary Balance Card & Action Buttons */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch">
+        <div className="md:col-span-2 bg-gradient-to-br from-[#142850] via-[#162D5A] to-[#1B2F5E] border border-[#D4AF37]/35 rounded-3xl p-6 shadow-[0_8px_30px_rgba(212,175,55,0.08)] flex flex-col justify-between">
           <div>
-            <h2 className="text-base font-bold text-[#D4AF37]">Recent Payout Transactions</h2>
-            <p className="text-xs text-[#A8B0C5]">Bank payouts debited from SwiftMart Treasury via Paystack</p>
+            <div className="text-[11px] font-black uppercase tracking-widest text-[#D4AF37]">
+              TOTAL EARNED PROFIT
+            </div>
+            <div className="text-4xl sm:text-5xl font-black tracking-tight text-white mt-2">
+              {formatNaira(treasuryBalance)}
+            </div>
           </div>
-          <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-[#142850] text-[#F87171] border border-[#F87171]/30">
-            {revenueLedger.filter((item) => item.source === 'withdrawal').length} Payout{revenueLedger.filter((item) => item.source === 'withdrawal').length === 1 ? '' : 's'}
-          </span>
+          <div className="mt-4 flex items-center gap-2 text-xs font-semibold text-emerald-400">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span>Available for withdrawal.</span>
+          </div>
         </div>
 
-        {revenueLedger.filter((item) => item.source === 'withdrawal').length === 0 ? (
-          <div className="text-center py-8 bg-[#0A1931]/60 rounded-xl border border-dashed border-[#D4AF37]/25">
-            <p className="text-sm font-medium text-[#A8B0C5]">No bank withdrawals recorded yet</p>
-            <p className="text-xs text-[#A8B0C5] mt-1">
-              When you withdraw profit to your bank account, amounts, bank names, timestamps, and transfer statuses will display here.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {revenueLedger
-              .filter((item) => item.source === 'withdrawal')
-              .slice(0, 15)
-              .map((payout) => (
-                <div
-                  key={payout.id}
-                  className="p-3.5 bg-[#0F2140]/80 rounded-xl border border-[#D4AF37]/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-                >
-                  <div className="space-y-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-xs font-bold text-[#F5EAC2]">
-                        {payout.description.replace('Admin Profit Payout to ', '')}
-                      </span>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#142850] text-[#2ED573] border border-[#2ED573]/30">
-                        ● Successful
-                      </span>
-                    </div>
-                    <p className="text-xs text-[#A8B0C5]">
-                      📅 {new Date(payout.created_at).toLocaleString('en-NG', {
-                        dateStyle: 'medium',
-                        timeStyle: 'short',
-                      })}
-                    </p>
-                  </div>
-                  <div className="text-left sm:text-right">
-                    <p className="text-sm font-black text-red-400">
-                      -{formatNaira(Math.abs(payout.amount_kobo))}
-                    </p>
-                    <p className="text-[11px] text-[#A8B0C5] font-medium">
-                      Treasury reserve: {formatNaira(payout.balance_after_kobo)}
-                    </p>
-                  </div>
-                </div>
-              ))}
-          </div>
-        )}
+        {/* Action Buttons: Clear Visual Hierarchy */}
+        <div className="bg-[#0A152B]/80 border border-white/10 rounded-3xl p-5 flex flex-col justify-center gap-3">
+          <button
+            onClick={() => setShowWithdrawModal(true)}
+            className="w-full py-3.5 px-4 bg-gradient-to-r from-[#F2D57E] to-[#D4A937] text-[#0A1931] font-black text-sm rounded-2xl shadow-lg hover:opacity-95 transition flex items-center justify-center gap-2 active:scale-[0.99]"
+          >
+            <ArrowUpRight size={18} strokeWidth={2.5} />
+            <span>Withdraw Profit</span>
+          </button>
+
+          <button
+            onClick={handleSyncPastProfits}
+            disabled={syncing}
+            className="w-full py-3 px-4 border border-[#D4AF37]/40 text-[#D4AF37] hover:bg-[#D4AF37]/10 font-bold text-xs rounded-2xl transition flex items-center justify-center gap-2 disabled:opacity-50"
+          >
+            <RefreshCw size={15} className={syncing ? 'animate-spin' : ''} />
+            <span>{syncing ? 'Calculating...' : 'Calculate Past'}</span>
+          </button>
+        </div>
       </div>
 
-      {/* Revenue Ledger Table */}
-      <div className="bg-gradient-to-br from-[#142850] to-[#1B2F5E] rounded-2xl border border-[#D4AF37]/25 shadow-[0_4px_20px_rgba(212,175,55,0.08)] p-5">
-        <h2 className="text-base font-bold text-[#D4AF37] mb-4">Live Profit Activity Ledger</h2>
-        {revenueLedger.length === 0 ? (
-          <p className="text-center text-sm text-[#A8B0C5] py-10">
-            No profit records in the ledger yet. Click &quot;Calculate Past Profits&quot; above to backfill previous sales.
-          </p>
-        ) : (
-          <div className="divide-y divide-[#D4AF37]/15">
-            {revenueLedger.map((item) => {
-              const isDebit = item.amount_kobo < 0;
-              return (
-                <div key={item.id} className="py-3 flex items-center justify-between gap-3 text-sm">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${
-                          item.source === 'commission'
-                            ? 'bg-[#142850] text-[#E8C874] border border-[#D4AF37]/30'
-                            : item.source === 'logistics_margin'
-                            ? 'bg-[#142850] text-[#F5C445] border border-[#F5C445]/30'
-                            : item.source === 'withdrawal'
-                            ? 'bg-[#142850] text-[#F87171] border border-[#F87171]/30'
-                            : 'bg-[#142850] text-[#2ED573] border border-[#2ED573]/30'
-                        }`}
-                      >
-                        {item.source.replace('_', ' ')}
-                      </span>
-                      <span className="font-semibold text-[#F5EAC2]">{item.description}</span>
-                    </div>
-                    <span className="text-xs text-[#A8B0C5]">
-                      {new Date(item.created_at).toLocaleString('en-NG')}
-                    </span>
-                  </div>
-                  <div className="text-right">
-                    <p className={`font-bold ${isDebit ? 'text-red-400' : 'text-[#2ED573]'}`}>
-                      {isDebit ? '-' : '+'}
-                      {formatNaira(Math.abs(item.amount_kobo))}
-                    </p>
-                    <p className="text-[10px] text-[#A8B0C5]">Bal: {formatNaira(item.balance_after_kobo)}</p>
-                  </div>
-                </div>
-              );
-            })}
+      {/* Breakdown: 4 High-Density Cards */}
+      <div>
+        <div className="text-xs uppercase tracking-wider font-bold text-[#A8B0C5] mb-3">
+          Breakdown
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <div className="bg-[#142850]/50 border border-white/10 rounded-2xl p-4 shadow-sm">
+            <div className="flex items-center justify-between text-[#A8B0C5] text-[11px] font-semibold mb-1">
+              <span>Markup</span>
+              <TrendingUp size={14} className="text-[#D4AF37]" />
+            </div>
+            <div className="text-lg sm:text-xl font-bold text-white">
+              {formatNaira(stats.markupKobo)}
+            </div>
           </div>
-        )}
+
+          <div className="bg-[#142850]/50 border border-white/10 rounded-2xl p-4 shadow-sm">
+            <div className="flex items-center justify-between text-[#A8B0C5] text-[11px] font-semibold mb-1">
+              <span>Comm.</span>
+              <Percent size={14} className="text-blue-400" />
+            </div>
+            <div className="text-lg sm:text-xl font-bold text-white">
+              {formatNaira(stats.commissionKobo)}
+            </div>
+          </div>
+
+          <div className="bg-[#142850]/50 border border-white/10 rounded-2xl p-4 shadow-sm">
+            <div className="flex items-center justify-between text-[#A8B0C5] text-[11px] font-semibold mb-1">
+              <span>Logistics</span>
+              <Truck size={14} className="text-purple-400" />
+            </div>
+            <div className="text-lg sm:text-xl font-bold text-white">
+              {formatNaira(stats.logisticsKobo)}
+            </div>
+          </div>
+
+          <div className="bg-[#142850]/50 border border-white/10 rounded-2xl p-4 shadow-sm">
+            <div className="flex items-center justify-between text-[#A8B0C5] text-[11px] font-semibold mb-1">
+              <span>Fees</span>
+              <Receipt size={14} className="text-amber-400" />
+            </div>
+            <div className="text-lg sm:text-xl font-bold text-white">
+              {formatNaira(stats.transferFeeKobo)}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Refined Activity Logs: Styled Badges instead of Raw Technical Strings */}
+      <div className="bg-[#142850]/40 border border-[#D4AF37]/25 rounded-3xl overflow-hidden shadow-xl">
+        <div className="p-4 sm:p-5 border-b border-white/10 flex items-center justify-between">
+          <h2 className="text-sm font-bold text-[#D4AF37] uppercase tracking-wider">
+            Treasury Ledger & Revenue Stream
+          </h2>
+          <span className="text-[11px] text-[#A8B0C5]">Last 100 Transactions</span>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs text-[#F5F7FA]">
+            <thead className="bg-[#0A152B] border-b border-white/10 uppercase font-bold text-[#A8B0C5] text-[10px]">
+              <tr>
+                <th className="px-4 py-3">Date</th>
+                <th className="px-4 py-3">Category</th>
+                <th className="px-4 py-3">Description</th>
+                <th className="px-4 py-3 text-right">Amount</th>
+                <th className="px-4 py-3 text-right">Balance After</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5">
+              {loading ? (
+                <tr>
+                  <td colSpan={5} className="text-center py-8 text-[#A8B0C5]">
+                    Loading profit records...
+                  </td>
+                </tr>
+              ) : revenueLedger.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="text-center py-8 text-[#A8B0C5]">
+                    No revenue recorded yet.
+                  </td>
+                </tr>
+              ) : (
+                revenueLedger.map((row) => (
+                  <tr key={row.id} className="hover:bg-white/[0.02] transition">
+                    <td className="px-4 py-3 text-[#A8B0C5] whitespace-nowrap">
+                      {new Date(row.created_at).toLocaleString('en-GB', {
+                        day: '2-digit',
+                        month: 'short',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </td>
+                    <td className="px-4 py-3">
+                      {row.source === 'commission' ? (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                          Sales Commission
+                        </span>
+                      ) : row.source === 'logistics_margin' ? (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                          Waybill Margin
+                        </span>
+                      ) : row.source === 'withdrawal' ? (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500/20 text-red-300 border border-red-500/30">
+                          Admin Cashout
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#D4AF37]/20 text-[#F5C445] border border-[#D4AF37]/30">
+                          Platform Fee
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-[#F5F7FA] font-medium max-w-xs truncate">
+                      {row.description}
+                    </td>
+                    <td className="px-4 py-3 text-right font-bold text-white whitespace-nowrap">
+                      +{formatNaira(row.amount_kobo)}
+                    </td>
+                    <td className="px-4 py-3 text-right font-medium text-[#A8B0C5] whitespace-nowrap">
+                      {formatNaira(row.balance_after_kobo)}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Admin Withdrawal Modal */}
       {showWithdrawModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-          <div className="bg-gradient-to-br from-[#142850] to-[#1B2F5E] rounded-3xl max-w-md w-full p-6 shadow-2xl border border-[#D4AF37]/30 text-[#F5F7FA]">
-            <h3 className="text-lg font-black text-[#D4AF37] mb-1">Withdraw Profit to Bank</h3>
-            <p className="text-xs text-[#A8B0C5] mb-4">
-              Payout from SwiftMart Treasury via Paystack resolution.
-            </p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
+          <div className="w-full max-w-md bg-gradient-to-b from-[#142850] to-[#0A1931] border border-[#D4AF37]/40 rounded-3xl p-6 shadow-2xl text-[#F5F7FA]">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-bold text-[#D4AF37] uppercase tracking-wider">
+                Withdraw Treasury Profit
+              </h3>
+              <button
+                onClick={() => setShowWithdrawModal(false)}
+                className="p-1 rounded-full text-[#A8B0C5] hover:text-white"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {withdrawError && (
+              <div className="mb-4 p-3 rounded-xl bg-red-950/60 border border-red-500/40 text-red-300 text-xs flex items-center gap-2">
+                <AlertCircle size={16} className="shrink-0" />
+                <span>{withdrawError}</span>
+              </div>
+            )}
 
             <form onSubmit={handleWithdrawSubmit} className="space-y-4">
               <div>
-                <label className="text-xs font-semibold text-[#E9C86A] block mb-1">Select Bank</label>
+                <label className="block text-xs font-semibold text-[#A8B0C5] mb-1">
+                  Destination Bank
+                </label>
                 <select
                   value={bankCode}
                   onChange={(e) => {
                     setBankCode(e.target.value);
-                    if (accountNumber.length === 10) handleResolveAccount(accountNumber, e.target.value);
+                    if (accountNumber.length === 10) {
+                      handleResolveAccount(accountNumber, e.target.value);
+                    }
                   }}
-                  className="w-full rounded-xl border border-[#D4AF37]/30 p-3 text-sm focus:border-[#D4AF37] outline-none"
+                  className="w-full bg-[#0A152B] border border-[#D4AF37]/30 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
                 >
                   {banks.map((b) => (
                     <option key={b.code} value={b.code}>
@@ -478,71 +484,71 @@ export default function AdminProfitWalletPage() {
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-[#E9C86A] block mb-1">Account Number</label>
+                <label className="block text-xs font-semibold text-[#A8B0C5] mb-1">
+                  Account Number (10 Digits)
+                </label>
                 <input
                   type="text"
                   maxLength={10}
                   required
                   value={accountNumber}
                   onChange={(e) => {
-                    const val = e.target.value.replace(/\D/g, '');
-                    setAccountNumber(val);
-                    if (val.length === 10) handleResolveAccount(val, bankCode);
-                    else setAccountName('');
+                    const clean = e.target.value.replace(/\D/g, '');
+                    setAccountNumber(clean);
+                    if (clean.length === 10) {
+                      handleResolveAccount(clean, bankCode);
+                    } else {
+                      setAccountName('');
+                    }
                   }}
-                  className="w-full rounded-xl border border-[#D4AF37]/30 p-3 text-sm font-mono tracking-wider focus:border-[#D4AF37] outline-none"
                   placeholder="0123456789"
+                  className="w-full bg-[#0A152B] border border-[#D4AF37]/30 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
                 />
               </div>
 
-              {/* Real-time Paystack Account Resolution Box */}
-              <div className="bg-[#0F2140] border border-[#D4AF37]/20 text-[#A8B0C5] rounded-xl p-3 text-xs">
-                <span className="text-[#A8B0C5] block">Account Holder Name:</span>
-                {resolvingAccount ? (
-                  <span className="text-[#E8C874] font-semibold animate-pulse">
-                    Verifying with Paystack...
-                  </span>
-                ) : accountName ? (
-                  <span className="text-emerald-700 font-bold text-sm block mt-0.5">
-                    ✓ {accountName}
-                  </span>
-                ) : (
-                  <span className="text-[#A8B0C5] italic">Enter 10-digit account number</span>
-                )}
-              </div>
+              {resolvingAccount && (
+                <div className="text-xs text-[#D4AF37] animate-pulse">
+                  Verifying account with Paystack...
+                </div>
+              )}
+
+              {accountName && (
+                <div className="p-2.5 rounded-xl bg-[#0F2140] border border-emerald-500/40 text-emerald-300 text-xs font-semibold flex items-center gap-2">
+                  <CheckCircle2 size={16} className="text-emerald-400" />
+                  <span>{accountName}</span>
+                </div>
+              )}
 
               <div>
-                <label className="text-xs font-semibold text-[#E9C86A] block mb-1">Amount to Withdraw (₦)</label>
+                <label className="block text-xs font-semibold text-[#A8B0C5] mb-1">
+                  Amount in Naira (₦)
+                </label>
                 <input
                   type="number"
+                  min="100"
+                  step="any"
                   required
-                  min={100}
                   value={withdrawAmountNaira}
-                  onChange={(e) => setWithdrawAmountNaira(e.target.value ? Number(e.target.value) : '')}
-                  className="w-full rounded-xl border border-[#D4AF37]/30 p-3 text-sm font-bold focus:border-[#D4AF37] outline-none"
+                  onChange={(e) => setWithdrawAmountNaira(Number(e.target.value) || '')}
                   placeholder="e.g. 50000"
+                  className="w-full bg-[#0A152B] border border-[#D4AF37]/30 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
                 />
-                <p className="text-[11px] text-[#A8B0C5] mt-1">
-                  Available: {formatNaira(treasuryBalance)}
-                </p>
               </div>
-
-              {withdrawError && <p className="text-xs text-red-400 font-medium">{withdrawError}</p>}
 
               <div className="flex gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setShowWithdrawModal(false)}
-                  className="flex-1 py-3 text-sm font-semibold rounded-xl border border-[#D4AF37]/30 text-[#A8B0C5] hover:bg-gray-50"
+                  className="flex-1 py-2.5 rounded-xl border border-white/20 text-xs font-semibold text-[#A8B0C5] hover:text-white"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={withdrawing || resolvingAccount || !accountName}
-                  className="flex-1 py-3 text-sm font-bold bg-[#0F172A] text-[#D4AF37] rounded-xl border-2 border-[#D4AF37] disabled:opacity-50"
+                  disabled={withdrawing || !accountName || !withdrawAmountNaira}
+                  className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-[#F2D57E] to-[#D4A937] text-[#0A1931] font-bold text-xs disabled:opacity-50"
                 >
-                  {withdrawing ? 'Processing...' : 'Confirm Payout'}
+                  {withdrawing ? 'Processing...' : 'Confirm Cashout'}
                 </button>
               </div>
             </form>

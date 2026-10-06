@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { UserCog, ShieldCheck, Check, AlertCircle, Search, UserCheck } from 'lucide-react';
+import { UserCog, ShieldCheck, Check, AlertCircle, Search, History, Clock } from 'lucide-react';
 
 interface ProfileItem {
   id: string;
@@ -18,17 +18,34 @@ interface ProfileItem {
   };
 }
 
+interface AuditLogItem {
+  id: string;
+  actor_id: string;
+  target_user_id: string;
+  event_type: string;
+  metadata: any;
+  created_at: string;
+}
+
 export default function AdminStaffPage() {
   const supabase = createClient();
+  const [currentAdminId, setCurrentAdminId] = useState<string | null>(null);
   const [users, setUsers] = useState<ProfileItem[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AuditLogItem[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
   useEffect(() => {
-    loadUsers();
-  }, []);
+    async function init() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) setCurrentAdminId(user.id);
+      loadUsers();
+      loadAuditLogs();
+    }
+    init();
+  }, [supabase]);
 
   async function loadUsers() {
     setLoading(true);
@@ -41,9 +58,25 @@ export default function AdminStaffPage() {
       if (error) throw error;
       setUsers((data as any[]) || []);
     } catch (err: any) {
-      setMessage({ text: err.message || 'Failed to load staff accounts', type: 'error' });
+      setMessage({ text: err.message || 'Failed to load accounts', type: 'error' });
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function loadAuditLogs() {
+    try {
+      const { data, error } = await supabase
+        .from('auth_audit_logs')
+        .select('*')
+        .in('event_type', ['role_change', 'permission_change', 'pin_locked'])
+        .order('created_at', { ascending: false })
+        .limit(25);
+      if (!error && data) {
+        setAuditLogs(data);
+      }
+    } catch (e) {
+      console.warn('Could not load audit logs:', e);
     }
   }
 
@@ -51,6 +84,9 @@ export default function AdminStaffPage() {
     setUpdatingId(userId);
     setMessage(null);
     try {
+      const targetUser = users.find(u => u.id === userId);
+      const oldRole = targetUser?.role;
+
       const { error } = await supabase
         .from('profiles')
         .update({ role: newRole })
@@ -58,10 +94,23 @@ export default function AdminStaffPage() {
 
       if (error) throw error;
 
+      // Log to auth_audit_logs
+      await supabase.from('auth_audit_logs').insert({
+        actor_id: currentAdminId,
+        target_user_id: userId,
+        event_type: 'role_change',
+        metadata: {
+          target_username: targetUser?.username,
+          old_role: oldRole,
+          new_role: newRole,
+        },
+      });
+
       setUsers(prev =>
         prev.map(u => (u.id === userId ? { ...u, role: newRole } : u))
       );
-      setMessage({ text: 'Role updated successfully!', type: 'success' });
+      setMessage({ text: `Role updated to ${newRole} and logged to audit trail`, type: 'success' });
+      loadAuditLogs();
     } catch (err: any) {
       setMessage({ text: err.message || 'Failed to update role', type: 'error' });
     } finally {
@@ -88,10 +137,23 @@ export default function AdminStaffPage() {
 
       if (error) throw error;
 
+      // Log to auth_audit_logs
+      await supabase.from('auth_audit_logs').insert({
+        actor_id: currentAdminId,
+        target_user_id: userId,
+        event_type: 'permission_change',
+        metadata: {
+          target_username: user.username,
+          permission: permKey,
+          granted: Boolean(updatedPerms[permKey as keyof typeof updatedPerms]),
+        },
+      });
+
       setUsers(prev =>
         prev.map(u => (u.id === userId ? { ...u, staff_permissions: updatedPerms } : u))
       );
-      setMessage({ text: 'Staff permission updated', type: 'success' });
+      setMessage({ text: 'Staff permission updated and logged', type: 'success' });
+      loadAuditLogs();
     } catch (err: any) {
       setMessage({ text: err.message || 'Permission update failed', type: 'error' });
     } finally {
@@ -106,14 +168,14 @@ export default function AdminStaffPage() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-[#D4AF37] uppercase tracking-wider flex items-center gap-2">
-            <UserCog className="w-6 h-6 text-[#D4AF37]" /> Staff Role Management
+            <UserCog className="w-6 h-6 text-[#D4AF37]" /> Staff Role & Permission Management
           </h1>
           <p className="text-xs text-[#A8B0C5] mt-1">
-            Assign operations staff, manage permissions, and govern console access.
+            Assign operations staff, enforce module permissions, and view audit trail.
           </p>
         </div>
 
@@ -121,7 +183,7 @@ export default function AdminStaffPage() {
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#D4AF37]" />
           <input
             type="text"
-            placeholder="Search user or role..."
+            placeholder="Search username or role..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full bg-[#0A152B] border border-[#D4AF37]/30 text-xs text-white rounded-xl pl-9 pr-4 py-2 focus:outline-none focus:border-[#D4AF37]"
@@ -140,14 +202,15 @@ export default function AdminStaffPage() {
         </div>
       )}
 
-      <div className="bg-[#142850]/40 border border-[#D4AF37]/25 rounded-2xl overflow-hidden shadow-xl">
+      {/* Staff User Accounts Table */}
+      <div className="bg-[#142850]/40 border border-[#D4AF37]/25 rounded-3xl overflow-hidden shadow-xl">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs text-[#F5F7FA]">
             <thead className="bg-[#0A152B] border-b border-white/10 uppercase font-bold text-[#D4AF37] tracking-wider text-[11px]">
               <tr>
                 <th className="px-4 py-3">User</th>
                 <th className="px-4 py-3">Assigned Role</th>
-                <th className="px-4 py-3">Staff Permissions</th>
+                <th className="px-4 py-3">Enforced Permissions (Default Denied)</th>
                 <th className="px-4 py-3 text-right">Action</th>
               </tr>
             </thead>
@@ -155,13 +218,13 @@ export default function AdminStaffPage() {
               {loading ? (
                 <tr>
                   <td colSpan={4} className="text-center py-8 text-[#A8B0C5]">
-                    Loading staff and user accounts...
+                    Loading accounts...
                   </td>
                 </tr>
               ) : filteredUsers.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="text-center py-8 text-[#A8B0C5]">
-                    No accounts match your search.
+                    No accounts found.
                   </td>
                 </tr>
               ) : (
@@ -223,6 +286,63 @@ export default function AdminStaffPage() {
                       {updatingId === u.id && (
                         <span className="text-[10px] text-[#D4AF37] font-semibold">Updating...</span>
                       )}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Admin Audit Trail Table */}
+      <div className="bg-[#142850]/40 border border-[#D4AF37]/25 rounded-3xl overflow-hidden shadow-xl">
+        <div className="p-4 sm:p-5 border-b border-white/10 flex items-center justify-between">
+          <h2 className="text-sm font-bold text-[#D4AF37] uppercase tracking-wider flex items-center gap-2">
+            <History size={16} /> Admin & Staff Audit Log
+          </h2>
+          <span className="text-[11px] text-[#A8B0C5]">Immutable security trail</span>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs text-[#F5F7FA]">
+            <thead className="bg-[#0A152B] border-b border-white/10 uppercase font-bold text-[#A8B0C5] text-[10px]">
+              <tr>
+                <th className="px-4 py-3">Timestamp</th>
+                <th className="px-4 py-3">Event Type</th>
+                <th className="px-4 py-3">Target Details</th>
+                <th className="px-4 py-3">Actor</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5">
+              {auditLogs.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="text-center py-6 text-[#A8B0C5]">
+                    No security events logged yet.
+                  </td>
+                </tr>
+              ) : (
+                auditLogs.map((log) => (
+                  <tr key={log.id} className="hover:bg-white/[0.02]">
+                    <td className="px-4 py-3 text-[#A8B0C5] whitespace-nowrap">
+                      {new Date(log.created_at).toLocaleString('en-GB', {
+                        day: '2-digit',
+                        month: 'short',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#D4AF37]/20 text-[#F5C445] border border-[#D4AF37]/30">
+                        {log.event_type.replace('_', ' ').toUpperCase()}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 font-medium text-white">
+                      {log.metadata?.target_username ? `@${log.metadata.target_username} : ` : ''}
+                      {JSON.stringify(log.metadata)}
+                    </td>
+                    <td className="px-4 py-3 text-[#A8B0C5]">
+                      {log.actor_id ? `Admin ${log.actor_id.slice(0, 8)}...` : 'System'}
                     </td>
                   </tr>
                 ))

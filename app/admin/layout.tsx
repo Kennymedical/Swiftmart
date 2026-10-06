@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import { headers } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
 import { ShieldCheck, Wallet, ShoppingBag } from 'lucide-react';
 import { AdminHeaderSearch } from '@/components/admin/AdminHeaderSearch';
@@ -10,12 +11,44 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const { data: { user }, error: authError } = await supabase.auth.getUser();
 
   if (authError || !user) {
-    redirect('/login?session_expired=true&redirect=/admin');
+    redirect('/admin/login?session_expired=true&redirect=/admin');
   }
 
-  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-  if (profile?.role !== 'admin') {
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role, staff_permissions')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  if (!profile || (profile.role !== 'admin' && profile.role !== 'staff')) {
     redirect('/');
+  }
+
+  // Enforce staff permissions by default on protected routes
+  const headersList = headers();
+  const pathname = headersList.get('x-pathname') || headersList.get('referer') || '';
+
+  if (profile.role === 'staff') {
+    const perms = (profile.staff_permissions as Record<string, boolean>) || {};
+
+    if (pathname.includes('/admin/staff') || pathname.includes('/admin/users')) {
+      redirect('/admin?unauthorized=staff_management');
+    }
+    if (pathname.includes('/admin/payouts') && !perms.manage_payouts) {
+      redirect('/admin?unauthorized=payouts');
+    }
+    if (pathname.includes('/admin/commissions') && !perms.manage_commissions) {
+      redirect('/admin?unauthorized=commissions');
+    }
+    if (pathname.includes('/admin/orders') && !perms.manage_orders) {
+      redirect('/admin?unauthorized=orders');
+    }
+    if (pathname.includes('/admin/kyc') && !perms.manage_kyc) {
+      redirect('/admin?unauthorized=kyc');
+    }
+    if (pathname.includes('/admin/posts') && !perms.manage_posts) {
+      redirect('/admin?unauthorized=posts');
+    }
   }
 
   return (
@@ -32,24 +65,27 @@ export default async function AdminLayout({ children }: { children: React.ReactN
                 SwiftMart Console
               </Link>
             </div>
-            <p className="hidden sm:block text-[11px] text-[#A8B0C5] tracking-wide">Enterprise Marketplace & FinTech Admin</p>
+            <p className="hidden sm:block text-[11px] text-[#A8B0C5] tracking-wide">
+              {profile.role === 'admin' ? 'Super Admin Workspace' : 'Staff Operations Workspace'}
+            </p>
           </div>
         </div>
 
+        {/* Global Search and ONLY Ledger + Marketplace Top Tabs */}
         <div className="flex items-center gap-3">
           <AdminHeaderSearch />
           <Link
             href="/admin/wallet"
-            className="hidden sm:flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-[#D4AF37] border border-[#D4AF37]/40 rounded-xl hover:bg-[#142850] transition shrink-0"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-[#D4AF37] bg-[#142850]/80 border border-[#D4AF37]/40 rounded-xl hover:bg-[#D4AF37]/20 transition shrink-0 shadow-sm"
           >
-            <Wallet className="w-3.5 h-3.5" />
+            <Wallet className="w-4 h-4 text-[#D4AF37]" />
             <span>Ledger</span>
           </Link>
           <Link
             href="/admin/products"
-            className="hidden sm:flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-[#D4AF37] border border-[#D4AF37]/40 rounded-xl hover:bg-[#142850] transition shrink-0"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-[#D4AF37] bg-[#142850]/80 border border-[#D4AF37]/40 rounded-xl hover:bg-[#D4AF37]/20 transition shrink-0 shadow-sm"
           >
-            <ShoppingBag className="w-3.5 h-3.5" />
+            <ShoppingBag className="w-4 h-4 text-[#D4AF37]" />
             <span>Marketplace</span>
           </Link>
         </div>
