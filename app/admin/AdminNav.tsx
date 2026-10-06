@@ -33,13 +33,14 @@ const PILLARS: Pillar[] = [
   },
   {
     id: 'treasury',
-    label: 'Ledgers & Treasury',
+    label: 'Ledger & Treasury',
     href: '/admin/wallet',
     icon: WalletCards,
-    matches: (path) => path.startsWith('/admin/wallet') || path.startsWith('/admin/payouts'),
+    matches: (path) => path.startsWith('/admin/wallet') || path.startsWith('/admin/payouts') || path.startsWith('/admin/orders'),
     subTabs: [
-      { href: '/admin/wallet', label: 'Profit Wallet & Escrow' },
-      { href: '/admin/payouts', label: 'Payout Queue' },
+      { href: '/admin/wallet', label: 'Profit Wallet' },
+      { href: '/admin/orders', label: 'Users Escrows' },
+      { href: '/admin/payouts', label: 'Payout Queues' },
     ],
   },
   {
@@ -54,23 +55,23 @@ const PILLARS: Pillar[] = [
       path.startsWith('/admin/kyc'),
     subTabs: [
       { href: '/admin/vendors', label: 'Vendors' },
-      { href: '/admin/users', label: 'Users & Customers' },
+      { href: '/admin/users', label: 'Customers & Staff' },
       { href: '/admin/logistics', label: 'Logistics Partners' },
       { href: '/admin/kyc', label: 'KYC Approvals' },
     ],
   },
   {
     id: 'marketplace',
-    label: 'Marketplace',
+    label: 'Catalog & Marketplace',
     href: '/admin/products',
     icon: ShoppingBag,
     matches: (path) =>
       path.startsWith('/admin/products') ||
-      path.startsWith('/admin/orders') ||
+      path.startsWith('/admin/commissions') ||
       path.startsWith('/admin/posts'),
     subTabs: [
-      { href: '/admin/products', label: 'Catalog Products' },
-      { href: '/admin/orders', label: 'Customer Orders' },
+      { href: '/admin/products', label: 'Product Lists' },
+      { href: '/admin/commissions', label: 'Markups & Rates' },
       { href: '/admin/posts', label: 'Feed Moderation' },
     ],
   },
@@ -81,7 +82,7 @@ export function AdminNav() {
   const currentPillar = PILLARS.find((p) => p.matches(pathname)) || PILLARS[0];
 
   return (
-    <nav className="sticky top-[57px] z-40 bg-[#0A1931]/95 backdrop-blur-md border-b border-[#D4AF37]/25 shadow-lg">
+    <nav className="bg-[#0A1931]/95 border-b border-[#D4AF37]/25 shadow-lg">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Tier 1: Primary Pillars */}
         <div className="flex gap-2 sm:gap-4 overflow-x-auto py-2.5 scrollbar-none">
@@ -107,7 +108,7 @@ export function AdminNav() {
 
         {/* Tier 2: Contextual Drill-Down Sub-Tabs */}
         {currentPillar.subTabs && currentPillar.subTabs.length > 1 && (
-          <div className="flex gap-2 overflow-x-auto pt-1 pb-2 border-t border-[#D4AF37]/15">
+          <div className="flex gap-2 overflow-x-auto pt-1 pb-2.5 border-t border-[#D4AF37]/15">
             {currentPillar.subTabs.map((sub) => {
               const isSubActive = pathname === sub.href;
               return (

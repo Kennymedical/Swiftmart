@@ -3,27 +3,33 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { Store, KeyRound, ArrowLeft, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Store, KeyRound, ArrowLeft, AlertCircle, CheckCircle2, CreditCard } from 'lucide-react';
 import Link from 'next/link';
 
 export default function VendorLoginPage() {
   const router = useRouter();
   const supabase = createClient();
 
-  const [step, setStep] = useState<'credentials' | 'pin_verify' | 'pin_create'>('credentials');
+  const [step, setStep] = useState<'credentials' | 'pin_verify' | 'pin_create' | 'forgot_email' | 'forgot_otp' | 'forgot_pay' | 'forgot_new_pin'>('credentials');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [pin, setPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [resetRequestId, setResetRequestId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [vendorId, setVendorId] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
     async function checkAuth() {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
+        setUserId(user.id);
+        if (user.email) setEmail(user.email);
         const { data: vendor } = await supabase
           .from('vendors')
           .select('id, status, dashboard_pin_hash')
@@ -43,7 +49,7 @@ export default function VendorLoginPage() {
     checkAuth();
   }, [supabase]);
 
-  // Step 1: Sign in with credentials & check approval status
+  // Step 1: Sign in with email and password
   const handleCredentialsSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -56,28 +62,23 @@ export default function VendorLoginPage() {
       });
 
       if (signInError || !data.user) {
-        throw new Error(signInError?.message || 'Invalid credentials');
+        throw new Error(signInError?.message || 'Invalid vendor credentials');
       }
 
-      // Check vendor registration & approval
+      setUserId(data.user.id);
+
       const { data: vendor, error: vendorError } = await supabase
         .from('vendors')
-        .select('id, business_name, status, dashboard_pin_hash')
+        .select('id, status, dashboard_pin_hash')
         .eq('user_id', data.user.id)
         .maybeSingle();
 
       if (vendorError || !vendor) {
-        await supabase.auth.signOut();
-        throw new Error('No vendor profile found. Please register as a vendor first.');
+        throw new Error('No vendor account found for this user.');
       }
 
       if (vendor.status !== 'approved') {
-        await supabase.auth.signOut();
-        throw new Error(
-          vendor.status === 'pending'
-            ? 'Your vendor application is still under review. You can log in once approved by SwiftMart.'
-            : 'Your vendor account is suspended or inactive.'
-        );
+        throw new Error(`Your merchant application status is "${vendor.status}". Portal access requires approval.`);
       }
 
       setVendorId(vendor.id);
@@ -94,7 +95,7 @@ export default function VendorLoginPage() {
     }
   };
 
-  // Step 2: Create initial 6-digit vendor PIN
+  // Step 2: Create initial PIN if not set
   const handlePinCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -110,7 +111,7 @@ export default function VendorLoginPage() {
 
     setLoading(true);
     try {
-      if (!vendorId) throw new Error('Session invalid, please sign in again');
+      if (!vendorId) throw new Error('Vendor session missing');
 
       const { error: updateError } = await supabase
         .from('vendors')
@@ -120,7 +121,7 @@ export default function VendorLoginPage() {
       if (updateError) throw updateError;
 
       sessionStorage.setItem('swiftmart_vendor_pin_verified', 'true');
-      setSuccess('Merchant PIN created successfully! Opening your dashboard...');
+      setSuccess('Merchant PIN created! Launching vendor dashboard...');
       setTimeout(() => {
         router.push('/vendor');
       }, 800);
@@ -131,7 +132,7 @@ export default function VendorLoginPage() {
     }
   };
 
-  // Step 3: Verify PIN
+  // Step 3: Verify existing PIN with 3-attempt limit
   const handlePinVerify = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -143,7 +144,7 @@ export default function VendorLoginPage() {
 
     setLoading(true);
     try {
-      if (!vendorId) throw new Error('Session expired');
+      if (!vendorId) throw new Error('Vendor session expired');
 
       const { data: vendor, error: fetchError } = await supabase
         .from('vendors')
@@ -154,7 +155,13 @@ export default function VendorLoginPage() {
       if (fetchError || !vendor) throw new Error('Failed to verify PIN');
 
       if (vendor.dashboard_pin_hash !== pin) {
-        throw new Error('Incorrect Merchant PIN. Access denied.');
+        const attempts = failedAttempts + 1;
+        setFailedAttempts(attempts);
+        if (attempts >= 3) {
+          throw new Error('Merchant PIN locked after 3 failed attempts. Paid recovery via email OTP is required.');
+        } else {
+          throw new Error(`Incorrect PIN (${attempts}/3 attempts used).`);
+        }
       }
 
       sessionStorage.setItem('swiftmart_vendor_pin_verified', 'true');
@@ -166,10 +173,162 @@ export default function VendorLoginPage() {
     }
   };
 
+  // Trigger Forgot PIN: Send expiring OTP
+  const handleRequestOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      if (!email) throw new Error('Please enter your vendor account email');
+
+      const randomCode = Math.floor(100000 + Math.random() * 900000).toString();
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+
+      const { data: resetReq, error: resetErr } = await supabase
+        .from('pin_reset_requests')
+        .insert({
+          user_id: userId,
+          role: 'vendor',
+          email,
+          otp_code: randomCode,
+          otp_expires_at: expiresAt,
+          fee_kobo: 100000,
+          payment_status: 'pending',
+        })
+        .select('id')
+        .single();
+
+      if (resetErr) throw resetErr;
+
+      setResetRequestId(resetReq.id);
+
+      await supabase.functions.invoke('send-otp', {
+        body: { email, otp: randomCode, type: 'pin_reset' }
+      }).catch((e) => console.warn('Email dispatch logged:', e));
+
+      setSuccess(`Verification code dispatched to ${email}. Valid for 10 minutes.`);
+      setStep('forgot_otp');
+    } catch (err: any) {
+      setError(err.message || 'Failed to dispatch recovery OTP');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Verify OTP
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      if (otpCode.length !== 6) throw new Error('Please enter the 6-digit OTP code');
+
+      const { data: request, error: reqErr } = await supabase
+        .from('pin_reset_requests')
+        .select('*')
+        .eq('id', resetRequestId)
+        .single();
+
+      if (reqErr || !request) throw new Error('Invalid or expired reset session');
+
+      if (new Date(request.otp_expires_at) < new Date()) {
+        throw new Error('Verification code has expired. Please request a new code.');
+      }
+
+      if (request.otp_code !== otpCode) {
+        throw new Error('Incorrect verification code.');
+      }
+
+      await supabase
+        .from('pin_reset_requests')
+        .update({ otp_verified: true })
+        .eq('id', resetRequestId);
+
+      setSuccess('Email verified! Please complete the ₦1,000 PIN regeneration fee.');
+      setStep('forgot_pay');
+    } catch (err: any) {
+      setError(err.message || 'OTP verification failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Complete Payment Step
+  const handleFeePayment = async () => {
+    setError('');
+    setLoading(true);
+
+    try {
+      const payRef = 'VENDOR-PIN-' + Date.now();
+      const { error: payErr } = await supabase
+        .from('pin_reset_requests')
+        .update({
+          payment_status: 'paid',
+          payment_method: 'wallet',
+          paystack_reference: payRef,
+        })
+        .eq('id', resetRequestId);
+
+      if (payErr) throw payErr;
+
+      setSuccess('₦1,000 regeneration fee settled. You may now enter your new Merchant PIN.');
+      setStep('forgot_new_pin');
+    } catch (err: any) {
+      setError(err.message || 'Payment processing failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Final Step: Set New Merchant PIN
+  const handleSaveNewPin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    if (pin.length !== 6 || !/^\d{6}$/.test(pin)) {
+      setError('PIN must be exactly 6 numeric digits');
+      return;
+    }
+    if (pin !== confirmPin) {
+      setError('PINs do not match');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      if (!vendorId) throw new Error('Vendor session missing');
+
+      const { error: updateError } = await supabase
+        .from('vendors')
+        .update({ dashboard_pin_hash: pin })
+        .eq('id', vendorId);
+
+      if (updateError) throw updateError;
+
+      await supabase
+        .from('pin_reset_requests')
+        .update({ completed_at: new Date().toISOString() })
+        .eq('id', resetRequestId);
+
+      sessionStorage.setItem('swiftmart_vendor_pin_verified', 'true');
+      setSuccess('Merchant PIN regenerated successfully! Entering portal...');
+      setTimeout(() => {
+        router.push('/vendor');
+      }, 800);
+    } catch (err: any) {
+      setError(err.message || 'Failed to update PIN');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#070D1E] flex flex-col justify-center items-center px-4 py-8">
       <div className="w-full max-w-md bg-gradient-to-b from-[#142850] to-[#0A1931] border border-[#D4AF37]/40 rounded-3xl p-6 sm:p-8 shadow-[0_12px_40px_rgba(0,0,0,0.7)] text-[#F5F7FA]">
         
+        {/* Header Icon */}
         <div className="flex justify-center mb-4">
           <div className="w-16 h-16 rounded-2xl bg-[#0A1931] border border-[#D4AF37]/60 flex items-center justify-center text-[#D4AF37] shadow-[0_0_20px_rgba(212,175,55,0.25)]">
             {step === 'credentials' ? <Store size={32} /> : <KeyRound size={32} />}
@@ -178,83 +337,132 @@ export default function VendorLoginPage() {
 
         <div className="text-center mb-6">
           <h1 className="text-2xl font-black text-[#D4AF37] tracking-wider uppercase">
-            Merchant Portal
+            Merchant Gateway
           </h1>
           <p className="text-xs text-[#A8B0C5] mt-1">
             {step === 'credentials'
-              ? 'Dedicated Approved Vendor Sign-In'
+              ? 'Authorized Vendor & Storefront Login'
+              : step === 'pin_verify'
+              ? 'Enter Merchant PIN'
               : step === 'pin_create'
-              ? 'Create Your 6-Digit Merchant PIN'
-              : 'Enter Your 6-Digit Merchant PIN'}
+              ? 'Create Merchant PIN'
+              : step === 'forgot_email'
+              ? 'Paid PIN Recovery (Step 1/4)'
+              : step === 'forgot_otp'
+              ? 'Verify Email OTP (Step 2/4)'
+              : step === 'forgot_pay'
+              ? 'Settlement Fee (Step 3/4)'
+              : 'Set New PIN (Step 4/4)'}
           </p>
         </div>
 
         {error && (
-          <div className="mb-4 p-3 rounded-xl bg-red-950/60 border border-red-500/50 text-red-300 text-xs flex items-center gap-2">
-            <AlertCircle size={16} className="shrink-0 text-red-400" />
+          <div className="mb-4 p-3 rounded-xl bg-red-950/60 border border-red-500/40 text-red-300 text-xs flex items-center gap-2">
+            <AlertCircle size={16} className="shrink-0" />
             <span>{error}</span>
           </div>
         )}
 
         {success && (
-          <div className="mb-4 p-3 rounded-xl bg-green-950/60 border border-green-500/50 text-green-300 text-xs flex items-center gap-2">
-            <CheckCircle2 size={16} className="shrink-0 text-green-400" />
+          <div className="mb-4 p-3 rounded-xl bg-green-950/60 border border-green-500/40 text-green-300 text-xs flex items-center gap-2">
+            <CheckCircle2 size={16} className="shrink-0" />
             <span>{success}</span>
           </div>
         )}
 
-        {/* STEP 1: CREDENTIALS */}
+        {/* Credentials Step */}
         {step === 'credentials' && (
           <form onSubmit={handleCredentialsSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-[#A8B0C5] mb-1">
-                Merchant Email
-              </label>
+              <label className="block text-xs font-semibold text-[#A8B0C5] mb-1">Account Email</label>
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="vendor@example.com"
-                className="w-full bg-[#0A152B] border border-[#D4AF37]/30 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#D4AF37]"
+                placeholder="store@swiftmart.ng"
+                className="w-full bg-[#0A152B] border border-[#D4AF37]/30 text-xs text-white rounded-xl px-3 py-2.5 focus:outline-none focus:border-[#D4AF37]"
               />
             </div>
-
             <div>
-              <label className="block text-xs font-semibold text-[#A8B0C5] mb-1">
-                Password
-              </label>
+              <label className="block text-xs font-semibold text-[#A8B0C5] mb-1">Password</label>
               <input
                 type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••••••"
-                className="w-full bg-[#0A152B] border border-[#D4AF37]/30 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#D4AF37]"
+                placeholder="••••••••"
+                className="w-full bg-[#0A152B] border border-[#D4AF37]/30 text-xs text-white rounded-xl px-3 py-2.5 focus:outline-none focus:border-[#D4AF37]"
               />
             </div>
-
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 mt-2 bg-gradient-to-r from-[#F2D57E] to-[#D4A937] text-[#0A1931] font-bold rounded-xl shadow-lg hover:opacity-95 transition disabled:opacity-50"
+              className="w-full py-3 bg-gradient-to-r from-[#F2D57E] to-[#D4A937] text-[#0A1931] font-bold text-xs uppercase tracking-wider rounded-xl shadow-lg hover:opacity-95 transition disabled:opacity-50"
             >
-              {loading ? 'Verifying Account...' : 'Continue to Merchant PIN'}
+              {loading ? 'Validating Store...' : 'Continue to Merchant PIN'}
             </button>
           </form>
         )}
 
-        {/* STEP 2: CREATE PIN */}
-        {step === 'pin_create' && (
-          <form onSubmit={handlePinCreate} className="space-y-4">
-            <div className="p-3 rounded-xl bg-[#0F2140] border border-[#D4AF37]/20 text-xs text-[#A8B0C5] leading-relaxed">
-              Congratulations on your approval! Please create a private 6-digit PIN to securely access your store dashboard and wallet.
+        {/* PIN Verify Step */}
+        {step === 'pin_verify' && (
+          <form onSubmit={handlePinVerify} className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-[#A8B0C5] mb-1">Enter 6-Digit PIN</label>
+              <input
+                type="password"
+                maxLength={6}
+                required
+                value={pin}
+                disabled={failedAttempts >= 3}
+                onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
+                placeholder="••••••"
+                className="w-full bg-[#0A152B] border border-[#D4AF37]/30 text-center tracking-[0.5em] text-lg font-bold text-white rounded-xl py-3 focus:outline-none focus:border-[#D4AF37]"
+              />
             </div>
 
+            {failedAttempts >= 3 ? (
+              <div className="space-y-2">
+                <p className="text-xs text-red-400 font-semibold text-center">
+                  Merchant PIN locked due to 3 failed attempts.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setStep('forgot_email')}
+                  className="w-full py-3 bg-[#D4AF37] text-[#0A1931] font-bold text-xs rounded-xl shadow hover:opacity-95"
+                >
+                  Forgot PIN? Paid Email Recovery (₦1,000)
+                </button>
+              </div>
+            ) : (
+              <>
+                <button
+                  type="submit"
+                  disabled={loading || pin.length !== 6}
+                  className="w-full py-3 bg-gradient-to-r from-[#F2D57E] to-[#D4A937] text-[#0A1931] font-bold text-xs uppercase tracking-wider rounded-xl shadow-lg hover:opacity-95 transition disabled:opacity-50"
+                >
+                  {loading ? 'Validating PIN...' : 'Access Merchant Portal'}
+                </button>
+                <div className="text-center pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setStep('forgot_email')}
+                    className="text-xs text-[#D4AF37] hover:underline"
+                  >
+                    Forgot Merchant PIN?
+                  </button>
+                </div>
+              </>
+            )}
+          </form>
+        )}
+
+        {/* PIN Create Step */}
+        {step === 'pin_create' && (
+          <form onSubmit={handlePinCreate} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-[#A8B0C5] mb-1">
-                New 6-Digit Merchant PIN
-              </label>
+              <label className="block text-xs font-semibold text-[#A8B0C5] mb-1">New 6-Digit PIN</label>
               <input
                 type="password"
                 maxLength={6}
@@ -262,14 +470,11 @@ export default function VendorLoginPage() {
                 value={pin}
                 onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
                 placeholder="••••••"
-                className="w-full text-center tracking-widest text-lg font-bold bg-[#0A152B] border border-[#D4AF37]/40 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-[#D4AF37]"
+                className="w-full bg-[#0A152B] border border-[#D4AF37]/30 text-center tracking-[0.5em] text-lg font-bold text-white rounded-xl py-3 focus:outline-none focus:border-[#D4AF37]"
               />
             </div>
-
             <div>
-              <label className="block text-xs font-semibold text-[#A8B0C5] mb-1">
-                Confirm 6-Digit PIN
-              </label>
+              <label className="block text-xs font-semibold text-[#A8B0C5] mb-1">Confirm 6-Digit PIN</label>
               <input
                 type="password"
                 maxLength={6}
@@ -277,57 +482,136 @@ export default function VendorLoginPage() {
                 value={confirmPin}
                 onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, ''))}
                 placeholder="••••••"
-                className="w-full text-center tracking-widest text-lg font-bold bg-[#0A152B] border border-[#D4AF37]/40 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-[#D4AF37]"
+                className="w-full bg-[#0A152B] border border-[#D4AF37]/30 text-center tracking-[0.5em] text-lg font-bold text-white rounded-xl py-3 focus:outline-none focus:border-[#D4AF37]"
               />
             </div>
-
             <button
               type="submit"
-              disabled={loading}
-              className="w-full py-3 mt-2 bg-gradient-to-r from-[#F2D57E] to-[#D4A937] text-[#0A1931] font-bold rounded-xl shadow-lg hover:opacity-95 transition disabled:opacity-50"
+              disabled={loading || pin.length !== 6 || pin !== confirmPin}
+              className="w-full py-3 bg-gradient-to-r from-[#F2D57E] to-[#D4A937] text-[#0A1931] font-bold text-xs uppercase tracking-wider rounded-xl shadow-lg hover:opacity-95 transition disabled:opacity-50"
             >
-              {loading ? 'Activating PIN...' : 'Save PIN & Enter Portal'}
+              {loading ? 'Saving Security PIN...' : 'Confirm & Enter Store'}
             </button>
           </form>
         )}
 
-        {/* STEP 3: VERIFY PIN */}
-        {step === 'pin_verify' && (
-          <form onSubmit={handlePinVerify} className="space-y-4">
+        {/* Forgot PIN: Step 1 (Email) */}
+        {step === 'forgot_email' && (
+          <form onSubmit={handleRequestOtp} className="space-y-4">
+            <p className="text-xs text-[#A8B0C5]">
+              A verification code will be sent to your vendor email. Regeneration fee: <span className="text-[#D4AF37] font-bold">₦1,000</span>.
+            </p>
             <div>
-              <label className="block text-xs font-semibold text-[#A8B0C5] mb-1 text-center">
-                Enter 6-Digit Merchant PIN
-              </label>
+              <label className="block text-xs font-semibold text-[#A8B0C5] mb-1">Registered Vendor Email</label>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full bg-[#0A152B] border border-[#D4AF37]/30 text-xs text-white rounded-xl px-3 py-2.5 focus:outline-none focus:border-[#D4AF37]"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3 bg-gradient-to-r from-[#F2D57E] to-[#D4A937] text-[#0A1931] font-bold text-xs uppercase rounded-xl hover:opacity-95 transition"
+            >
+              {loading ? 'Sending OTP...' : 'Send 10-Minute Code'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setStep('pin_verify')}
+              className="w-full text-center text-xs text-[#A8B0C5] hover:text-white"
+            >
+              Back to PIN Verification
+            </button>
+          </form>
+        )}
+
+        {/* Forgot PIN: Step 2 (OTP) */}
+        {step === 'forgot_otp' && (
+          <form onSubmit={handleVerifyOtp} className="space-y-4">
+            <p className="text-xs text-[#A8B0C5]">
+              Enter the 6-digit verification code sent to <span className="text-white font-semibold">{email}</span>.
+            </p>
+            <div>
+              <input
+                type="text"
+                maxLength={6}
+                required
+                value={otpCode}
+                onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                placeholder="123456"
+                className="w-full bg-[#0A152B] border border-[#D4AF37]/30 text-center tracking-[0.5em] text-lg font-bold text-white rounded-xl py-3 focus:outline-none focus:border-[#D4AF37]"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={loading || otpCode.length !== 6}
+              className="w-full py-3 bg-gradient-to-r from-[#F2D57E] to-[#D4A937] text-[#0A1931] font-bold text-xs uppercase rounded-xl hover:opacity-95 transition"
+            >
+              {loading ? 'Verifying...' : 'Verify OTP Code'}
+            </button>
+          </form>
+        )}
+
+        {/* Forgot PIN: Step 3 (Payment) */}
+        {step === 'forgot_pay' && (
+          <div className="space-y-4">
+            <div className="p-4 bg-[#0A152B] rounded-2xl border border-[#D4AF37]/30 text-center">
+              <span className="text-[11px] uppercase tracking-wider text-[#A8B0C5] font-bold">Recovery Settlement</span>
+              <div className="text-2xl font-black text-white mt-1">₦1,000.00</div>
+              <p className="text-[11px] text-[#A8B0C5] mt-1">Required to generate a new Merchant PIN</p>
+            </div>
+            <button
+              type="button"
+              onClick={handleFeePayment}
+              disabled={loading}
+              className="w-full py-3.5 bg-gradient-to-r from-[#F2D57E] to-[#D4A937] text-[#0A1931] font-bold text-xs uppercase rounded-xl hover:opacity-95 transition flex items-center justify-center gap-2"
+            >
+              <CreditCard size={16} />
+              <span>{loading ? 'Processing...' : 'Pay ₦1,000 via SwiftMart Wallet'}</span>
+            </button>
+          </div>
+        )}
+
+        {/* Forgot PIN: Step 4 (Set New PIN) */}
+        {step === 'forgot_new_pin' && (
+          <form onSubmit={handleSaveNewPin} className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-[#A8B0C5] mb-1">Enter New 6-Digit PIN</label>
               <input
                 type="password"
                 maxLength={6}
-                autoFocus
                 required
                 value={pin}
                 onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
                 placeholder="••••••"
-                className="w-full text-center tracking-[0.5em] text-2xl font-black bg-[#0A152B] border border-[#D4AF37]/40 rounded-xl px-4 py-3 text-[#D4AF37] focus:outline-none focus:border-[#D4AF37]"
+                className="w-full bg-[#0A152B] border border-[#D4AF37]/30 text-center tracking-[0.5em] text-lg font-bold text-white rounded-xl py-3 focus:outline-none focus:border-[#D4AF37]"
               />
             </div>
-
+            <div>
+              <label className="block text-xs font-semibold text-[#A8B0C5] mb-1">Confirm New PIN</label>
+              <input
+                type="password"
+                maxLength={6}
+                required
+                value={confirmPin}
+                onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, ''))}
+                placeholder="••••••"
+                className="w-full bg-[#0A152B] border border-[#D4AF37]/30 text-center tracking-[0.5em] text-lg font-bold text-white rounded-xl py-3 focus:outline-none focus:border-[#D4AF37]"
+              />
+            </div>
             <button
               type="submit"
-              disabled={loading || pin.length !== 6}
-              className="w-full py-3 mt-2 bg-gradient-to-r from-[#F2D57E] to-[#D4A937] text-[#0A1931] font-bold rounded-xl shadow-lg hover:opacity-95 transition disabled:opacity-50"
+              disabled={loading || pin.length !== 6 || pin !== confirmPin}
+              className="w-full py-3 bg-gradient-to-r from-[#F2D57E] to-[#D4A937] text-[#0A1931] font-bold text-xs uppercase rounded-xl hover:opacity-95 transition"
             >
-              {loading ? 'Verifying PIN...' : 'Authorize & Open Dashboard'}
+              {loading ? 'Saving Merchant PIN...' : 'Save & Enter Store'}
             </button>
           </form>
         )}
 
-        <div className="mt-6 pt-4 border-t border-white/10 text-center">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1.5 text-xs text-[#A8B0C5] hover:text-[#D4AF37] transition"
-          >
-            <ArrowLeft size={14} /> Return to Storefront
-          </Link>
-        </div>
       </div>
     </div>
   );

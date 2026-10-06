@@ -1,9 +1,10 @@
 import { redirect } from 'next/navigation';
 import { headers } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
-import { ShieldCheck, Wallet, ShoppingBag } from 'lucide-react';
+import { ShieldCheck, Wallet, ShoppingBag, Users } from 'lucide-react';
 import { AdminHeaderSearch } from '@/components/admin/AdminHeaderSearch';
 import { DashboardLock } from '@/components/DashboardLock';
+import { AdminNav } from './AdminNav';
 import Link from 'next/link';
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -54,42 +55,61 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#0A1931] via-[#0D1D3A] to-[#0F2140] text-[#F5F7FA]">
       <DashboardLock />
-      <header className="sticky top-0 z-50 bg-[#0A1931]/95 backdrop-blur-md border-b border-[#D4AF37]/25 px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between shadow-md">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-gradient-to-br from-[#142850] to-[#1B2F5E] border border-[#D4AF37]/35 text-[#D4AF37] shadow-[0_0_12px_rgba(212,175,55,0.15)]">
-            <ShieldCheck className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <Link href="/admin" className="text-base sm:text-lg font-black text-[#D4AF37] tracking-wider uppercase hover:opacity-90">
-                SwiftMart Console
-              </Link>
+      <header className="sticky top-0 z-50 bg-[#0A1931]/95 backdrop-blur-md border-b border-[#D4AF37]/25 px-4 sm:px-6 lg:px-8 py-3 shadow-md">
+        {/* Desktop and Main Bar */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-gradient-to-br from-[#142850] to-[#1B2F5E] border border-[#D4AF37]/35 text-[#D4AF37] shadow-[0_0_12px_rgba(212,175,55,0.15)]">
+                <ShieldCheck className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <Link href="/admin" className="text-base sm:text-lg font-black text-[#D4AF37] tracking-wider uppercase hover:opacity-90">
+                    SwiftMart Console
+                  </Link>
+                </div>
+                <p className="text-[11px] text-[#A8B0C5] tracking-wide">
+                  {profile.role === 'admin' ? 'Super Admin Workspace' : 'Staff Operations Workspace'}
+                </p>
+              </div>
             </div>
-            <p className="hidden sm:block text-[11px] text-[#A8B0C5] tracking-wide">
-              {profile.role === 'admin' ? 'Super Admin Workspace' : 'Staff Operations Workspace'}
-            </p>
           </div>
-        </div>
 
-        {/* Global Search and ONLY Ledger + Marketplace Top Tabs */}
-        <div className="flex items-center gap-3">
-          <AdminHeaderSearch />
-          <Link
-            href="/admin/wallet"
-            className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-[#D4AF37] bg-[#142850]/80 border border-[#D4AF37]/40 rounded-xl hover:bg-[#D4AF37]/20 transition shrink-0 shadow-sm"
-          >
-            <Wallet className="w-4 h-4 text-[#D4AF37]" />
-            <span>Ledger</span>
-          </Link>
-          <Link
-            href="/admin/products"
-            className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-[#D4AF37] bg-[#142850]/80 border border-[#D4AF37]/40 rounded-xl hover:bg-[#D4AF37]/20 transition shrink-0 shadow-sm"
-          >
-            <ShoppingBag className="w-4 h-4 text-[#D4AF37]" />
-            <span>Marketplace</span>
-          </Link>
+          {/* Search Bar - Full Width on Mobile, Inline on Desktop */}
+          <div className="w-full sm:w-auto flex-1 max-w-md sm:mx-4">
+            <AdminHeaderSearch />
+          </div>
+
+          {/* Quick Access Action Buttons - Positioned directly after search bar on mobile */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+            <Link
+              href="/admin/wallet"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-[#D4AF37] bg-[#142850]/80 border border-[#D4AF37]/40 rounded-xl hover:bg-[#D4AF37]/20 transition shrink-0 shadow-sm"
+            >
+              <Wallet className="w-3.5 h-3.5 text-[#D4AF37]" />
+              <span>Ledger</span>
+            </Link>
+            <Link
+              href="/admin/products"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-[#D4AF37] bg-[#142850]/80 border border-[#D4AF37]/40 rounded-xl hover:bg-[#D4AF37]/20 transition shrink-0 shadow-sm"
+            >
+              <ShoppingBag className="w-3.5 h-3.5 text-[#D4AF37]" />
+              <span>Catalog</span>
+            </Link>
+            <Link
+              href="/admin/vendors"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-[#D4AF37] bg-[#142850]/80 border border-[#D4AF37]/40 rounded-xl hover:bg-[#D4AF37]/20 transition shrink-0 shadow-sm"
+            >
+              <Users className="w-3.5 h-3.5 text-[#D4AF37]" />
+              <span>Directory</span>
+            </Link>
+          </div>
         </div>
       </header>
+
+      {/* Primary 4-Pillar Navigation Bar with sub-tabs */}
+      <AdminNav />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-20">{children}</main>
     </div>
