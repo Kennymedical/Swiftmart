@@ -131,8 +131,8 @@ export function Header() {
     pathname?.startsWith('/login') ||
     pathname?.startsWith('/register') ||
     pathname?.startsWith('/signup') ||
-    pathname === '/admin/login' ||
-    pathname === '/vendor/login'
+    pathname?.startsWith('/admin/login') ||
+    pathname?.startsWith('/vendor/login')
   ) {
     return null;
   }

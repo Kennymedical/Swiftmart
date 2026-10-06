@@ -173,7 +173,7 @@ export default function VendorLoginPage() {
     }
   };
 
-  // Trigger Forgot PIN: Send expiring OTP
+  // Trigger Forgot PIN: Call server-side request_pin_reset_otp RPC with throttling
   const handleRequestOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -182,30 +182,22 @@ export default function VendorLoginPage() {
     try {
       if (!email) throw new Error('Please enter your vendor account email');
 
-      const randomCode = Math.floor(100000 + Math.random() * 900000).toString();
-      const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+      const { data, error: rpcErr } = await supabase.rpc('request_pin_reset_otp', {
+        p_email: email,
+        p_role: 'vendor',
+      });
 
-      const { data: resetReq, error: resetErr } = await supabase
-        .from('pin_reset_requests')
-        .insert({
-          user_id: userId,
-          role: 'vendor',
-          email,
-          otp_code: randomCode,
-          otp_expires_at: expiresAt,
-          fee_kobo: 100000,
-          payment_status: 'pending',
-        })
-        .select('id')
-        .single();
+      if (rpcErr) throw new Error(rpcErr.message);
+      if (!data?.reset_request_id) throw new Error('Failed to initialize recovery session');
 
-      if (resetErr) throw resetErr;
+      setResetRequestId(data.reset_request_id);
 
-      setResetRequestId(resetReq.id);
-
-      await supabase.functions.invoke('send-otp', {
-        body: { email, otp: randomCode, type: 'pin_reset' }
-      }).catch((e) => console.warn('Email dispatch logged:', e));
+      // Dispatch notification token in background
+      if (data.dispatch_token) {
+        await supabase.functions.invoke('send-otp', {
+          body: { email, otp: data.dispatch_token, type: 'pin_reset' }
+        }).catch((e) => console.warn('Email dispatch notice:', e));
+      }
 
       setSuccess(`Verification code dispatched to ${email}. Valid for 10 minutes.`);
       setStep('forgot_otp');
@@ -216,7 +208,7 @@ export default function VendorLoginPage() {
     }
   };
 
-  // Verify OTP
+  // Verify OTP via server-side verify_pin_reset_otp RPC
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -224,27 +216,14 @@ export default function VendorLoginPage() {
 
     try {
       if (otpCode.length !== 6) throw new Error('Please enter the 6-digit OTP code');
+      if (!resetRequestId) throw new Error('Recovery session missing');
 
-      const { data: request, error: reqErr } = await supabase
-        .from('pin_reset_requests')
-        .select('*')
-        .eq('id', resetRequestId)
-        .single();
+      const { data, error: rpcErr } = await supabase.rpc('verify_pin_reset_otp', {
+        p_reset_request_id: resetRequestId,
+        p_otp_code: otpCode,
+      });
 
-      if (reqErr || !request) throw new Error('Invalid or expired reset session');
-
-      if (new Date(request.otp_expires_at) < new Date()) {
-        throw new Error('Verification code has expired. Please request a new code.');
-      }
-
-      if (request.otp_code !== otpCode) {
-        throw new Error('Incorrect verification code.');
-      }
-
-      await supabase
-        .from('pin_reset_requests')
-        .update({ otp_verified: true })
-        .eq('id', resetRequestId);
+      if (rpcErr) throw new Error(rpcErr.message);
 
       setSuccess('Email verified! Please complete the ₦1,000 PIN regeneration fee.');
       setStep('forgot_pay');
@@ -255,23 +234,22 @@ export default function VendorLoginPage() {
     }
   };
 
-  // Complete Payment Step
+  // Settle Fee via server RPC
   const handleFeePayment = async () => {
     setError('');
     setLoading(true);
 
     try {
+      if (!resetRequestId) throw new Error('Recovery session missing');
       const payRef = 'VENDOR-PIN-' + Date.now();
-      const { error: payErr } = await supabase
-        .from('pin_reset_requests')
-        .update({
-          payment_status: 'paid',
-          payment_method: 'wallet',
-          paystack_reference: payRef,
-        })
-        .eq('id', resetRequestId);
 
-      if (payErr) throw payErr;
+      const { data, error: rpcErr } = await supabase.rpc('settle_pin_reset_fee', {
+        p_reset_request_id: resetRequestId,
+        p_payment_method: 'wallet',
+        p_payment_reference: payRef,
+      });
+
+      if (rpcErr) throw new Error(rpcErr.message);
 
       setSuccess('₦1,000 regeneration fee settled. You may now enter your new Merchant PIN.');
       setStep('forgot_new_pin');
@@ -282,7 +260,7 @@ export default function VendorLoginPage() {
     }
   };
 
-  // Final Step: Set New Merchant PIN
+  // Final Step: Complete PIN reset on server
   const handleSaveNewPin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -298,19 +276,14 @@ export default function VendorLoginPage() {
 
     setLoading(true);
     try {
-      if (!vendorId) throw new Error('Vendor session missing');
+      if (!resetRequestId) throw new Error('Recovery session missing');
 
-      const { error: updateError } = await supabase
-        .from('vendors')
-        .update({ dashboard_pin_hash: pin })
-        .eq('id', vendorId);
+      const { data, error: rpcErr } = await supabase.rpc('complete_pin_reset', {
+        p_reset_request_id: resetRequestId,
+        p_new_pin: pin,
+      });
 
-      if (updateError) throw updateError;
-
-      await supabase
-        .from('pin_reset_requests')
-        .update({ completed_at: new Date().toISOString() })
-        .eq('id', resetRequestId);
+      if (rpcErr) throw new Error(rpcErr.message);
 
       sessionStorage.setItem('swiftmart_vendor_pin_verified', 'true');
       setSuccess('Merchant PIN regenerated successfully! Entering portal...');

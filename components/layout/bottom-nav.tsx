@@ -17,6 +17,18 @@ export function BottomNav() {
   const pathname = usePathname();
   const router = useRouter();
 
+  // Suppress all navigation bars completely while logging in or registering
+  const isAuthRoute =
+    pathname?.startsWith('/login') ||
+    pathname?.startsWith('/register') ||
+    pathname?.startsWith('/signup') ||
+    pathname?.startsWith('/admin/login') ||
+    pathname?.startsWith('/vendor/login');
+
+  if (isAuthRoute) {
+    return null;
+  }
+
   const isAdmin = pathname.startsWith('/admin');
   const isVendor = pathname.startsWith('/vendor');
 

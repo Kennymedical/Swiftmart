@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { ShieldCheck, Lock, KeyRound, ArrowLeft, AlertCircle, CheckCircle2, Mail, CreditCard, RefreshCw } from 'lucide-react';
+import { ShieldCheck, Lock, KeyRound, ArrowLeft, AlertCircle, CheckCircle2, CreditCard } from 'lucide-react';
 import Link from 'next/link';
 
 export default function AdminLoginPage() {
@@ -166,7 +166,7 @@ export default function AdminLoginPage() {
     }
   };
 
-  // Trigger Forgot PIN: Send expiring OTP
+  // Trigger Forgot PIN: Call server-side request_pin_reset_otp RPC with throttling
   const handleRequestOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -175,32 +175,22 @@ export default function AdminLoginPage() {
     try {
       if (!email) throw new Error('Please enter your administrator email address');
 
-      // Generate 6 digit OTP valid for 10 minutes
-      const randomCode = Math.floor(100000 + Math.random() * 900000).toString();
-      const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+      const { data, error: rpcErr } = await supabase.rpc('request_pin_reset_otp', {
+        p_email: email,
+        p_role: 'admin',
+      });
 
-      const { data: resetReq, error: resetErr } = await supabase
-        .from('pin_reset_requests')
-        .insert({
-          user_id: userId,
-          role: 'admin',
-          email,
-          otp_code: randomCode,
-          otp_expires_at: expiresAt,
-          fee_kobo: 100000, // ₦1,000 fee
-          payment_status: 'pending',
-        })
-        .select('id')
-        .single();
+      if (rpcErr) throw new Error(rpcErr.message);
+      if (!data?.reset_request_id) throw new Error('Failed to initialize recovery session');
 
-      if (resetErr) throw resetErr;
+      setResetRequestId(data.reset_request_id);
 
-      setResetRequestId(resetReq.id);
-      
-      // Dispatch email OTP via edge function
-      await supabase.functions.invoke('send-otp', {
-        body: { email, otp: randomCode, type: 'pin_reset' }
-      }).catch((e) => console.warn('Email dispatch logged:', e));
+      // Dispatch token via background mailer without logging plaintext token to client
+      if (data.dispatch_token) {
+        await supabase.functions.invoke('send-otp', {
+          body: { email, otp: data.dispatch_token, type: 'pin_reset' }
+        }).catch((e) => console.warn('Email dispatch notice:', e));
+      }
 
       setSuccess(`Verification code dispatched to ${email}. Valid for 10 minutes.`);
       setStep('forgot_otp');
@@ -211,7 +201,7 @@ export default function AdminLoginPage() {
     }
   };
 
-  // Verify OTP
+  // Verify OTP via server-side verify_pin_reset_otp RPC
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -219,27 +209,14 @@ export default function AdminLoginPage() {
 
     try {
       if (otpCode.length !== 6) throw new Error('Please enter the 6-digit OTP code');
+      if (!resetRequestId) throw new Error('Recovery session missing');
 
-      const { data: request, error: reqErr } = await supabase
-        .from('pin_reset_requests')
-        .select('*')
-        .eq('id', resetRequestId)
-        .single();
+      const { data, error: rpcErr } = await supabase.rpc('verify_pin_reset_otp', {
+        p_reset_request_id: resetRequestId,
+        p_otp_code: otpCode,
+      });
 
-      if (reqErr || !request) throw new Error('Invalid or expired reset session');
-
-      if (new Date(request.otp_expires_at) < new Date()) {
-        throw new Error('Verification code has expired. Please request a new code.');
-      }
-
-      if (request.otp_code !== otpCode) {
-        throw new Error('Incorrect verification code.');
-      }
-
-      await supabase
-        .from('pin_reset_requests')
-        .update({ otp_verified: true })
-        .eq('id', resetRequestId);
+      if (rpcErr) throw new Error(rpcErr.message);
 
       setSuccess('Email verified! Please complete the ₦1,000 PIN regeneration fee to proceed.');
       setStep('forgot_pay');
@@ -250,24 +227,22 @@ export default function AdminLoginPage() {
     }
   };
 
-  // Complete Payment Step
+  // Settle Recovery Fee via server RPC
   const handleFeePayment = async () => {
     setError('');
     setLoading(true);
 
     try {
-      // Simulate/deduct payment from internal swiftmart wallet or mark paid
+      if (!resetRequestId) throw new Error('Recovery session missing');
       const payRef = 'PIN-FEE-' + Date.now();
-      const { error: payErr } = await supabase
-        .from('pin_reset_requests')
-        .update({
-          payment_status: 'paid',
-          payment_method: 'wallet',
-          paystack_reference: payRef,
-        })
-        .eq('id', resetRequestId);
 
-      if (payErr) throw payErr;
+      const { data, error: rpcErr } = await supabase.rpc('settle_pin_reset_fee', {
+        p_reset_request_id: resetRequestId,
+        p_payment_method: 'wallet',
+        p_payment_reference: payRef,
+      });
+
+      if (rpcErr) throw new Error(rpcErr.message);
 
       setSuccess('₦1,000 regeneration fee settled. You may now enter your new Security PIN.');
       setStep('forgot_new_pin');
@@ -278,7 +253,7 @@ export default function AdminLoginPage() {
     }
   };
 
-  // Final Step: Set New PIN
+  // Final Step: Complete PIN reset on server
   const handleSaveNewPin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -294,19 +269,14 @@ export default function AdminLoginPage() {
 
     setLoading(true);
     try {
-      if (!userId) throw new Error('Session invalid, please sign in again');
+      if (!resetRequestId) throw new Error('Recovery session missing');
 
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ dashboard_pin_hash: pin })
-        .eq('id', userId);
+      const { data, error: rpcErr } = await supabase.rpc('complete_pin_reset', {
+        p_reset_request_id: resetRequestId,
+        p_new_pin: pin,
+      });
 
-      if (updateError) throw updateError;
-
-      await supabase
-        .from('pin_reset_requests')
-        .update({ completed_at: new Date().toISOString() })
-        .eq('id', resetRequestId);
+      if (rpcErr) throw new Error(rpcErr.message);
 
       sessionStorage.setItem('swiftmart_admin_pin_verified', 'true');
       setSuccess('PIN regenerated successfully! Redirecting to console...');
