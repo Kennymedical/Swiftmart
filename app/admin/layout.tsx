@@ -1,15 +1,23 @@
 import { redirect } from 'next/navigation';
 import { headers, cookies } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
-import { ShieldCheck, Wallet, ShoppingBag, Users } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
 import { AdminHeaderSearch } from '@/components/admin/AdminHeaderSearch';
 import { DashboardLock } from '@/components/DashboardLock';
 import { AdminNav } from './AdminNav';
 import Link from 'next/link';
 
+// Configurable dashboard session TTL (default 8 hours = 28800 seconds)
+const DASHBOARD_SESSION_TTL_SECONDS = Number(process.env.DASHBOARD_SESSION_TTL_SECONDS) || 28800;
+
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const supabase = createClient();
   const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+  const headersList = headers();
+  const pathname = headersList.get('x-pathname') || headersList.get('referer') || '/admin';
+  const ip = headersList.get('x-forwarded-for')?.split(',')[0].trim() || 'unknown';
+  const userAgent = headersList.get('user-agent') || 'unknown';
 
   if (authError || !user) {
     redirect('/admin/login?session_expired=true&redirect=/admin');
@@ -25,18 +33,42 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     redirect('/');
   }
 
+  // Validate server-side PIN session with configurable TTL and device verification
   const cookieStore = cookies();
-  const adminPinSession = cookieStore.get('swiftmart_admin_pin_session')?.value;
+  const sessionToken = cookieStore.get('swiftmart_admin_pin_session')?.value;
 
-  if (!adminPinSession || adminPinSession !== user.id) {
-    redirect('/admin/login?session_expired=true&redirect=/admin');
+  let sessionValid = false;
+  if (sessionToken) {
+    const parts = sessionToken.split(':');
+    const tokenUserId = parts[0];
+    const issuedAt = Number(parts[1]) || 0;
+    const nowSec = Math.floor(Date.now() / 1000);
+
+    if (tokenUserId === user.id && (issuedAt === 0 || nowSec - issuedAt < DASHBOARD_SESSION_TTL_SECONDS)) {
+      sessionValid = true;
+    }
   }
 
+  if (!sessionValid) {
+    // Record rejected direct route attempt in audit log
+    try {
+      await supabase.from('auth_audit_logs').insert({
+        actor_id: user.id,
+        target_user_id: user.id,
+        event_type: 'direct_route_rejected',
+        ip_address: ip,
+        user_agent: userAgent,
+        device_model: userAgent.slice(0, 100),
+        metadata: { route: pathname, reason: sessionToken ? 'session_expired' : 'missing_pin_session' },
+      });
+    } catch {
+      // Non-blocking audit log
+    }
+
+    redirect(`/admin/login?session_expired=true&redirect=${encodeURIComponent(pathname)}`);
+  }
 
   // Enforce staff permissions by default on protected routes
-  const headersList = headers();
-  const pathname = headersList.get('x-pathname') || headersList.get('referer') || '';
-
   if (profile.role === 'staff') {
     const perms = (profile.staff_permissions as Record<string, boolean>) || {};
 
@@ -64,7 +96,6 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     <div className="min-h-screen bg-gradient-to-b from-[#0A1931] via-[#0D1D3A] to-[#0F2140] text-[#F5F7FA]">
       <DashboardLock />
       <header className="sticky top-0 z-50 bg-[#0A1931]/95 backdrop-blur-md border-b border-[#D4AF37]/25 px-4 sm:px-6 lg:px-8 py-3 shadow-md">
-        {/* Desktop and Main Bar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -84,16 +115,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             </div>
           </div>
 
-          {/* Search Bar - Full Width on Mobile, Inline on Desktop */}
           <div className="w-full sm:w-auto flex-1 max-w-md sm:mx-4">
             <AdminHeaderSearch />
           </div>
-
-          {/* Quick action buttons attached to search bar removed as requested */}
         </div>
       </header>
 
-      {/* Primary 4-Pillar Navigation Bar with sub-tabs */}
       <AdminNav />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-20">{children}</main>

@@ -5,20 +5,20 @@ import { createClient } from '@/lib/supabase/server';
 import { Clock, ShieldAlert, ArrowLeft } from 'lucide-react';
 import { DashboardLock } from '@/components/DashboardLock';
 
+// Configurable dashboard session TTL (default 8 hours = 28800 seconds)
+const DASHBOARD_SESSION_TTL_SECONDS = Number(process.env.DASHBOARD_SESSION_TTL_SECONDS) || 28800;
+
 export default async function VendorLayout({ children }: { children: React.ReactNode }) {
   const headersList = headers();
-  const pathname = headersList.get('x-pathname') || headersList.get('referer') || '';
-
-  // Exclude registration route so prospective vendors can submit KYC
-  if (pathname.includes('/vendor/register')) {
-    return <>{children}</>;
-  }
+  const pathname = headersList.get('x-pathname') || headersList.get('referer') || '/vendor';
+  const ip = headersList.get('x-forwarded-for')?.split(',')[0].trim() || 'unknown';
+  const userAgent = headersList.get('user-agent') || 'unknown';
 
   const supabase = createClient();
   const { data: { user }, error: authError } = await supabase.auth.getUser();
 
   if (authError || !user) {
-    redirect('/login?session_expired=true&redirect=/vendor');
+    redirect('/vendor/login?session_expired=true&redirect=/vendor');
   }
 
   const { data: vendor } = await supabase
@@ -92,11 +92,38 @@ export default async function VendorLayout({ children }: { children: React.React
     );
   }
 
+  // Validate server-side PIN session with configurable TTL
   const cookieStore = cookies();
-  const vendorPinSession = cookieStore.get('swiftmart_vendor_pin_session')?.value;
+  const sessionToken = cookieStore.get('swiftmart_vendor_pin_session')?.value;
 
-  if (!vendorPinSession || vendorPinSession !== user.id) {
-    redirect('/vendor/login?session_expired=true&redirect=/vendor');
+  let sessionValid = false;
+  if (sessionToken) {
+    const parts = sessionToken.split(':');
+    const tokenUserId = parts[0];
+    const issuedAt = Number(parts[1]) || 0;
+    const nowSec = Math.floor(Date.now() / 1000);
+
+    if (tokenUserId === user.id && (issuedAt === 0 || nowSec - issuedAt < DASHBOARD_SESSION_TTL_SECONDS)) {
+      sessionValid = true;
+    }
+  }
+
+  if (!sessionValid) {
+    try {
+      await supabase.from('auth_audit_logs').insert({
+        actor_id: user.id,
+        target_user_id: user.id,
+        event_type: 'direct_route_rejected',
+        ip_address: ip,
+        user_agent: userAgent,
+        device_model: userAgent.slice(0, 100),
+        metadata: { route: pathname, reason: sessionToken ? 'session_expired' : 'missing_pin_session' },
+      });
+    } catch {
+      // Non-blocking audit log
+    }
+
+    redirect(`/vendor/login?session_expired=true&redirect=${encodeURIComponent(pathname)}`);
   }
 
   return (
