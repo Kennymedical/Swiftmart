@@ -100,33 +100,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#0A1931] via-[#0D1D3A] to-[#0F2140] text-[#F5F7FA]">
       <DashboardLock />
-      <header className="sticky top-0 z-50 bg-[#0A1931]/95 backdrop-blur-md border-b border-[#D4AF37]/25 px-4 sm:px-6 lg:px-8 py-3 shadow-md">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-gradient-to-br from-[#142850] to-[#1B2F5E] border border-[#D4AF37]/35 text-[#D4AF37] shadow-[0_0_12px_rgba(212,175,55,0.15)]">
-                <ShieldCheck className="w-5 h-5" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <Link href="/admin" className="text-base sm:text-lg font-black text-[#D4AF37] tracking-wider uppercase hover:opacity-90">
-                    SwiftMart Console
-                  </Link>
-                </div>
-                <p className="text-[11px] text-[#A8B0C5] tracking-wide">
-                  {profile.role === 'admin' ? 'Super Admin Workspace' : 'Staff Operations Workspace'}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="w-full sm:w-auto flex-1 max-w-md sm:mx-4">
-            <AdminHeaderSearch />
-          </div>
-        </div>
-      </header>
-
-      <AdminNav />
+      {/* Main hamburger header renders at top; 4-pillar tabs render directly beneath */}
+<AdminNav />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-20">{children}</main>
     </div>
