@@ -19,6 +19,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const ip = headersList.get('x-forwarded-for')?.split(',')[0].trim() || 'unknown';
   const userAgent = headersList.get('user-agent') || 'unknown';
 
+  // Prevent infinite redirect loops: if visiting /admin/login, render page directly without layout redirect
+  if (pathname.includes('/admin/login')) {
+    return <>{children}</>;
+  }
+
   if (authError || !user) {
     redirect('/admin/login?session_expired=true&redirect=/admin');
   }
