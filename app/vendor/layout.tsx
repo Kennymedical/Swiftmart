@@ -14,6 +14,11 @@ export default async function VendorLayout({ children }: { children: React.React
   const ip = headersList.get('x-forwarded-for')?.split(',')[0].trim() || 'unknown';
   const userAgent = headersList.get('user-agent') || 'unknown';
 
+  // Prevent infinite redirect loops: if visiting /vendor/login or /vendor/register, render page directly without layout redirect
+  if (pathname.includes('/vendor/login') || pathname.includes('/vendor/register')) {
+    return <>{children}</>;
+  }
+
   const supabase = createClient();
   const { data: { user }, error: authError } = await supabase.auth.getUser();
 
