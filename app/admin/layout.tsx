@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { headers } from 'next/headers';
+import { headers, cookies } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
 import { ShieldCheck, Wallet, ShoppingBag, Users } from 'lucide-react';
 import { AdminHeaderSearch } from '@/components/admin/AdminHeaderSearch';
@@ -24,6 +24,14 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (!profile || (profile.role !== 'admin' && profile.role !== 'staff')) {
     redirect('/');
   }
+
+  const cookieStore = cookies();
+  const adminPinSession = cookieStore.get('swiftmart_admin_pin_session')?.value;
+
+  if (!adminPinSession || adminPinSession !== user.id) {
+    redirect('/admin/login?session_expired=true&redirect=/admin');
+  }
+
 
   // Enforce staff permissions by default on protected routes
   const headersList = headers();

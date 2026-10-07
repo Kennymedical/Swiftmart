@@ -145,6 +145,8 @@ export function Header() {
   };
 
   const handleSignOut = async () => {
+    document.cookie = 'swiftmart_admin_pin_session=; path=/; max-age=0; SameSite=Lax';
+    document.cookie = 'swiftmart_vendor_pin_session=; path=/; max-age=0; SameSite=Lax';
     sessionStorage.removeItem('swiftmart_admin_pin_verified');
     sessionStorage.removeItem('swiftmart_vendor_pin_verified');
     await supabase.auth.signOut();

@@ -113,6 +113,7 @@ export default function AdminLoginPage() {
 
       if (updateError) throw updateError;
 
+      document.cookie = `swiftmart_admin_pin_session=${userId}; path=/; max-age=86400; SameSite=Lax`;
       sessionStorage.setItem('swiftmart_admin_pin_verified', 'true');
       setSuccess('Security PIN established successfully! Entering console...');
       setTimeout(() => {
@@ -157,6 +158,7 @@ export default function AdminLoginPage() {
         }
       }
 
+      document.cookie = `swiftmart_admin_pin_session=${userId}; path=/; max-age=86400; SameSite=Lax`;
       sessionStorage.setItem('swiftmart_admin_pin_verified', 'true');
       router.push('/admin');
     } catch (err: any) {
@@ -278,6 +280,7 @@ export default function AdminLoginPage() {
 
       if (rpcErr) throw new Error(rpcErr.message);
 
+      document.cookie = `swiftmart_admin_pin_session=${userId}; path=/; max-age=86400; SameSite=Lax`;
       sessionStorage.setItem('swiftmart_admin_pin_verified', 'true');
       setSuccess('PIN regenerated successfully! Redirecting to console...');
       setTimeout(() => {

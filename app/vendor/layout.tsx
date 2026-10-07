@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { headers } from 'next/headers';
+import { headers, cookies } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
 import { Clock, ShieldAlert, ArrowLeft } from 'lucide-react';
 import { DashboardLock } from '@/components/DashboardLock';
@@ -90,6 +90,13 @@ export default async function VendorLayout({ children }: { children: React.React
         </div>
       </div>
     );
+  }
+
+  const cookieStore = cookies();
+  const vendorPinSession = cookieStore.get('swiftmart_vendor_pin_session')?.value;
+
+  if (!vendorPinSession || vendorPinSession !== user.id) {
+    redirect('/vendor/login?session_expired=true&redirect=/vendor');
   }
 
   return (

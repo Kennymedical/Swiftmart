@@ -120,6 +120,7 @@ export default function VendorLoginPage() {
 
       if (updateError) throw updateError;
 
+      document.cookie = `swiftmart_vendor_pin_session=${userId || vendorId}; path=/; max-age=86400; SameSite=Lax`;
       sessionStorage.setItem('swiftmart_vendor_pin_verified', 'true');
       setSuccess('Merchant PIN created! Launching vendor dashboard...');
       setTimeout(() => {
@@ -164,6 +165,7 @@ export default function VendorLoginPage() {
         }
       }
 
+      document.cookie = `swiftmart_vendor_pin_session=${userId || vendorId}; path=/; max-age=86400; SameSite=Lax`;
       sessionStorage.setItem('swiftmart_vendor_pin_verified', 'true');
       router.push('/vendor');
     } catch (err: any) {
@@ -285,6 +287,7 @@ export default function VendorLoginPage() {
 
       if (rpcErr) throw new Error(rpcErr.message);
 
+      document.cookie = `swiftmart_vendor_pin_session=${userId || vendorId}; path=/; max-age=86400; SameSite=Lax`;
       sessionStorage.setItem('swiftmart_vendor_pin_verified', 'true');
       setSuccess('Merchant PIN regenerated successfully! Entering portal...');
       setTimeout(() => {
