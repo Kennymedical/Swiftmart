@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import LogoutButton from '@/components/LogoutButton';
+import { Store, Lock } from 'lucide-react';
 
 export default function ProfilePage() {
   const supabase = createClient();
@@ -35,7 +36,7 @@ export default function ProfilePage() {
           .select('role')
           .eq('id', user.id)
           .single();
-        setIsAdmin(profileRow?.role === 'admin');
+        setIsAdmin(profileRow?.role === 'admin' || profileRow?.role === 'staff');
       }
       setLoading(false);
     }
@@ -58,22 +59,24 @@ export default function ProfilePage() {
         </div>
 
         {!loading && (
-          <div className="mb-4 space-y-2">
+          <div className="mb-4 space-y-2.5">
             {isAdmin && (
               <Link
-                href="/admin"
-                className="block text-center bg-[#D4AF37] text-[#E9C86A] font-bold py-3 rounded-xl"
+                href="/admin/login"
+                className="flex items-center justify-center gap-2 text-center bg-[#D4AF37] text-[#0A1931] font-bold py-3 rounded-xl hover:bg-[#E8C874] transition shadow-md"
               >
-                Admin Dashboard
+                <Lock className="w-4 h-4" />
+                <span>Admin Console (PIN Required)</span>
               </Link>
             )}
 
             {vendor ? (
               <Link
-                href="/vendor"
-                className="block text-center bg-[#0F172A] text-[#D4AF37] font-bold py-3 rounded-xl border-2 border-[#D4AF37]"
+                href="/vendor/login"
+                className="flex items-center justify-center gap-2 text-center bg-[#0F172A] text-[#D4AF37] font-bold py-3 rounded-xl border-2 border-[#D4AF37] hover:bg-[#D4AF37]/15 transition shadow-md"
               >
-                Go to Vendor Dashboard
+                <Store className="w-4 h-4" />
+                <span>Vendor Dashboard (PIN Required)</span>
               </Link>
             ) : (
               <Link
@@ -90,5 +93,4 @@ export default function ProfilePage() {
       </div>
     </div>
   );
-    }
-    
+}

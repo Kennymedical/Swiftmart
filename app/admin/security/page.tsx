@@ -1,31 +1,12 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import {
-  AlertTriangle,
-  ShieldCheck,
-  ShieldAlert,
-  Info,
-  Lock,
-  Search,
-  ChevronLeft,
-  ChevronRight,
-  Clock,
-  User,
-} from 'lucide-react';
-import { AlertActions } from './AlertActions';
-import { AlertTimeline, TimelineEvent } from './AlertTimeline';
+import { ShieldAlert, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { ExportCSVButton } from './ExportCSVButton';
 import { RealtimeAlertsListener } from './RealtimeAlertsListener';
+import { SecurityAlertsClientView } from './SecurityAlertsClientView';
 
 export const dynamic = 'force-dynamic';
-
-const SEVERITY_STYLES: Record<string, string> = {
-  critical: 'bg-red-500/15 text-red-300 border-red-500/40',
-  high: 'bg-orange-500/15 text-orange-300 border-orange-500/40',
-  medium: 'bg-[#D4AF37]/15 text-[#F5C445] border-[#D4AF37]/40',
-  low: 'bg-[#142850] text-[#A8B0C5] border-[#D4AF37]/20',
-};
 
 const PAGE_SIZE = 10;
 
@@ -99,9 +80,10 @@ export default async function AdminSecurityPage({
     .select('*', { count: 'exact' })
     .order('created_at', { ascending: false });
 
-  if (severityFilter && ['low', 'medium', 'high', 'critical'].includes(severityFilter)) {
+  if (severityFilter) {
     query = query.eq('severity', severityFilter);
   }
+
   if (statusFilter === 'open') {
     query = query.eq('resolved', false);
   } else if (statusFilter === 'resolved') {
@@ -110,11 +92,9 @@ export default async function AdminSecurityPage({
 
   if (searchQuery) {
     if (matchedUserIds && matchedUserIds.length > 0) {
-      query = query.or(
-        `user_id.in.(${matchedUserIds.join(',')}),details->>email.ilike.%${searchQuery}%`
-      );
+      query = query.in('user_id', matchedUserIds);
     } else {
-      query = query.ilike('details->>email', `%${searchQuery}%`);
+      query = query.eq('user_id', '00000000-0000-0000-0000-000000000000');
     }
   }
 
@@ -138,17 +118,16 @@ export default async function AdminSecurityPage({
   const { data: resetActivity } = userIds.length
     ? await supabase
         .from('pin_reset_requests')
-        .select('id, user_id, role, status, payment_status, failed_otp_attempts, created_at, otp_expires_at, used_at, completed_at')
+        .select('id, user_id, role, failed_otp_attempts, payment_status, used_at, completed_at, created_at')
         .in('user_id', userIds)
         .order('created_at', { ascending: false })
-        .limit(200)
     : { data: [] };
 
-  const resetsByUser = new Map<string, typeof resetActivity>();
+  const resetsByUser: Record<string, any[]> = {};
   (resetActivity ?? []).forEach((r) => {
-    const list = resetsByUser.get(r.user_id) ?? [];
+    const list = resetsByUser[r.user_id] ?? [];
     list.push(r);
-    resetsByUser.set(r.user_id, list);
+    resetsByUser[r.user_id] = list;
   });
 
   const severityTabs = [
@@ -165,19 +144,21 @@ export default async function AdminSecurityPage({
     { key: 'all', label: 'All' },
   ];
 
-  const buildQueryUrl = (params: Record<string, string | number>) => {
-    const p = new URLSearchParams();
-    const merged = {
-      severity: severityFilter,
-      status: statusFilter,
-      q: searchQuery,
-      page: currentPage,
-      ...params,
-    };
-    Object.entries(merged).forEach(([k, v]) => {
-      if (v) p.set(k, String(v));
+  const buildQueryUrl = (params: Record<string, string | number | undefined>) => {
+    const current: Record<string, string> = {};
+    if (severityFilter) current.severity = severityFilter;
+    if (statusFilter && statusFilter !== 'open') current.status = statusFilter;
+    if (searchQuery) current.q = searchQuery;
+    if (currentPage > 1) current.page = String(currentPage);
+
+    Object.entries(params).forEach(([k, v]) => {
+      if (v === undefined || v === '') delete current[k];
+      else current[k] = String(v);
     });
-    return `/admin/security?${p.toString()}`;
+
+    const sp = new URLSearchParams(current);
+    const qs = sp.toString();
+    return qs ? `/admin/security?${qs}` : '/admin/security';
   };
 
   return (
@@ -202,7 +183,6 @@ export default async function AdminSecurityPage({
             filters={{ severity: severityFilter, status: statusFilter, q: searchQuery }}
           />
 
-          {/* Email Search Form */}
           <form method="GET" action="/admin/security" className="relative w-full sm:w-72">
             {severityFilter && <input type="hidden" name="severity" value={severityFilter} />}
             {statusFilter && <input type="hidden" name="status" value={statusFilter} />}
@@ -230,15 +210,15 @@ export default async function AdminSecurityPage({
       <div className="flex flex-col gap-2">
         <div className="flex gap-2 overflow-x-auto scrollbar-none">
           {severityTabs.map((tab) => {
-            const isActive = severityFilter === tab.key;
+            const active = severityFilter === tab.key;
             return (
               <Link
-                key={tab.label}
+                key={tab.key}
                 href={buildQueryUrl({ severity: tab.key, page: 1 })}
-                className={`px-3 py-1.5 text-xs font-bold rounded-lg border whitespace-nowrap transition ${
-                  isActive
-                    ? 'text-[#D4AF37] bg-[#142850] border-[#D4AF37]/40 shadow-sm'
-                    : 'text-[#A8B0C5] bg-[#0A1931] border-[#D4AF37]/20 hover:text-[#F5C445]'
+                className={`px-3 py-1.5 text-xs font-bold rounded-xl border transition shrink-0 ${
+                  active
+                    ? 'bg-[#D4AF37] text-[#0A1931] border-[#D4AF37]'
+                    : 'bg-[#142850] text-[#A8B0C5] border-[#D4AF37]/20 hover:border-[#D4AF37]/50'
                 }`}
               >
                 {tab.label}
@@ -247,17 +227,17 @@ export default async function AdminSecurityPage({
           })}
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-2 border-b border-white/5 pb-2">
           {statusTabs.map((tab) => {
-            const isActive = statusFilter === tab.key;
+            const active = statusFilter === tab.key;
             return (
               <Link
-                key={tab.label}
+                key={tab.key}
                 href={buildQueryUrl({ status: tab.key, page: 1 })}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition ${
-                  isActive
-                    ? 'text-[#E8C874] bg-[#1B2F5E] border-[#D4AF37]/40 shadow-sm'
-                    : 'text-[#8A94B0] border-[#D4AF37]/15 hover:text-[#E8C874]'
+                className={`px-3 py-1 text-xs font-semibold rounded-lg transition ${
+                  active
+                    ? 'bg-white/10 text-[#D4AF37]'
+                    : 'text-[#8A94B0] hover:text-[#A8B0C5]'
                 }`}
               >
                 {tab.label}
@@ -267,182 +247,40 @@ export default async function AdminSecurityPage({
         </div>
       </div>
 
-      {!alerts || alerts.length === 0 ? (
-        <div className="rounded-2xl border border-[#D4AF37]/25 bg-[#0F2140] p-8 text-center">
-          <ShieldCheck className="w-10 h-10 mx-auto text-[#D4AF37] mb-3" />
-          <p className="text-sm font-semibold text-white">No security alerts found</p>
-          <p className="text-xs text-[#A8B0C5] mt-1">
-            {searchQuery
-              ? `No records matching "${searchQuery}" with the current filters.`
-              : 'All recovery systems and authentication vectors are clear.'}
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {alerts.map((alert) => {
-            const profile = alert.user_id ? profileMap[alert.user_id] : null;
-            const resets = alert.user_id ? resetsByUser.get(alert.user_id) ?? [] : [];
-            const ackAdmin = alert.acknowledged_by ? profileMap[alert.acknowledged_by] : null;
-            const resAdmin = alert.resolved_by ? profileMap[alert.resolved_by] : null;
+      {/* Client List with Batch Multi-Select and Notifications Jumping */}
+      <SecurityAlertsClientView
+        alerts={alerts ?? []}
+        profileMap={profileMap}
+        resetsByUser={resetsByUser}
+      />
 
-            // Formulate events for AlertTimeline with date-range filter
-            const alertCreatedEvent: TimelineEvent = {
-              id: `alert_created_${alert.id}`,
-              timestamp: alert.created_at,
-              type: 'alert_created',
-              title: `${alert.alert_type.replace(/_/g, ' ')} Flagged`,
-              description: 'Automated surveillance triggered this security alert',
-            };
-
-            const recoveryEvents: TimelineEvent[] = resets.map((r) => ({
-              id: `pin_recovery_${r.id}`,
-              timestamp: r.created_at,
-              type: 'pin_recovery',
-              title: `PIN Recovery Request (${r.role})`,
-              description: `Failed attempts: ${r.failed_otp_attempts}/3 · Fee: ${r.payment_status} · Status: ${r.completed_at ? 'Completed' : r.used_at ? 'Used' : 'Active'}`,
-            }));
-
-            const acknowledgedEvent: TimelineEvent | null = alert.acknowledged_at
-              ? {
-                  id: `ack_${alert.id}`,
-                  timestamp: alert.acknowledged_at,
-                  type: 'acknowledged',
-                  title: 'Acknowledged by Admin',
-                  description: `Reviewed by ${ackAdmin?.email ?? 'System Administrator'}`,
-                }
-              : null;
-
-            const resolvedEvent: TimelineEvent | null = alert.resolved_at
-              ? {
-                  id: `res_${alert.id}`,
-                  timestamp: alert.resolved_at,
-                  type: 'resolved',
-                  title: 'Marked Resolved',
-                  description: `Resolution recorded by ${resAdmin?.email ?? 'System Administrator'}`,
-                }
-              : null;
-
-            return (
-              <div
-                key={alert.id}
-                className="rounded-2xl border border-[#D4AF37]/25 bg-gradient-to-br from-[#0F2140] to-[#0A1931] p-4 sm:p-5 space-y-4 shadow-md"
-              >
-                {/* Header Row */}
-                <div className="flex items-start justify-between gap-3 flex-wrap">
-                  <div className="flex items-start gap-3">
-                    {alert.severity === 'critical' ? (
-                      <AlertTriangle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
-                    ) : alert.severity === 'medium' ? (
-                      <Info className="w-5 h-5 text-[#F5C445] shrink-0 mt-0.5" />
-                    ) : (
-                      <Lock className="w-4 h-4 text-[#A8B0C5] shrink-0 mt-1" />
-                    )}
-                    <div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span
-                          className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border ${
-                            SEVERITY_STYLES[alert.severity] ?? SEVERITY_STYLES.low
-                          }`}
-                        >
-                          {alert.severity}
-                        </span>
-                        <span className="text-sm font-bold text-white capitalize">
-                          {alert.alert_type.replace(/_/g, ' ')}
-                        </span>
-                        {alert.resolved ? (
-                          <span className="text-[10px] font-bold text-emerald-300 border border-emerald-400/40 bg-emerald-500/10 px-2 py-0.5 rounded-full">
-                            Resolved
-                          </span>
-                        ) : alert.acknowledged_at ? (
-                          <span className="text-[10px] font-bold text-[#D4AF37] border border-[#D4AF37]/40 bg-[#D4AF37]/10 px-2 py-0.5 rounded-full">
-                            Acknowledged
-                          </span>
-                        ) : (
-                          <span className="text-[10px] font-bold text-orange-300 border border-orange-400/40 bg-orange-500/10 px-2 py-0.5 rounded-full">
-                            New Alert
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-[11px] text-[#A8B0C5] mt-1 flex items-center gap-1">
-                        <Clock className="w-3 h-3 text-[#D4AF37]" />
-                        Detected: {new Date(alert.created_at).toLocaleString('en-NG')}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Account Context */}
-                <div className="rounded-xl bg-[#0B1528] border border-white/10 p-3 text-xs space-y-1.5">
-                  <div className="flex justify-between gap-4">
-                    <span className="text-[#A8B0C5] flex items-center gap-1.5">
-                      <User className="w-3.5 h-3.5 text-[#D4AF37]" /> Account Email
-                    </span>
-                    <span className="font-semibold text-white truncate">
-                      {profile?.email ?? alert.details?.email ?? 'Unknown account'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between gap-4">
-                    <span className="text-[#A8B0C5]">Account Role</span>
-                    <span className="font-semibold text-[#F5C445] capitalize">
-                      {profile?.role ?? 'unknown'}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Per-Alert Timeline with Date-Range Filter */}
-                <AlertTimeline
-                  alertCreatedEvent={alertCreatedEvent}
-                  recoveryEvents={recoveryEvents}
-                  acknowledgedEvent={acknowledgedEvent}
-                  resolvedEvent={resolvedEvent}
-                />
-
-                {/* Acknowledge / Resolve Actions */}
-                <AlertActions
-                  alertId={alert.id}
-                  acknowledged={!!alert.acknowledged_at}
-                  resolved={!!alert.resolved}
-                />
-              </div>
-            );
-          })}
-
-          {/* Pagination Controls */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between pt-4 border-t border-[#D4AF37]/20 text-xs text-[#A8B0C5]">
-              <div>
-                Showing page <span className="text-white font-bold">{currentPage}</span> of{' '}
-                <span className="text-white font-bold">{totalPages}</span> ({totalCount} total alerts)
-              </div>
-              <div className="flex gap-2">
-                {currentPage > 1 ? (
-                  <Link
-                    href={buildQueryUrl({ page: currentPage - 1 })}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#142850] text-[#D4AF37] border border-[#D4AF37]/30 hover:bg-[#D4AF37]/20 transition"
-                  >
-                    <ChevronLeft className="w-4 h-4" /> Previous
-                  </Link>
-                ) : (
-                  <span className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#142850]/40 text-[#8A94B0] border border-white/5 cursor-not-allowed">
-                    <ChevronLeft className="w-4 h-4" /> Previous
-                  </span>
-                )}
-
-                {currentPage < totalPages ? (
-                  <Link
-                    href={buildQueryUrl({ page: currentPage + 1 })}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#142850] text-[#D4AF37] border border-[#D4AF37]/30 hover:bg-[#D4AF37]/20 transition"
-                  >
-                    Next <ChevronRight className="w-4 h-4" />
-                  </Link>
-                ) : (
-                  <span className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#142850]/40 text-[#8A94B0] border border-white/5 cursor-not-allowed">
-                    Next <ChevronRight className="w-4 h-4" />
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between pt-4 border-t border-white/5 text-xs">
+          <span className="text-[#8A94B0]">
+            Showing {Math.min(totalCount ?? 0, offset + 1)}–{Math.min(totalCount ?? 0, offset + PAGE_SIZE)} of {totalCount ?? 0} alerts
+          </span>
+          <div className="flex items-center gap-2">
+            <Link
+              href={buildQueryUrl({ page: currentPage - 1 })}
+              className={`p-2 rounded-lg border border-[#D4AF37]/20 bg-[#142850] ${
+                currentPage <= 1 ? 'opacity-40 pointer-events-none' : 'hover:border-[#D4AF37]'
+              }`}
+            >
+              <ChevronLeft className="w-4 h-4 text-[#D4AF37]" />
+            </Link>
+            <span className="text-white font-semibold">
+              {currentPage} / {totalPages}
+            </span>
+            <Link
+              href={buildQueryUrl({ page: currentPage + 1 })}
+              className={`p-2 rounded-lg border border-[#D4AF37]/20 bg-[#142850] ${
+                currentPage >= totalPages ? 'opacity-40 pointer-events-none' : 'hover:border-[#D4AF37]'
+              }`}
+            >
+              <ChevronRight className="w-4 h-4 text-[#D4AF37]" />
+            </Link>
+          </div>
         </div>
       )}
     </div>
