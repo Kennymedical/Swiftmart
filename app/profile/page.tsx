@@ -80,7 +80,7 @@ export default function ProfilePage() {
               </Link>
             ) : (
               <Link
-                href="/vendor/register"
+                href="/become-a-vendor"
                 className="block text-center bg-gradient-to-r from-[#D4AF37] to-[#F5C445] text-[#0A1931] font-bold py-3 rounded-xl border-2 border-[#0F172A]"
               >
                 Become a Vendor

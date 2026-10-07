@@ -633,7 +633,7 @@ export function Header() {
                           </Link>
                         ) : (
                           <Link
-                            href="/vendor/register"
+                            href="/become-a-vendor"
                             onClick={() => setMenuOpen(false)}
                             className="flex items-center justify-between p-2.5 rounded-xl text-sm font-semibold bg-[#D4AF37]/15 text-[#F5C445] border border-[#D4AF37]/30 hover:bg-[#D4AF37]/25 transition group"
                           >

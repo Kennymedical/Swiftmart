@@ -38,7 +38,7 @@ export default async function VendorLayout({ children }: { children: React.React
           <p className="text-sm text-[#A8B0C5] mb-6">You do not currently have a registered vendor profile on SwiftMart.</p>
           <div className="space-y-3">
             <Link
-              href="/vendor/register"
+              href="/become-a-vendor"
               className="block w-full py-3 bg-gradient-to-r from-[#F2D57E] to-[#D4A937] text-[#0A1931] font-black rounded-xl hover:opacity-90 transition"
             >
               Apply as a Vendor
