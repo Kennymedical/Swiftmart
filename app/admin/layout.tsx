@@ -81,30 +81,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <AdminHeaderSearch />
           </div>
 
-          {/* Quick Access Action Buttons - Positioned directly after search bar on mobile */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
-            <Link
-              href="/admin/wallet"
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-[#D4AF37] bg-[#142850]/80 border border-[#D4AF37]/40 rounded-xl hover:bg-[#D4AF37]/20 transition shrink-0 shadow-sm"
-            >
-              <Wallet className="w-3.5 h-3.5 text-[#D4AF37]" />
-              <span>Ledger</span>
-            </Link>
-            <Link
-              href="/admin/products"
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-[#D4AF37] bg-[#142850]/80 border border-[#D4AF37]/40 rounded-xl hover:bg-[#D4AF37]/20 transition shrink-0 shadow-sm"
-            >
-              <ShoppingBag className="w-3.5 h-3.5 text-[#D4AF37]" />
-              <span>Catalog</span>
-            </Link>
-            <Link
-              href="/admin/vendors"
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-[#D4AF37] bg-[#142850]/80 border border-[#D4AF37]/40 rounded-xl hover:bg-[#D4AF37]/20 transition shrink-0 shadow-sm"
-            >
-              <Users className="w-3.5 h-3.5 text-[#D4AF37]" />
-              <span>Directory</span>
-            </Link>
-          </div>
+          {/* Quick action buttons attached to search bar removed as requested */}
         </div>
       </header>
 

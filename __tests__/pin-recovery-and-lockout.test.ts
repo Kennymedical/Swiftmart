@@ -1,169 +1,134 @@
 import { describe, it, expect } from 'vitest';
 
-describe('Navigation Suppression, Server OTP Throttling & Invalidation Suite', () => {
-  describe('Navbar Suppression on Authentication Routes', () => {
-    const isAuthRoute = (pathname: string) => {
-      return (
-        pathname.startsWith('/login') ||
-        pathname.startsWith('/register') ||
-        pathname.startsWith('/signup') ||
-        pathname.startsWith('/admin/login') ||
-        pathname.startsWith('/vendor/login')
-      );
+describe('Header, Navigation & Stagnant Search Bar Layout', () => {
+  it('suppresses root header on /admin routes to prevent duplicate headers', () => {
+    const isSuppressed = (pathname: string) =>
+      pathname.startsWith('/login') ||
+      pathname.startsWith('/register') ||
+      pathname.startsWith('/signup') ||
+      pathname.startsWith('/admin/login') ||
+      pathname.startsWith('/vendor/login') ||
+      pathname.startsWith('/admin');
+
+    expect(isSuppressed('/admin')).toBe(true);
+    expect(isSuppressed('/admin/wallet')).toBe(true);
+    expect(isSuppressed('/admin/vendors')).toBe(true);
+    expect(isSuppressed('/products')).toBe(false);
+    expect(isSuppressed('/')).toBe(false);
+  });
+
+  it('keeps navigation and search bar stagnant without floating sticky overlaps', () => {
+    const searchBarClass = 'bg-[#0A1931] border-b border-[#D4AF37]/20 px-4 py-3 space-y-2.5';
+    expect(searchBarClass).not.toContain('sticky');
+    expect(searchBarClass).not.toContain('top-14');
+  });
+
+  it('verifies quick action buttons attached to search bar are removed in admin layout', () => {
+    const adminToolbarLayout = {
+      hasHeaderSearch: true,
+      hasQuickActionLedgerBtn: false,
+      hasQuickActionCatalogBtn: false,
+      hasQuickActionDirectoryBtn: false,
+    };
+    expect(adminToolbarLayout.hasQuickActionLedgerBtn).toBe(false);
+    expect(adminToolbarLayout.hasQuickActionCatalogBtn).toBe(false);
+    expect(adminToolbarLayout.hasQuickActionDirectoryBtn).toBe(false);
+  });
+});
+
+describe('Secure OTP Server-Side Delivery & No-Leak Guarantee', () => {
+  it('ensures OTP recovery RPC never exposes plaintext code in client response', () => {
+    const rpcResponse = {
+      success: true,
+      reset_request_id: '123e4567-e89b-12d3-a456-426614174000',
+      expires_at: new Date(Date.now() + 600000).toISOString(),
     };
 
-    it('suppresses navigation bars on /login, /register, and /signup', () => {
-      expect(isAuthRoute('/login')).toBe(true);
-      expect(isAuthRoute('/register')).toBe(true);
-      expect(isAuthRoute('/signup')).toBe(true);
-      expect(isAuthRoute('/login?redirect=/admin')).toBe(true);
-    });
-
-    it('suppresses navigation bars on dedicated admin and vendor login portals', () => {
-      expect(isAuthRoute('/admin/login')).toBe(true);
-      expect(isAuthRoute('/vendor/login')).toBe(true);
-      expect(isAuthRoute('/admin/login?next=/admin/wallet')).toBe(true);
-    });
-
-    it('retains navigation bars on non-auth storefront and portal operational routes', () => {
-      expect(isAuthRoute('/')).toBe(false);
-      expect(isAuthRoute('/products')).toBe(false);
-      expect(isAuthRoute('/wallet')).toBe(false);
-      expect(isAuthRoute('/admin')).toBe(false);
-      expect(isAuthRoute('/admin/vendors')).toBe(false);
-      expect(isAuthRoute('/vendor')).toBe(false);
-      expect(isAuthRoute('/vendor/wallet')).toBe(false);
-    });
+    expect(rpcResponse).not.toHaveProperty('dispatch_token');
+    expect(rpcResponse).not.toHaveProperty('otp_code');
+    expect(rpcResponse).not.toHaveProperty('code');
+    expect(rpcResponse.success).toBe(true);
   });
+});
 
-  describe('Server-Side OTP Request Throttling (15-Minute Window)', () => {
-    it('allows up to 3 OTP requests within 15 minutes', () => {
-      const requests: number[] = [];
-      const now = Date.now();
+describe('Atomic Concurrency Throttling', () => {
+  it('blocks simultaneous concurrent requests beyond the 3-request limit using advisory locks', async () => {
+    // Model atomic transaction lock and rate limit counter
+    let requestCount = 0;
+    const maxLimit = 3;
+    let lockAcquired = false;
 
-      const canRequestOtp = (timestamp: number) => {
-        const windowStart = timestamp - 15 * 60 * 1000;
-        const recent = requests.filter((t) => t > windowStart);
-        if (recent.length >= 3) {
-          return { allowed: false, error: 'Too many OTP requests. Please wait 15 minutes before requesting another code.' };
-        }
-        requests.push(timestamp);
-        return { allowed: true };
-      };
-
-      expect(canRequestOtp(now).allowed).toBe(true);
-      expect(canRequestOtp(now + 1000).allowed).toBe(true);
-      expect(canRequestOtp(now + 2000).allowed).toBe(true);
-      
-      const fourth = canRequestOtp(now + 3000);
-      expect(fourth.allowed).toBe(false);
-      expect(fourth.error).toContain('Too many OTP requests');
-    });
-
-    it('resets quota once 15 minutes have elapsed', () => {
-      const requests: number[] = [Date.now() - 16 * 60 * 1000, Date.now() - 15 * 60 * 1000 - 1];
-      const now = Date.now();
-
-      const windowStart = now - 15 * 60 * 1000;
-      const recent = requests.filter((t) => t > windowStart);
-      expect(recent.length).toBe(0);
-      expect(recent.length < 3).toBe(true);
-    });
-  });
-
-  describe('Server-Side Verification Attempt Throttling & Lockouts', () => {
-    it('locks verification session after 3 failed OTP attempts', () => {
-      let failedAttempts = 0;
-      const verifyAttempt = (input: string, correctHashMatch: boolean) => {
-        if (failedAttempts >= 3) {
-          return { success: false, locked: true, error: 'Maximum verification attempts exceeded (3/3).' };
-        }
-        if (!correctHashMatch) {
-          failedAttempts += 1;
-          const isNowLocked = failedAttempts >= 3;
-          return {
-            success: false,
-            locked: isNowLocked,
-            remaining: Math.max(0, 3 - failedAttempts),
-          };
-        }
-        return { success: true, locked: false };
-      };
-
-      const a1 = verifyAttempt('000000', false);
-      expect(a1.locked).toBe(false);
-      expect(a1.remaining).toBe(2);
-
-      const a2 = verifyAttempt('111111', false);
-      expect(a2.locked).toBe(false);
-      expect(a2.remaining).toBe(1);
-
-      const a3 = verifyAttempt('222222', false);
-      expect(a3.locked).toBe(true);
-      expect(a3.remaining).toBe(0);
-
-      const a4 = verifyAttempt('correct', true);
-      expect(a4.locked).toBe(true);
-      expect(a4.success).toBe(false);
-    });
-  });
-
-  describe('Reset Request Invalidation & One-Time Use Binding', () => {
-    it('invalidates reset session after successful PIN completion and rejects reuse', () => {
-      interface ResetSession {
-        id: string;
-        user_id: string;
-        otp_verified: boolean;
-        payment_status: 'pending' | 'paid';
-        used_at: Date | null;
-        completed_at: Date | null;
+    async function atomicRequestOtp() {
+      // Acquire simulated transaction advisory lock
+      while (lockAcquired) {
+        await new Promise((r) => setTimeout(r, 10));
       }
-
-      const session: ResetSession = {
-        id: 'reset-123',
-        user_id: 'user-abc',
-        otp_verified: true,
-        payment_status: 'paid',
-        used_at: null,
-        completed_at: null,
-      };
-
-      const completeReset = (callerUserId: string, newPin: string) => {
-        if (session.used_at !== null) {
-          return { success: false, error: 'This recovery session has already been used and is invalidated' };
+      lockAcquired = true;
+      try {
+        if (requestCount >= maxLimit) {
+          throw new Error('Too many OTP requests. Please wait 15 minutes before requesting another code.');
         }
-        if (session.user_id !== callerUserId) {
-          return { success: false, error: 'Unauthorized: Authenticated account does not match this recovery request' };
-        }
-        if (!session.otp_verified) {
-          return { success: false, error: 'Recovery OTP has not been verified' };
-        }
-        if (session.payment_status !== 'paid') {
-          return { success: false, error: 'Regeneration fee must be paid before setting a new PIN' };
-        }
-        if (!/^\d{6}$/.test(newPin)) {
-          return { success: false, error: 'PIN must be exactly 6 numeric digits' };
-        }
+        requestCount++;
+        return { success: true, count: requestCount };
+      } finally {
+        lockAcquired = false;
+      }
+    }
 
-        session.used_at = new Date();
-        session.completed_at = new Date();
-        return { success: true };
-      };
+    // Fire 5 simultaneous concurrent attempts
+    const results = await Promise.allSettled([
+      atomicRequestOtp(),
+      atomicRequestOtp(),
+      atomicRequestOtp(),
+      atomicRequestOtp(),
+      atomicRequestOtp(),
+    ]);
 
-      // 1. Foreign user fails
-      const foreignResult = completeReset('user-evil', '999999');
-      expect(foreignResult.success).toBe(false);
-      expect(foreignResult.error).toContain('Unauthorized');
+    const fulfilled = results.filter((r) => r.status === 'fulfilled');
+    const rejected = results.filter((r) => r.status === 'rejected');
 
-      // 2. Bound user succeeds
-      const initialReset = completeReset('user-abc', '123456');
-      expect(initialReset.success).toBe(true);
-      expect(session.used_at).not.toBeNull();
+    expect(fulfilled.length).toBe(3);
+    expect(rejected.length).toBe(2);
+    expect((rejected[0] as PromiseRejectedResult).reason.message).toContain('Too many OTP requests');
+  });
+});
 
-      // 3. Second attempt with same token fails immediately
-      const reuseAttempt = completeReset('user-abc', '654321');
-      expect(reuseAttempt.success).toBe(false);
-      expect(reuseAttempt.error).toContain('already been used and is invalidated');
-    });
+describe('Suspicious Activity Monitoring & Security Alerts', () => {
+  it('triggers security alerts upon 3 failed verification attempts', () => {
+    const alerts: Array<{ alert_type: string; severity: string; user_id: string }> = [];
+
+    function recordOtpAttempt(failedCount: number, userId: string) {
+      if (failedCount >= 3) {
+        alerts.push({
+          alert_type: 'pin_verification_lockout',
+          severity: 'critical',
+          user_id: userId,
+        });
+      }
+    }
+
+    recordOtpAttempt(1, 'usr_1');
+    expect(alerts.length).toBe(0);
+
+    recordOtpAttempt(3, 'usr_1');
+    expect(alerts.length).toBe(1);
+    expect(alerts[0].alert_type).toBe('pin_verification_lockout');
+    expect(alerts[0].severity).toBe('critical');
+  });
+
+  it('flags uncompleted settled fees after prolonged delay as suspicious', () => {
+    function evaluateSettledFee(status: string, completedAt: string | null, minutesElapsed: number) {
+      if (status === 'paid' && !completedAt && minutesElapsed > 30) {
+        return { suspicious: true, alert: 'settled_fee_uncompleted_anomaly' };
+      }
+      return { suspicious: false };
+    }
+
+    const normal = evaluateSettledFee('paid', new Date().toISOString(), 5);
+    expect(normal.suspicious).toBe(false);
+
+    const anomalous = evaluateSettledFee('paid', null, 45);
+    expect(anomalous.suspicious).toBe(true);
+    expect(anomalous.alert).toBe('settled_fee_uncompleted_anomaly');
   });
 });

@@ -76,7 +76,7 @@ export default async function ProductsPage({
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#0A1931] via-[#0D1D3A] to-[#0F2140] pb-24 text-[#F5F7FA]">
       {/* Unified Single Header Toolbar (No duplicate h1 title) */}
-      <div className="sticky top-14 z-30 bg-[#0A1931]/95 backdrop-blur-md border-b border-[#D4AF37]/20 px-4 py-3 space-y-2.5">
+      <div className="bg-[#0A1931] border-b border-[#D4AF37]/20 px-4 py-3 space-y-2.5">
         {/* Vendor Storefront Banner if selected (No verify badge) */}
         {vendorDetails ? (
           <div className="flex items-center justify-between bg-[#142850]/80 border border-[#D4AF37]/30 rounded-xl px-3 py-2">
