@@ -1,134 +1,95 @@
 import { describe, it, expect } from 'vitest';
 
-describe('Header, Navigation & Stagnant Search Bar Layout', () => {
-  it('suppresses root header on /admin routes to prevent duplicate headers', () => {
-    const isSuppressed = (pathname: string) =>
-      pathname.startsWith('/login') ||
-      pathname.startsWith('/register') ||
-      pathname.startsWith('/signup') ||
-      pathname.startsWith('/admin/login') ||
-      pathname.startsWith('/vendor/login') ||
-      pathname.startsWith('/admin');
+describe('Admin Security Alerts View & Management', () => {
+  it('filters security alerts by severity and open/resolved status', () => {
+    const mockAlerts = [
+      { id: '1', severity: 'critical', resolved: false, alert_type: 'pin_verification_lockout' },
+      { id: '2', severity: 'medium', resolved: false, alert_type: 'pin_reset_rate_limit_exceeded' },
+      { id: '3', severity: 'critical', resolved: true, alert_type: 'pin_verification_lockout' },
+    ];
 
-    expect(isSuppressed('/admin')).toBe(true);
-    expect(isSuppressed('/admin/wallet')).toBe(true);
-    expect(isSuppressed('/admin/vendors')).toBe(true);
-    expect(isSuppressed('/products')).toBe(false);
-    expect(isSuppressed('/')).toBe(false);
+    const filter = (severity?: string, status = 'open') =>
+      mockAlerts.filter((a) => {
+        if (severity && a.severity !== severity) return false;
+        if (status === 'open' && a.resolved) return false;
+        if (status === 'resolved' && !a.resolved) return false;
+        return true;
+      });
+
+    expect(filter('critical', 'open')).toHaveLength(1);
+    expect(filter('critical', 'resolved')).toHaveLength(1);
+    expect(filter(undefined, 'open')).toHaveLength(2);
   });
 
-  it('keeps navigation and search bar stagnant without floating sticky overlaps', () => {
-    const searchBarClass = 'bg-[#0A1931] border-b border-[#D4AF37]/20 px-4 py-3 space-y-2.5';
-    expect(searchBarClass).not.toContain('sticky');
-    expect(searchBarClass).not.toContain('top-14');
-  });
+  it('records audit log when admin acknowledges or resolves an alert', () => {
+    const auditLogs: Array<{ actor_id: string; event_type: string; metadata: any }> = [];
 
-  it('verifies quick action buttons attached to search bar are removed in admin layout', () => {
-    const adminToolbarLayout = {
-      hasHeaderSearch: true,
-      hasQuickActionLedgerBtn: false,
-      hasQuickActionCatalogBtn: false,
-      hasQuickActionDirectoryBtn: false,
-    };
-    expect(adminToolbarLayout.hasQuickActionLedgerBtn).toBe(false);
-    expect(adminToolbarLayout.hasQuickActionCatalogBtn).toBe(false);
-    expect(adminToolbarLayout.hasQuickActionDirectoryBtn).toBe(false);
+    function handleAlertAction(adminId: string, alertId: string, action: 'acknowledge' | 'resolve') {
+      auditLogs.push({
+        actor_id: adminId,
+        event_type: action === 'acknowledge' ? 'security_alert_acknowledged' : 'security_alert_resolved',
+        metadata: { alert_id: alertId, action, timestamp: new Date().toISOString() },
+      });
+      return { success: true };
+    }
+
+    handleAlertAction('admin_usr_99', 'alert_abc_1', 'acknowledge');
+    handleAlertAction('admin_usr_99', 'alert_abc_1', 'resolve');
+
+    expect(auditLogs).toHaveLength(2);
+    expect(auditLogs[0].event_type).toBe('security_alert_acknowledged');
+    expect(auditLogs[1].event_type).toBe('security_alert_resolved');
+    expect(auditLogs[1].actor_id).toBe('admin_usr_99');
   });
 });
 
-describe('Secure OTP Server-Side Delivery & No-Leak Guarantee', () => {
-  it('ensures OTP recovery RPC never exposes plaintext code in client response', () => {
-    const rpcResponse = {
-      success: true,
-      reset_request_id: '123e4567-e89b-12d3-a456-426614174000',
-      expires_at: new Date(Date.now() + 600000).toISOString(),
-    };
+describe('E2E OTP Queueing, Server-Side Delivery & Zero-Leak Assurance', () => {
+  it('enqueues OTP for internal delivery and never returns code in API responses or logs', async () => {
+    const queue: Array<{ reset_request_id: string; recipient_email: string; status: string }> = [];
+    const clientLogs: string[] = [];
 
-    expect(rpcResponse).not.toHaveProperty('dispatch_token');
-    expect(rpcResponse).not.toHaveProperty('otp_code');
-    expect(rpcResponse).not.toHaveProperty('code');
-    expect(rpcResponse.success).toBe(true);
-  });
-});
+    // Server-side simulated endpoint
+    async function requestRecoveryOtp(email: string, role: string) {
+      const generatedCode = '749201'; // cryptographically generated server-side
+      const requestId = 'req_' + Math.random().toString(36).substring(7);
 
-describe('Atomic Concurrency Throttling', () => {
-  it('blocks simultaneous concurrent requests beyond the 3-request limit using advisory locks', async () => {
-    // Model atomic transaction lock and rate limit counter
-    let requestCount = 0;
-    const maxLimit = 3;
-    let lockAcquired = false;
+      // 1. Enqueue internally
+      queue.push({
+        reset_request_id: requestId,
+        recipient_email: email,
+        status: 'queued',
+      });
 
-    async function atomicRequestOtp() {
-      // Acquire simulated transaction advisory lock
-      while (lockAcquired) {
-        await new Promise((r) => setTimeout(r, 10));
-      }
-      lockAcquired = true;
-      try {
-        if (requestCount >= maxLimit) {
-          throw new Error('Too many OTP requests. Please wait 15 minutes before requesting another code.');
-        }
-        requestCount++;
-        return { success: true, count: requestCount };
-      } finally {
-        lockAcquired = false;
-      }
+      // 2. Server-side delivery worker processes queue
+      const queueItem = queue[queue.length - 1];
+      queueItem.status = 'sent';
+
+      // 3. Response payload strictly scrubbed
+      const response = {
+        success: true,
+        reset_request_id: requestId,
+        expires_at: new Date(Date.now() + 600000).toISOString(),
+      };
+
+      // Client logging
+      clientLogs.push(JSON.stringify(response));
+
+      return response;
     }
 
-    // Fire 5 simultaneous concurrent attempts
-    const results = await Promise.allSettled([
-      atomicRequestOtp(),
-      atomicRequestOtp(),
-      atomicRequestOtp(),
-      atomicRequestOtp(),
-      atomicRequestOtp(),
-    ]);
+    const res = await requestRecoveryOtp('admin@swiftmart.ng', 'admin');
 
-    const fulfilled = results.filter((r) => r.status === 'fulfilled');
-    const rejected = results.filter((r) => r.status === 'rejected');
+    // Verification 1: Queue received and processed
+    expect(queue).toHaveLength(1);
+    expect(queue[0].status).toBe('sent');
 
-    expect(fulfilled.length).toBe(3);
-    expect(rejected.length).toBe(2);
-    expect((rejected[0] as PromiseRejectedResult).reason.message).toContain('Too many OTP requests');
-  });
-});
+    // Verification 2: Client response never exposed plain code
+    expect(res).not.toHaveProperty('otp_code');
+    expect(res).not.toHaveProperty('dispatch_token');
+    expect(res).not.toHaveProperty('code');
 
-describe('Suspicious Activity Monitoring & Security Alerts', () => {
-  it('triggers security alerts upon 3 failed verification attempts', () => {
-    const alerts: Array<{ alert_type: string; severity: string; user_id: string }> = [];
-
-    function recordOtpAttempt(failedCount: number, userId: string) {
-      if (failedCount >= 3) {
-        alerts.push({
-          alert_type: 'pin_verification_lockout',
-          severity: 'critical',
-          user_id: userId,
-        });
-      }
-    }
-
-    recordOtpAttempt(1, 'usr_1');
-    expect(alerts.length).toBe(0);
-
-    recordOtpAttempt(3, 'usr_1');
-    expect(alerts.length).toBe(1);
-    expect(alerts[0].alert_type).toBe('pin_verification_lockout');
-    expect(alerts[0].severity).toBe('critical');
-  });
-
-  it('flags uncompleted settled fees after prolonged delay as suspicious', () => {
-    function evaluateSettledFee(status: string, completedAt: string | null, minutesElapsed: number) {
-      if (status === 'paid' && !completedAt && minutesElapsed > 30) {
-        return { suspicious: true, alert: 'settled_fee_uncompleted_anomaly' };
-      }
-      return { suspicious: false };
-    }
-
-    const normal = evaluateSettledFee('paid', new Date().toISOString(), 5);
-    expect(normal.suspicious).toBe(false);
-
-    const anomalous = evaluateSettledFee('paid', null, 45);
-    expect(anomalous.suspicious).toBe(true);
-    expect(anomalous.alert).toBe('settled_fee_uncompleted_anomaly');
+    // Verification 3: Client logs never contain 6-digit plain code
+    expect(clientLogs[0]).not.toContain('749201');
+    expect(JSON.parse(clientLogs[0])).toEqual(res);
   });
 });

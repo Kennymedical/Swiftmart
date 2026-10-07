@@ -52,12 +52,13 @@ const PILLARS: Pillar[] = [
       path.startsWith('/admin/vendors') ||
       path.startsWith('/admin/users') ||
       path.startsWith('/admin/logistics') ||
-      path.startsWith('/admin/kyc'),
+      path.startsWith('/admin/kyc') || path.startsWith('/admin/security'),
     subTabs: [
       { href: '/admin/vendors', label: 'Vendors' },
       { href: '/admin/users', label: 'Customers & Staff' },
       { href: '/admin/logistics', label: 'Logistics Partners' },
       { href: '/admin/kyc', label: 'KYC Approvals' },
+      { href: '/admin/security', label: 'Security Alerts' },
     ],
   },
   {
