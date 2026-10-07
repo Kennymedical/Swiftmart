@@ -2,11 +2,17 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
 // Routes that don't require a logged-in user
-const PUBLIC_PATHS = ['/login', '/register', '/products'];
+const PUBLIC_PATHS = ['/login', '/register', '/products', '/admin/login', '/vendor/login'];
 
 export async function middleware(request: NextRequest) {
+  const path = request.nextUrl.pathname;
+
+  // Forward the active path so Server Component layouts can read x-pathname
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set('x-pathname', path);
+
   let response = NextResponse.next({
-    request: { headers: request.headers },
+    request: { headers: requestHeaders },
   });
 
   const supabase = createServerClient(
@@ -43,7 +49,6 @@ export async function middleware(request: NextRequest) {
     error: userError,
   } = await supabase.auth.getUser();
 
-  const path = request.nextUrl.pathname;
   const isPublicPath = PUBLIC_PATHS.some((p) => path === p || path.startsWith(`${p}/`));
 
   // Check if an auth token cookie was present (expired/stale token)
