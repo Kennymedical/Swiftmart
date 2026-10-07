@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { CheckCircle2, Eye } from 'lucide-react';
+import { CheckCircle2, Eye, ShieldAlert } from 'lucide-react';
 
 export function AlertActions({
   alertId,
@@ -23,41 +23,16 @@ export function AlertActions({
     setLoading(true);
     setError(null);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setError('Please sign in as an admin');
-        setLoading(false);
-        return;
-      }
-
-      const updates: Record<string, unknown> = {};
-      if (action === 'acknowledge') {
-        updates.acknowledged_at = new Date().toISOString();
-        updates.acknowledged_by = user.id;
-      } else {
-        updates.resolved = true;
-        updates.resolved_at = new Date().toISOString();
-        updates.resolved_by = user.id;
-      }
-
-      const { error: updateErr } = await supabase
-        .from('security_alerts')
-        .update(updates)
-        .eq('id', alertId);
-
-      if (updateErr) throw updateErr;
-
-      // Audit trail
-      await supabase.from('auth_audit_logs').insert({
-        actor_id: user.id,
-        target_user_id: user.id,
-        event_type: action === 'acknowledge' ? 'security_alert_acknowledged' : 'security_alert_resolved',
-        metadata: { alert_id: alertId, action },
+      const { data, error: rpcErr } = await supabase.rpc('admin_manage_security_alert', {
+        p_alert_id: alertId,
+        p_action: action,
       });
+
+      if (rpcErr) throw rpcErr;
 
       router.refresh();
     } catch (err: any) {
-      setError(err?.message || 'Action failed');
+      setError(err?.message || 'Action denied');
     } finally {
       setLoading(false);
     }
@@ -72,12 +47,12 @@ export function AlertActions({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-white/5">
+    <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-white/5">
       {!acknowledged && (
         <button
           onClick={() => handleAction('acknowledge')}
           disabled={loading}
-          className="inline-flex items-center gap-1 px-3 py-1 text-xs font-bold rounded-lg bg-[#142850] text-[#D4AF37] border border-[#D4AF37]/30 hover:bg-[#D4AF37]/20 transition disabled:opacity-50"
+          className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-bold rounded-lg bg-[#142850] text-[#D4AF37] border border-[#D4AF37]/30 hover:bg-[#D4AF37]/20 transition disabled:opacity-50 shadow-sm"
         >
           <Eye className="w-3.5 h-3.5" /> Acknowledge
         </button>
@@ -86,12 +61,16 @@ export function AlertActions({
       <button
         onClick={() => handleAction('resolve')}
         disabled={loading}
-        className="inline-flex items-center gap-1 px-3 py-1 text-xs font-bold rounded-lg bg-emerald-950/50 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-600/30 transition disabled:opacity-50"
+        className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-bold rounded-lg bg-emerald-950/60 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-600/40 transition disabled:opacity-50 shadow-sm"
       >
         <CheckCircle2 className="w-3.5 h-3.5" /> Mark Resolved
       </button>
 
-      {error && <span className="text-[11px] text-red-400">{error}</span>}
+      {error && (
+        <span className="flex items-center gap-1 text-[11px] text-red-400 font-medium">
+          <ShieldAlert className="w-3.5 h-3.5 shrink-0" /> {error}
+        </span>
+      )}
     </div>
   );
 }

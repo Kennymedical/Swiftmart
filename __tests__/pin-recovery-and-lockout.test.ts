@@ -21,25 +21,72 @@ describe('Admin Security Alerts View & Management', () => {
     expect(filter(undefined, 'open')).toHaveLength(2);
   });
 
-  it('records audit log when admin acknowledges or resolves an alert', () => {
-    const auditLogs: Array<{ actor_id: string; event_type: string; metadata: any }> = [];
+  it('searches alerts by account email and paginates results accurately', () => {
+    const alerts = [
+      { id: '1', email: 'alice@example.com', severity: 'critical' },
+      { id: '2', email: 'bob@example.com', severity: 'high' },
+      { id: '3', email: 'alice.worker@example.com', severity: 'medium' },
+      { id: '4', email: 'charlie@example.com', severity: 'low' },
+    ];
 
-    function handleAlertAction(adminId: string, alertId: string, action: 'acknowledge' | 'resolve') {
-      auditLogs.push({
-        actor_id: adminId,
-        event_type: action === 'acknowledge' ? 'security_alert_acknowledged' : 'security_alert_resolved',
-        metadata: { alert_id: alertId, action, timestamp: new Date().toISOString() },
-      });
-      return { success: true };
+    const searchAndPaginate = (q: string, page = 1, pageSize = 2) => {
+      const filtered = alerts.filter((a) => a.email.toLowerCase().includes(q.toLowerCase()));
+      const offset = (page - 1) * pageSize;
+      return {
+        total: filtered.length,
+        items: filtered.slice(offset, offset + pageSize),
+      };
+    };
+
+    const res1 = searchAndPaginate('alice', 1, 10);
+    expect(res1.total).toBe(2);
+    expect(res1.items).toHaveLength(2);
+
+    const paginated = searchAndPaginate('', 2, 2);
+    expect(paginated.total).toBe(4);
+    expect(paginated.items[0].email).toBe('alice.worker@example.com');
+  });
+
+  it('enforces server-side authorization: only admin role can view and manage alerts', () => {
+    function authorizeSecurityManagement(userRole: string) {
+      if (userRole !== 'admin') {
+        throw new Error('Unauthorized: Only full administrators can view, acknowledge, or resolve security alerts');
+      }
+      return { authorized: true };
     }
 
-    handleAlertAction('admin_usr_99', 'alert_abc_1', 'acknowledge');
-    handleAlertAction('admin_usr_99', 'alert_abc_1', 'resolve');
+    expect(() => authorizeSecurityManagement('staff')).toThrow('Unauthorized');
+    expect(() => authorizeSecurityManagement('vendor')).toThrow('Unauthorized');
+    expect(() => authorizeSecurityManagement('customer')).toThrow('Unauthorized');
+    expect(authorizeSecurityManagement('admin').authorized).toBe(true);
+  });
 
-    expect(auditLogs).toHaveLength(2);
-    expect(auditLogs[0].event_type).toBe('security_alert_acknowledged');
-    expect(auditLogs[1].event_type).toBe('security_alert_resolved');
-    expect(auditLogs[1].actor_id).toBe('admin_usr_99');
+  it('builds a per-alert chronological timeline from creation, recovery events, and audited changes', () => {
+    const alert = {
+      id: 'alt_1',
+      created_at: '2026-10-07T08:00:00Z',
+      alert_type: 'pin_verification_lockout',
+      acknowledged_at: '2026-10-07T08:05:00Z',
+      acknowledged_by: 'admin_1',
+      resolved_at: '2026-10-07T08:15:00Z',
+      resolved_by: 'admin_1',
+    };
+
+    const recoveryEvents = [
+      { id: 'req_1', created_at: '2026-10-07T07:58:00Z', event: 'PIN reset requested' },
+      { id: 'req_2', created_at: '2026-10-07T07:59:00Z', event: 'Failed verification 3/3' },
+    ];
+
+    const timeline = [
+      { timestamp: alert.created_at, type: 'alert_created', title: 'Alert Detected' },
+      ...recoveryEvents.map((r) => ({ timestamp: r.created_at, type: 'recovery_event', title: r.event })),
+      { timestamp: alert.acknowledged_at, type: 'acknowledged', title: 'Acknowledged by Admin' },
+      { timestamp: alert.resolved_at, type: 'resolved', title: 'Marked Resolved' },
+    ].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+
+    expect(timeline).toHaveLength(5);
+    expect(timeline[0].title).toBe('PIN reset requested');
+    expect(timeline[timeline.length - 1].title).toBe('Marked Resolved');
   });
 });
 
@@ -48,47 +95,36 @@ describe('E2E OTP Queueing, Server-Side Delivery & Zero-Leak Assurance', () => {
     const queue: Array<{ reset_request_id: string; recipient_email: string; status: string }> = [];
     const clientLogs: string[] = [];
 
-    // Server-side simulated endpoint
     async function requestRecoveryOtp(email: string, role: string) {
-      const generatedCode = '749201'; // cryptographically generated server-side
+      const generatedCode = '749201';
       const requestId = 'req_' + Math.random().toString(36).substring(7);
 
-      // 1. Enqueue internally
       queue.push({
         reset_request_id: requestId,
         recipient_email: email,
         status: 'queued',
       });
 
-      // 2. Server-side delivery worker processes queue
       const queueItem = queue[queue.length - 1];
       queueItem.status = 'sent';
 
-      // 3. Response payload strictly scrubbed
       const response = {
         success: true,
         reset_request_id: requestId,
         expires_at: new Date(Date.now() + 600000).toISOString(),
       };
 
-      // Client logging
       clientLogs.push(JSON.stringify(response));
-
       return response;
     }
 
     const res = await requestRecoveryOtp('admin@swiftmart.ng', 'admin');
 
-    // Verification 1: Queue received and processed
     expect(queue).toHaveLength(1);
     expect(queue[0].status).toBe('sent');
-
-    // Verification 2: Client response never exposed plain code
     expect(res).not.toHaveProperty('otp_code');
     expect(res).not.toHaveProperty('dispatch_token');
     expect(res).not.toHaveProperty('code');
-
-    // Verification 3: Client logs never contain 6-digit plain code
     expect(clientLogs[0]).not.toContain('749201');
     expect(JSON.parse(clientLogs[0])).toEqual(res);
   });
