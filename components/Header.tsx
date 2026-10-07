@@ -127,14 +127,13 @@ export function Header() {
     loadUserData();
   }, [supabase, pathname]);
 
-  // Suppress root header on auth and admin pages so admin layout provides the single source of truth (no duplicate headers)
+  // Suppress root header on dedicated authentication and PIN setup portals only
   if (
     pathname?.startsWith('/login') ||
     pathname?.startsWith('/register') ||
     pathname?.startsWith('/signup') ||
     pathname?.startsWith('/admin/login') ||
-    pathname?.startsWith('/vendor/login') ||
-    pathname?.startsWith('/admin')
+    pathname?.startsWith('/vendor/login')
   ) {
     return null;
   }
