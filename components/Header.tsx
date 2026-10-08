@@ -47,6 +47,17 @@ export function Header() {
   const isDashboard = isAdminDashboard || isVendorDashboard;
 
   useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && menuOpen) {
+        setMenuOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [menuOpen]);
+
+
+  useEffect(() => {
     async function loadUserData() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
@@ -219,7 +230,9 @@ export function Header() {
         <button
           onClick={() => setMenuOpen(!menuOpen)}
           aria-label="Toggle menu"
-          className="p-2 text-[#D4AF37] hover:text-[#E8C874] transition rounded-lg hover:bg-white/5 active:scale-95"
+          aria-expanded={menuOpen}
+          aria-controls="navigation-drawer"
+          className="p-2 text-[#D4AF37] hover:text-[#E8C874] transition rounded-lg hover:bg-white/5 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A1931]"
         >
           {menuOpen ? <X size={24} className="text-[#D4AF37]" /> : <Menu size={24} />}
         </button>
@@ -231,7 +244,7 @@ export function Header() {
         {isDashboard ? (
           <button
             onClick={handleExitDashboard}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-400 hover:text-white bg-red-950/40 hover:bg-red-600/80 border border-red-500/30 rounded-xl transition active:scale-95"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-400 hover:text-white bg-red-950/40 hover:bg-red-600/80 border border-red-500/30 rounded-xl transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-1 focus-visible:ring-offset-[#0A1931]"
             aria-label="Exit dashboard"
           >
             <LogOut size={15} />
@@ -240,7 +253,7 @@ export function Header() {
         ) : (
           <Link
             href="/cart"
-            className="relative p-2 text-[#D4AF37] hover:text-[#F5C445] transition rounded-lg hover:bg-white/5 active:scale-95"
+            className="relative p-2 text-[#D4AF37] hover:text-[#F5C445] transition rounded-lg hover:bg-white/5 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A1931]"
             aria-label="Shopping Cart"
           >
             <ShoppingCart size={22} strokeWidth={2} />
@@ -258,9 +271,16 @@ export function Header() {
           <div
             className="fixed inset-0 bg-black/75 backdrop-blur-sm transition-opacity"
             onClick={() => setMenuOpen(false)}
+            aria-hidden="true"
           />
 
-          <div className="relative w-full max-h-[92vh] overflow-y-auto bg-[#0A1931] border-b-2 border-[#D4AF37]/40 shadow-2xl z-10 flex flex-col animate-in slide-in-from-top duration-300">
+          <div
+            id="navigation-drawer"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Navigation drawer"
+            className="relative w-full max-h-[92vh] overflow-y-auto bg-[#0A1931] border-b-2 border-[#D4AF37]/40 shadow-2xl z-10 flex flex-col animate-in slide-in-from-top duration-300"
+          >
             {/* Top drawer header */}
             <div className="px-5 pt-5 pb-4 border-b border-white/10 bg-gradient-to-b from-[#111A3E] to-[#0A1028]">
               <div className="flex items-start justify-between">
@@ -278,7 +298,7 @@ export function Header() {
 
                 <button
                   onClick={() => setMenuOpen(false)}
-                  className="p-2 text-[#A8B0C5] hover:text-white rounded-full bg-white/5 hover:bg-white/10 transition"
+                  className="p-2 text-[#A8B0C5] hover:text-white rounded-full bg-white/5 hover:bg-white/10 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A1931]"
                   aria-label="Close menu"
                 >
                   <X size={20} className="text-[#D4AF37]" />
