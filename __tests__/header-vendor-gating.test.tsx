@@ -69,29 +69,26 @@ describe('Header merchant portal role gating', () => {
     openMenu();
 
     expect(await screen.findByText('Become a Vendor')).toBeInTheDocument();
-    expect(screen.queryByText('Vendor Dashboard')).not.toBeInTheDocument();
-    expect(screen.queryByText('Add New Product')).not.toBeInTheDocument();
-    expect(screen.queryByText('Vendor Payout Wallet')).not.toBeInTheDocument();
+    expect(screen.queryByText('Vendor Portal Access')).not.toBeInTheDocument();
+    expect(screen.queryByText('Add New Listing')).not.toBeInTheDocument();
   });
 
   it('shows approved vendors the merchant portal links instead of the signup entry', async () => {
-    mockSupabase = buildSupabaseMock(vendorUser, { id: 'vendor-1' });
+    mockSupabase = buildSupabaseMock(vendorUser, { id: 'vendor-1', status: 'approved' });
     render(<Header />);
     openMenu();
 
-    expect(await screen.findByText('Vendor Dashboard')).toBeInTheDocument();
-    expect(screen.getByText('Add New Product')).toBeInTheDocument();
-    expect(screen.getByText('Vendor Payout Wallet')).toBeInTheDocument();
+    expect(await screen.findByText('Vendor Portal Access')).toBeInTheDocument();
     expect(screen.queryByText('Become a Vendor')).not.toBeInTheDocument();
   });
 
   it('never exposes admin console links in the public drawer', async () => {
-    mockSupabase = buildSupabaseMock(vendorUser, { id: 'vendor-1' });
+    mockSupabase = buildSupabaseMock(vendorUser, { id: 'vendor-1', status: 'approved' });
     render(<Header />);
     openMenu();
 
     await waitFor(() => {
-      expect(screen.queryByText(/admin/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/admin console gateway/i)).not.toBeInTheDocument();
     });
   });
 

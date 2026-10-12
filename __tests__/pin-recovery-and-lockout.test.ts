@@ -39,7 +39,7 @@ describe('Admin Security Alerts View, Live Updates & CSV Export', () => {
     expect(inRange).toHaveLength(1);
     expect(inRange[0].id).toBe('alt_001');
 
-    const profileMap = {
+    const profileMap: Record<string, { email: string; role: string }> = {
       usr_1: { email: 'target@example.com', role: 'admin' },
     };
 

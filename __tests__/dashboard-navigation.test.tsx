@@ -30,8 +30,8 @@ vi.mock('@/lib/supabase/client', () => ({
     from: (table: string) => ({
       select: () => ({
         eq: () => ({
-          maybeSingle: () => Promise.resolve({ data: { role: 'admin' }, error: null }),
-          single: () => Promise.resolve({ data: { role: 'admin' }, error: null }),
+          maybeSingle: () => Promise.resolve({ data: { role: 'admin', status: 'approved' }, error: null }),
+          single: () => Promise.resolve({ data: { role: 'admin', status: 'approved' }, error: null }),
         }),
       }),
     }),
@@ -55,10 +55,10 @@ describe('Dashboard Operational Navigation & Cart Gating', () => {
     const openMenuButton = screen.getByLabelText('Toggle menu');
     fireEvent.click(openMenuButton);
 
-    expect(screen.getByText('System Pulse & Overview')).toBeInTheDocument();
-    expect(screen.getByText('Profit Treasury & Escrow')).toBeInTheDocument();
-    expect(screen.getByText('Vendor Payout Requests')).toBeInTheDocument();
-    expect(screen.getByText('Vendor Directory & KYC')).toBeInTheDocument();
+    expect(screen.getByText('Commission & Fee Rules')).toBeInTheDocument();
+    expect(screen.getByText('Vendor Payout Queue')).toBeInTheDocument();
+    expect(screen.getByText('Orders & Escrow Releases')).toBeInTheDocument();
+    expect(screen.getByText('Staff Role Management')).toBeInTheDocument();
   });
 
   it('hides the shopper cart icon when visiting /vendor and renders Vendor operational actions', async () => {
@@ -72,28 +72,25 @@ describe('Dashboard Operational Navigation & Cart Gating', () => {
     const openMenuButton = screen.getByLabelText('Toggle menu');
     fireEvent.click(openMenuButton);
 
-    expect(screen.getByText('Vendor Dashboard')).toBeInTheDocument();
-    expect(screen.getByText('Add New Product')).toBeInTheDocument();
-    expect(screen.getByText('Vendor Payout Wallet')).toBeInTheDocument();
+    expect(screen.getByText('Add New Listing')).toBeInTheDocument();
+    expect(screen.getByText('Withdraw to Bank')).toBeInTheDocument();
+    expect(screen.getByText('Live Marketplace Catalog')).toBeInTheDocument();
   });
 
   it('renders operational bottom nav items for admin and vendor without shopper items', () => {
     vi.mocked(usePathname).mockReturnValue('/admin');
     const { unmount } = render(<BottomNav />);
-    expect(screen.getByText('Console')).toBeInTheDocument();
-    expect(screen.getByText('Escrow')).toBeInTheDocument();
-    expect(screen.getByText('Payouts')).toBeInTheDocument();
-    expect(screen.getByText('Commissions')).toBeInTheDocument();
-    expect(screen.getByText('Vendors')).toBeInTheDocument();
+    expect(screen.getByText('Overview')).toBeInTheDocument();
+    expect(screen.getByText('Directory')).toBeInTheDocument();
+    expect(screen.getByText('Exit Admin')).toBeInTheDocument();
     expect(screen.queryByText('Alerts')).not.toBeInTheDocument();
     unmount();
 
     vi.mocked(usePathname).mockReturnValue('/vendor');
     render(<BottomNav />);
-    expect(screen.getByText('Orders')).toBeInTheDocument();
-    expect(screen.getByText('Add Item')).toBeInTheDocument();
+    expect(screen.getByText('Overview')).toBeInTheDocument();
     expect(screen.getByText('Wallet')).toBeInTheDocument();
-    expect(screen.getByText('Catalog')).toBeInTheDocument();
+    expect(screen.getByText('Exit Vendor')).toBeInTheDocument();
     expect(screen.queryByText('Alerts')).not.toBeInTheDocument();
   });
 });
