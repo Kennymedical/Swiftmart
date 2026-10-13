@@ -17,6 +17,7 @@ export default function AdminLoginPage() {
   const [confirmPin, setConfirmPin] = useState('');
   const [otpCode, setOtpCode] = useState('');
   const [failedAttempts, setFailedAttempts] = useState(0);
+  const [isLockedOnServer, setIsLockedOnServer] = useState(false);
   const [resetRequestId, setResetRequestId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -31,11 +32,22 @@ export default function AdminLoginPage() {
         if (user.email) setEmail(user.email);
         const { data: profile } = await supabase
           .from('profiles')
-          .select('role, dashboard_pin_hash')
+          .select('role, dashboard_pin_hash, failed_pin_attempts, pin_locked_until')
           .eq('id', user.id)
           .maybeSingle();
 
         if (profile?.role === 'admin' || profile?.role === 'staff') {
+          const isLocked = Boolean(
+            (profile.pin_locked_until && new Date(profile.pin_locked_until) > new Date()) ||
+            (profile.failed_pin_attempts && profile.failed_pin_attempts >= 3)
+          );
+          if (isLocked) {
+            setIsLockedOnServer(true);
+            setFailedAttempts(profile.failed_pin_attempts || 3);
+            setError('PIN locked after 3 failed attempts. Paid recovery via email OTP is required.');
+          } else if (profile.failed_pin_attempts) {
+            setFailedAttempts(profile.failed_pin_attempts);
+          }
           if (!profile.dashboard_pin_hash) {
             setStep('pin_create');
           } else {
@@ -67,7 +79,7 @@ export default function AdminLoginPage() {
 
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('role, dashboard_pin_hash')
+        .select('role, dashboard_pin_hash, failed_pin_attempts, pin_locked_until')
         .eq('id', data.user.id)
         .maybeSingle();
 
@@ -108,7 +120,7 @@ export default function AdminLoginPage() {
 
       const { error: updateError } = await supabase
         .from('profiles')
-        .update({ dashboard_pin_hash: pin })
+        .update({ dashboard_pin_hash: pin, failed_pin_attempts: 0, pin_locked_until: null })
         .eq('id', userId);
 
       if (updateError) throw updateError;
@@ -384,14 +396,14 @@ export default function AdminLoginPage() {
                 maxLength={6}
                 required
                 value={pin}
-                disabled={failedAttempts >= 3}
+                disabled={isLockedOnServer || failedAttempts >= 3}
                 onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
                 placeholder="••••••"
                 className="w-full bg-[#0A152B] border border-[#D4AF37]/30 text-center tracking-[0.5em] text-lg font-bold text-white rounded-xl py-3 focus:outline-none focus:border-[#D4AF37]"
               />
             </div>
 
-            {failedAttempts >= 3 ? (
+            {isLockedOnServer || failedAttempts >= 3 ? (
               <div className="space-y-2">
                 <p className="text-xs text-red-400 font-semibold text-center">
                   Account PIN locked due to 3 failed attempts.

@@ -17,6 +17,7 @@ export default function VendorLoginPage() {
   const [confirmPin, setConfirmPin] = useState('');
   const [otpCode, setOtpCode] = useState('');
   const [failedAttempts, setFailedAttempts] = useState(0);
+  const [isLockedOnServer, setIsLockedOnServer] = useState(false);
   const [resetRequestId, setResetRequestId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -32,12 +33,23 @@ export default function VendorLoginPage() {
         if (user.email) setEmail(user.email);
         const { data: vendor } = await supabase
           .from('vendors')
-          .select('id, status, dashboard_pin_hash')
+          .select('id, status, dashboard_pin_hash, failed_pin_attempts, pin_locked_until')
           .eq('user_id', user.id)
           .maybeSingle();
 
         if (vendor && vendor.status === 'approved') {
           setVendorId(vendor.id);
+          const isLocked = Boolean(
+            (vendor.pin_locked_until && new Date(vendor.pin_locked_until) > new Date()) ||
+            (vendor.failed_pin_attempts && vendor.failed_pin_attempts >= 3)
+          );
+          if (isLocked) {
+            setIsLockedOnServer(true);
+            setFailedAttempts(vendor.failed_pin_attempts || 3);
+            setError('PIN locked after 3 failed attempts. Paid recovery via email OTP is required.');
+          } else if (vendor.failed_pin_attempts) {
+            setFailedAttempts(vendor.failed_pin_attempts);
+          }
           if (!vendor.dashboard_pin_hash) {
             setStep('pin_create');
           } else {
@@ -69,7 +81,7 @@ export default function VendorLoginPage() {
 
       const { data: vendor, error: vendorError } = await supabase
         .from('vendors')
-        .select('id, status, dashboard_pin_hash')
+        .select('id, status, dashboard_pin_hash, failed_pin_attempts, pin_locked_until')
         .eq('user_id', data.user.id)
         .maybeSingle();
 
@@ -115,7 +127,7 @@ export default function VendorLoginPage() {
 
       const { error: updateError } = await supabase
         .from('vendors')
-        .update({ dashboard_pin_hash: pin })
+        .update({ dashboard_pin_hash: pin, failed_pin_attempts: 0, pin_locked_until: null })
         .eq('id', vendorId);
 
       if (updateError) throw updateError;
@@ -391,14 +403,14 @@ export default function VendorLoginPage() {
                 maxLength={6}
                 required
                 value={pin}
-                disabled={failedAttempts >= 3}
+                disabled={isLockedOnServer || failedAttempts >= 3}
                 onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
                 placeholder="••••••"
                 className="w-full bg-[#0A152B] border border-[#D4AF37]/30 text-center tracking-[0.5em] text-lg font-bold text-white rounded-xl py-3 focus:outline-none focus:border-[#D4AF37]"
               />
             </div>
 
-            {failedAttempts >= 3 ? (
+            {isLockedOnServer || failedAttempts >= 3 ? (
               <div className="space-y-2">
                 <p className="text-xs text-red-400 font-semibold text-center">
                   Merchant PIN locked due to 3 failed attempts.
