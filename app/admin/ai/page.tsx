@@ -1,11 +1,13 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
 
+type Message = { role: 'user' | 'assistant'; content: string };
+
 export default function AdminAI() {
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
-  const endRef = useRef(null);
+  const endRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
@@ -26,7 +28,7 @@ export default function AdminAI() {
       });
       const data = await res.json();
       setMessages(m => [...m, { role: 'assistant', content: data.reply || data.error }]);
-    } catch (e) {
+    } catch (e: any) {
       setMessages(m => [...m, { role: 'assistant', content: 'Error: ' + e.message }]);
     }
     setBusy(false);
@@ -71,5 +73,4 @@ export default function AdminAI() {
       </div>
     </div>
   );
-                }
-    
+}
