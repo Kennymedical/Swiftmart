@@ -1,3 +1,4 @@
+import SwiftMartAIFloating from '@/components/SwiftMartAIFloating';
 import { redirect } from 'next/navigation';
 import { headers, cookies } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
@@ -104,6 +105,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 <AdminNav />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-20">{children}</main>
+<SwiftMartAIFloating />
     </div>
   );
 }
