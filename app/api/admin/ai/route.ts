@@ -1,22 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
-import { getAISupabaseClient } from '@/lib/supabase/ai-client';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   try {
+    // 1. Auth check
     const supabase = createClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized: Sign in required' }, { status: 401 });
     }
 
+    // 2. Role check
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('role, full_name')
@@ -27,6 +24,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
     }
 
+    // 3. Input validation
     const body = await req.json().catch(() => null);
     const message = body?.message;
     const history = body?.history;
@@ -48,64 +46,74 @@ export async function POST(req: NextRequest) {
           }))
       : [];
 
-    let db = supabase;
+    // 4. Service-role client (bypasses RLS)
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    if (serviceRoleKey && supabaseUrl) {
-      db = createSupabaseClient(supabaseUrl, serviceRoleKey, {
-        auth: { persistSession: false, autoRefreshToken: false },
-      }) as typeof supabase;
-    }
 
-    const [ordersRes, vendorsRes, alertsRes, commissionRes] = await Promise.all([
-      db.from('orders').select('id, total_kobo, status, created_at').order('created_at', { ascending: false }).limit(50),
-      db.from('vendors').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
-      db.from('security_alerts').select('id', { count: 'exact', head: true }).eq('resolved', false),
-      db.from('platform_settings').select('value').eq('key', 'global_commission_rate').maybeSingle(),
-    ]);
-
-    const queryError = ordersRes.error || vendorsRes.error || alertsRes.error || commissionRes.error;
-    if (queryError) {
-      console.error('SwiftMart AI data query failed:', queryError.message);
+    if (!serviceRoleKey || !supabaseUrl) {
+      console.error('SwiftMart AI: Missing SUPABASE_SERVICE_ROLE_KEY or NEXT_PUBLIC_SUPABASE_URL');
       return NextResponse.json(
-        { error: 'I could not read the live store data. Check the Supabase service-role configuration and admin RLS policies.' },
-        { status: 503 },
+        { error: 'Server misconfigured. Contact the platform owner.' },
+        { status: 500 },
       );
     }
 
+    const db = createSupabaseClient(supabaseUrl, serviceRoleKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+
+    // 5. Fetch only REAL tables
+    const [ordersRes, vendorsRes, treasuryRes, disputesRes, productsRes] = await Promise.all([
+      db.from('orders').select('id, total_kobo, status, created_at').order('created_at', { ascending: false }).limit(50),
+      db.from('vendors').select('id, status, created_at').order('created_at', { ascending: false }).limit(100),
+      db.from('platform_treasury').select('balance_kobo, updated_at').order('updated_at', { ascending: false }).limit(1).maybeSingle(),
+      db.from('disputes').select('id, status, category, created_at').order('created_at', { ascending: false }).limit(20),
+      db.from('products').select('id, name, price_kobo, stock, sold_count').order('sold_count', { ascending: false, nullsFirst: false }).limit(10),
+    ]);
+
+    // 6. Build snapshot (tolerate any single table erroring)
     const recentOrders = ordersRes.data || [];
-    const salesKobo = recentOrders
-      .filter((order) => !['cancelled', 'pending_payment'].includes(order.status))
-      .reduce((sum, order) => sum + (Number(order.total_kobo) || 0), 0);
-    const commissionValue = commissionRes.data?.value as { rate_percent?: number } | null;
-    const commissionPercent = Number(commissionValue?.rate_percent ?? 10);
+    const vendors = vendorsRes.data || [];
+    const treasury = treasuryRes.data;
+    const disputes = disputesRes.data || [];
+    const topProducts = productsRes.data || [];
 
-    const aiSupabase = getAISupabaseClient();
-    let extraAIContext = '';
-    if (aiSupabase) {
-      const { data, error } = await aiSupabase.from('ai_knowledge').select('title, content').limit(5);
-      if (!error && data?.length) {
-        extraAIContext = `\n\nAI knowledge base (reference material):\n${data
-          .map((item) => `• ${item.title}: ${item.content}`)
-          .join('\n')}`;
-      }
-    }
+    const completedSalesKobo = recentOrders
+      .filter((o) => !['cancelled', 'pending_payment'].includes(o.status))
+      .reduce((sum, o) => sum + (Number(o.total_kobo) || 0), 0);
 
-    const systemPrompt = `You are SwiftMart AI, an operational assistant for admins and staff of a Nigerian marketplace and fintech platform. Use the live data below when answering. State clearly when the data does not answer a question; do not invent figures. Currency is Nigerian naira (₦).\n\nLive data snapshot (recent 50 orders only):\n- Non-cancelled, non-pending-payment order volume in sample: ₦${Math.round(salesKobo / 100).toLocaleString('en-NG')}\n- Orders sampled: ${recentOrders.length}\n- Pending vendor approvals: ${vendorsRes.count ?? 0}\n- Open security alerts: ${alertsRes.count ?? 0}\n- Platform commission: ${commissionPercent}%${extraAIContext}`;
+    const pendingVendors = vendors.filter((v) => v.status === 'pending').length;
+    const openDisputes = disputes.filter((d) => !['resolved', 'closed'].includes(d.status)).length;
 
+    const snapshot = [
+      `Recent 50 orders: ₦${(completedSalesKobo / 100).toLocaleString('en-NG')} in non-cancelled sales`,
+      `Total vendors: ${vendors.length} (${pendingVendors} pending approval)`,
+      `Treasury balance: ₦${((Number(treasury?.balance_kobo) || 0) / 100).toLocaleString('en-NG')}`,
+      `Open disputes: ${openDisputes} of ${disputes.length} total`,
+      `Top products by sales: ${topProducts.map((p) => `${p.name} (${p.sold_count || 0} sold)`).join(', ') || 'none yet'}`,
+    ].join('\n- ');
+
+    const systemPrompt = `You are SwiftMart AI, an operational assistant for admins of a Nigerian marketplace and fintech platform. Use only the live data below. Never invent numbers. Currency is Nigerian naira (₦). If asked about something not in the data, say you don't have that information.
+
+Live data snapshot:
+- ${snapshot}`;
+
+    // 7. LLM call
     const groqKey = process.env.GROQ_API_KEY;
     const openaiKey = process.env.OPENAI_API_KEY;
+
     if (!groqKey && !openaiKey) {
-      const reply = `Live SwiftMart snapshot (latest ${recentOrders.length} orders):\n• Order volume in sample: ₦${Math.round(salesKobo / 100).toLocaleString('en-NG')}\n• Pending vendor approvals: ${vendorsRes.count ?? 0}\n• Open security alerts: ${alertsRes.count ?? 0}\n• Commission: ${commissionPercent}%\n\nAdd GROQ_API_KEY or OPENAI_API_KEY in Vercel to enable natural-language answers.`;
-      return NextResponse.json({ reply });
+      return NextResponse.json({
+        reply: `Live SwiftMart snapshot:\n\n- ${snapshot}\n\n(Add GROQ_API_KEY in Vercel to enable natural-language answers.)`,
+      });
     }
 
-    const provider = groqKey ? 'groq' : 'openai';
     const endpoint = groqKey
       ? 'https://api.groq.com/openai/v1/chat/completions'
       : 'https://api.openai.com/v1/chat/completions';
     const apiKey = groqKey || openaiKey;
     const model = groqKey ? 'llama-3.1-8b-instant' : 'gpt-4o-mini';
+
     const aiResponse = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
@@ -123,30 +131,21 @@ export async function POST(req: NextRequest) {
     });
 
     if (!aiResponse.ok) {
-      const providerError = await aiResponse.text();
-      console.error(`SwiftMart AI ${provider} provider error:`, providerError.slice(0, 500));
-      return NextResponse.json({ error: `The ${provider} AI service could not complete the request.` }, { status: 502 });
+      const errText = await aiResponse.text();
+      console.error('SwiftMart AI provider error:', errText.slice(0, 500));
+      return NextResponse.json({ error: 'AI service unavailable. Try again.' }, { status: 502 });
     }
 
     const result = await aiResponse.json();
     const reply = result.choices?.[0]?.message?.content;
     if (typeof reply !== 'string' || !reply.trim()) {
-      return NextResponse.json({ error: 'The AI service returned an empty response.' }, { status: 502 });
-    }
-
-    if (aiSupabase) {
-      const { error } = await aiSupabase.from('ai_chat_logs').insert({
-        admin_id: user.id,
-        admin_name: profile.full_name || 'Admin',
-        user_message: message.trim(),
-        ai_reply: reply,
-      });
-      if (error) console.error('SwiftMart AI log insert failed:', error.message);
+      return NextResponse.json({ error: 'Empty AI response.' }, { status: 502 });
     }
 
     return NextResponse.json({ reply });
   } catch (error) {
     console.error('SwiftMart AI route error:', error);
-    return NextResponse.json({ error: 'The AI request could not be completed.' }, { status: 500 });
+    return NextResponse.json({ error: 'Request failed.' }, { status: 500 });
   }
-}
+}	
+
