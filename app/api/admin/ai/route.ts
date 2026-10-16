@@ -112,7 +112,7 @@ Live data snapshot:
       ? 'https://api.groq.com/openai/v1/chat/completions'
       : 'https://api.openai.com/v1/chat/completions';
     const apiKey = groqKey || openaiKey;
-    const model = groqKey ? 'llama-3.1-8b-instant' : 'gpt-4o-mini';
+    const model = groqKey ? 'openai/gpt-oss-120b' : 'gpt-4o-mini';
 
     const aiResponse = await fetch(endpoint, {
       method: 'POST',
