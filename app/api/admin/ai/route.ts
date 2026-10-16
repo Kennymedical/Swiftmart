@@ -101,7 +101,7 @@ ${new Date().toISOString().split('T')[0]} (${new Date().toLocaleDateString('en-N
           tools: toolDeclarations.map((t) => ({ type: 'function', function: t })),
           tool_choice: 'auto',
           temperature: 0.5,
-          max_tokens: 1500,
+          max_tokens: 4000,
         }),
         signal: AbortSignal.timeout(30000),
       });
@@ -109,7 +109,7 @@ ${new Date().toISOString().split('T')[0]} (${new Date().toLocaleDateString('en-N
       if (!aiResp.ok) {
         const errText = await aiResp.text();
         console.error('AI provider error:', errText.slice(0, 500));
-        return NextResponse.json({ error: 'AI service unavailable.' }, { status: 502 });
+        return NextResponse.json({ error: 'AI error: ' + errText.slice(0, 250) }, { status: 502 });
       }
 
       const data = await aiResp.json();
