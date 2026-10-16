@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
 
     const endpoint = groqKey ? 'https://api.groq.com/openai/v1/chat/completions' : 'https://api.openai.com/v1/chat/completions';
     const apiKey = groqKey || openaiKey;
-    const model = groqKey ? 'openai/gpt-oss-120b' : 'gpt-4o-mini';
+    const model = groqKey ? 'openai/gpt-oss-20b' : 'gpt-4o-mini';
 
     const adminName = profile.full_name || 'boss';
     const systemPrompt = `You are SwiftMart AI — the trusted operational chief-of-staff for ${adminName}, owner of SwiftMart, a Nigerian multi-vendor marketplace and fintech platform.
@@ -91,7 +91,7 @@ ${new Date().toISOString().split('T')[0]} (${new Date().toLocaleDateString('en-N
     for (const h of safeHistory) messages.push(h);
     messages.push({ role: 'user', content: message.trim() });
 
-    for (let round = 0; round < 6; round++) {
+    for (let round = 0; round < 3; round++) {
       const aiResp = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
@@ -101,9 +101,9 @@ ${new Date().toISOString().split('T')[0]} (${new Date().toLocaleDateString('en-N
           tools: toolDeclarations.map((t) => ({ type: 'function', function: t })),
           tool_choice: 'auto',
           temperature: 0.5,
-          max_tokens: 4000,
+          max_tokens: 1200,
         }),
-        signal: AbortSignal.timeout(30000),
+        signal: AbortSignal.timeout(8000),
       });
 
       if (!aiResp.ok) {
