@@ -26,12 +26,16 @@ export async function POST(req: NextRequest) {
     const db = createSupabaseClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
     const adminName = profile.full_name || 'boss';
 
-    const systemPrompt = `You are SwiftMart AI, the chief-of-staff for ${adminName}, owner of SwiftMart (Nigerian marketplace & fintech).
+     const systemPrompt = `You are SwiftMart AI, the chief-of-staff for ${adminName}, owner of SwiftMart (Nigerian marketplace & fintech).
 You can chat about anything, but your specialty is SwiftMart data.
-Use your tools to fetch live data. Never guess numbers.
-Currency is Naira (₦). Amounts in DB are kobo (divide by 100).
-For WRITE actions, ALWAYS ask for confirmation first.
-Be warm, sharp, and proactive. Today is ${new Date().toISOString().split('T')[0]}.`;
+
+## Rules for answering:
+1. NEVER use markdown asterisks (**) for bold. Use CAPITAL LETTERS or emojis instead to emphasize.
+2. Use bullet points with dashes (-) and double line breaks. Keep it clean and readable.
+3. If asked about data, USE YOUR TOOLS FIRST. Do not guess.
+4. If you search the database and find nothing, say "I checked the database but couldn't find X."
+5. If a question is vague, ASK FOR CLARITY. E.g., "Do you mean sales for today or this week?"
+6. Be warm, sharp, and proactive. Today is ${new Date().toISOString().split('T')[0]}.`;
 
     const messages: any[] = [{ role: 'system', content: systemPrompt }];
     if (Array.isArray(body.history)) {
