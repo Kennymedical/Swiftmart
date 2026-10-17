@@ -1,6 +1,6 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '@supabase/supabase-js';
 
 type Message = { role: 'user' | 'assistant'; content: string };
 
@@ -10,8 +10,20 @@ export default function SwiftMartAIFloating() {
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
   const [unreadReports, setUnreadReports] = useState(0);
+  const [mounted, setMounted] = useState(false);
   const endRef = useRef<HTMLDivElement | null>(null);
-  const supabase = createClient();
+
+  // Create client only once
+  const [supabase] = useState(() =>
+    createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+    )
+  );
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (open && endRef.current) {
@@ -19,14 +31,14 @@ export default function SwiftMartAIFloating() {
     }
   }, [messages, open]);
 
-  // Check for unread reports every 60 seconds
+  // Check for unread reports
   useEffect(() => {
+    if (!supabase) return;
     const checkReports = async () => {
       const { data } = await supabase
         .from('admin_reports')
         .select('id')
         .eq('is_read', false);
-      
       if (data) setUnreadReports(data.length);
     };
 
@@ -37,7 +49,6 @@ export default function SwiftMartAIFloating() {
 
   async function handleOpen() {
     setOpen(true);
-    // Mark reports as read when opening chat
     if (unreadReports > 0) {
       await supabase.from('admin_reports').update({ is_read: true }).eq('is_read', false);
       setUnreadReports(0);
@@ -71,6 +82,9 @@ export default function SwiftMartAIFloating() {
     }
     setBusy(false);
   }
+
+  // Prevent SSR hydration mismatch
+  if (!mounted) return null;
 
   return (
     <>
