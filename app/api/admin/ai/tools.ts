@@ -147,6 +147,15 @@ export const toolDeclarations = [
     parameters: { type: 'object', properties: {} },
   },
   {
+    name: 'run_sql',
+    description: 'Execute a read-only SQL query against the PostgreSQL database. Use this to fetch ANY data not covered by other tools. Always use SELECT.',
+    parameters: {
+      type: 'object',
+      properties: { query: { type: 'string' } },
+      required: ['query']
+    }
+  },
+  {
     name: 'approve_vendor',
     description: 'Approve a pending vendor. ONLY after user explicitly confirms.',
     parameters: { type: 'object', properties: { vendor_id: { type: 'string' } }, required: ['vendor_id'] },
@@ -414,6 +423,12 @@ export async function executeTool(name: string, args: any, db: SupabaseClient, a
           'Overstocked products could use discounts or featured placement',
         ],
       };
+    }
+
+    case 'run_sql': {
+      const { data, error } = await db.rpc('run_read_query', { sql_query: args.query });
+      if (error) return { error: error.message };
+      return { result: data };
     }
 
     case 'approve_vendor': {
