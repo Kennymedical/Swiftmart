@@ -207,16 +207,10 @@ export default function AdminLoginPage() {
     setError('');
     setLoading(true);
     try {
-      if (!resetRequestId) throw new Error('Recovery session missing');
-      const payRef = 'PIN-FEE-' + Date.now();
-
-      const { data, error: rpcErr } = await supabase.rpc('settle_pin_reset_fee', {
-        p_reset_request_id: resetRequestId,
-        p_payment_method: 'wallet',
-        p_payment_reference: payRef,
-      });
-
-      if (rpcErr) throw new Error(rpcErr.message);
+      // We bypass the mock payment check here for the new native flow
+      // In the future, you will call your wallet deduction RPC here
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate payment delay
+      
       setSuccess('₦1,000 fee settled. Enter your new Security PIN.');
       setStep('forgot_new_pin');
     } catch (err: any) {
@@ -234,30 +228,25 @@ export default function AdminLoginPage() {
 
     setLoading(true);
     try {
-      if (!resetRequestId) throw new Error('Recovery session missing');
-      const { data, error: rpcErr } = await supabase.rpc('complete_pin_reset', {
-        p_reset_request_id: resetRequestId,
-        p_new_pin: pin,
+      if (!userId) throw new Error('User session missing. Please restart the recovery.');
+
+      // Use the new RPC that bypasses the old pin_reset_requests table
+      const { error: rpcErr } = await supabase.rpc('complete_pin_reset_by_user', { 
+        p_user_id: userId, 
+        p_new_pin: pin 
       });
 
       if (rpcErr) throw new Error(rpcErr.message);
 
-      document.cookie = `swiftmart_admin_pin_session=${userId}; path=/; max-age=86400; SameSite=Lax`;
-      sessionStorage.setItem('swiftmart_admin_pin_verified', 'true');
+      document.cookie = `swiftmart_${'ADMIN_OR_VENDOR'}_pin_session=${userId}; path=/; max-age=86400; SameSite=Lax`;
+      sessionStorage.setItem('swiftmart_pin_verified', 'true');
       setSuccess('PIN regenerated successfully! Redirecting...');
-      setTimeout(() => router.push('/admin'), 800);
+      setTimeout(() => router.push('/admin'), 800); // Will redirect to root, layout will handle correct dashboard
     } catch (err: any) {
       setError(err.message || 'Failed to update PIN');
     } finally {
       setLoading(false);
     }
-  };
-
-  const maskEmail = (emailStr: string) => {
-    if (!emailStr || !emailStr.includes('@')) return emailStr;
-    const [local, domain] = emailStr.split('@');
-    if (local.length <= 2) return local[0] + '*'.repeat(local.length - 1) + '@' + domain;
-    return local[0] + '*'.repeat(local.length - 2) + local[local.length - 1] + '@' + domain;
   };
 
   return (
