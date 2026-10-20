@@ -175,18 +175,20 @@ export default function AdminLoginPage() {
 
       setResetRequestId(data.reset_request_id);
 
-      // Try to send email, but don't fail if the function doesn't exist yet
+      // Try to send SMS
       if (data.dispatch_token) {
-        try {
-          await supabase.functions.invoke('send-otp', {
-            body: { email, otp: data.dispatch_token, type: 'pin_reset' }
-          });
-        } catch (err) {
-          console.warn('Email function missing, but OTP generated.', err);
+        const { data: fnData, error: fnError } = await supabase.functions.invoke('send-otp', {
+          body: { email, otp: data.dispatch_token, type: 'pin_reset' }
+        });
+
+        if (fnError || (fnData && fnData.error)) {
+          const realError = fnError?.message || fnData?.error || 'Unknown SMS error';
+          setError(`SMS Failed: ${realError}. (Dev Mode: Check Supabase > pin_reset_requests)`);
+        } else {
+          setSuccess(`Real SMS sent to your registered phone number!`);
         }
       }
 
-      setSuccess(`Code generated! (Dev Mode: Go to Supabase > pin_reset_requests table to see your code).`);
       setStep('forgot_otp');
     } catch (err: any) {
       setError(err.message || 'Failed to dispatch recovery OTP');
