@@ -175,13 +175,18 @@ export default function AdminLoginPage() {
 
       setResetRequestId(data.reset_request_id);
 
+      // Try to send email, but don't fail if the function doesn't exist yet
       if (data.dispatch_token) {
-        await supabase.functions.invoke('send-otp', {
-          body: { email, otp: data.dispatch_token, type: 'pin_reset' }
-        }).catch((e) => console.warn('Email dispatch notice:', e));
+        try {
+          await supabase.functions.invoke('send-otp', {
+            body: { email, otp: data.dispatch_token, type: 'pin_reset' }
+          });
+        } catch (err) {
+          console.warn('Email function missing, but OTP generated.', err);
+        }
       }
 
-      setSuccess(`Verification code dispatched to ${email}. Valid for 10 minutes.`);
+      setSuccess(`Code generated! (Dev Mode: Go to Supabase > pin_reset_requests table to see your code).`);
       setStep('forgot_otp');
     } catch (err: any) {
       setError(err.message || 'Failed to dispatch recovery OTP');
