@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { Users, Shield, Wallet } from 'lucide-react';
+import { AdminStatusButtons } from '@/components/AdminStatusButtons';
 
 function naira(kobo: number) {
   return `₦${(kobo / 100).toLocaleString('en-NG')}`;
@@ -12,7 +13,7 @@ export default async function AdminUsersPage() {
   const [{ data: profiles }, { data: wallets }] = await Promise.all([
     supabase
       .from('profiles')
-      .select('id, full_name, phone, role, created_at')
+      .select('id, full_name, phone, role, created_at, is_active')
       .order('created_at', { ascending: false })
       .limit(50),
     supabase.from('wallets').select('user_id, balance_kobo'),
@@ -45,12 +46,13 @@ export default async function AdminUsersPage() {
                 <th className="p-3.5">Fintech Tier</th>
                 <th className="p-3.5">Wallet Balance</th>
                 <th className="p-3.5">Registered</th>
+                <th className="p-3.5">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#D4AF37]/15">
               {(profiles ?? []).length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="p-6 text-center text-[#A8B0C5]">
+                  <td colSpan={6} className="p-6 text-center text-[#A8B0C5]">
                     No registered customers found.
                   </td>
                 </tr>
@@ -79,6 +81,13 @@ export default async function AdminUsersPage() {
                       <td className="p-3.5 font-bold text-[#D4AF37]">{naira(bal)}</td>
                       <td className="p-3.5 text-xs text-[#A8B0C5]">
                         {new Date(u.created_at).toLocaleDateString('en-NG')}
+                      </td>
+                      <td className="p-3.5">
+                        <AdminStatusButtons 
+                          targetId={u.id} 
+                          table="profiles" 
+                          currentStatus={u.is_active === false ? 'blacklisted' : 'active'} 
+                        />
                       </td>
                     </tr>
                   );
