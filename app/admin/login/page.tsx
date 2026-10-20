@@ -249,7 +249,15 @@ export default function AdminLoginPage() {
     }
   };
 
-  return (
+  
+  const maskEmail = (emailStr: string) => {
+    if (!emailStr || !emailStr.includes('@')) return emailStr;
+    const [local, domain] = emailStr.split('@');
+    if (local.length <= 2) return local[0] + '*'.repeat(local.length - 1) + '@' + domain;
+    return local[0] + '*'.repeat(local.length - 2) + local[local.length - 1] + '@' + domain;
+  };
+
+  return ( 
     <div className="min-h-screen bg-[#070D1E] flex flex-col justify-center items-center px-4 py-8">
       <div className="w-full max-w-md bg-gradient-to-b from-[#142850] to-[#0A1931] border border-[#D4AF37]/40 rounded-3xl p-6 sm:p-8 shadow-[0_12px_40px_rgba(0,0,0,0.7)] text-[#F5F7FA]">
         <div className="flex justify-center mb-4">
