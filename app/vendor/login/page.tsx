@@ -170,7 +170,7 @@ export default function VendorLoginPage() {
     setError('');
     setLoading(true);
     try {
-      if (otpCode.length < 6) throw new Error('Please enter the 6-digit OTP code');
+      if (otpCode.length < 6) throw new Error('Please enter the verification code');
       
       // REAL SUPABASE OTP VERIFICATION
       const { data, error: verifyError } = await supabase.auth.verifyOtp({
@@ -280,8 +280,8 @@ export default function VendorLoginPage() {
 
         {step === 'forgot_otp' && (
           <form onSubmit={handleVerifyOtp} className="space-y-4">
-            <p className="text-xs text-[#A8B0C5]">Enter the 6-digit verification code sent to <span className="text-white font-semibold">{maskEmail(email)}</span>.</p>
-            <div><input type="text" maxLength={8} required value={otpCode} onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))} placeholder="123456" className="w-full bg-[#0A152B] border border-[#D4AF37]/30 text-center tracking-[0.5em] text-lg font-bold text-white rounded-xl py-3 focus:outline-none focus:border-[#D4AF37]" /></div>
+            <p className="text-xs text-[#A8B0C5]">Enter the verification code sent to <span className="text-white font-semibold">{maskEmail(email)}</span>.</p>
+            <div><input type="text" maxLength={8} required value={otpCode} onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))} placeholder="12345678" className="w-full bg-[#0A152B] border border-[#D4AF37]/30 text-center tracking-[0.5em] text-lg font-bold text-white rounded-xl py-3 focus:outline-none focus:border-[#D4AF37]" /></div>
             <button type="submit" disabled={loading || otpCode.length < 6} className="w-full py-3 bg-gradient-to-r from-[#F2D57E] to-[#D4A937] text-[#0A1931] font-bold text-xs uppercase rounded-xl hover:opacity-95 transition">{loading ? 'Verifying...' : 'Verify OTP Code'}</button>
           </form>
         )}
