@@ -170,7 +170,7 @@ export default function VendorLoginPage() {
     setError('');
     setLoading(true);
     try {
-      if (otpCode.length !== 6) throw new Error('Please enter the 6-digit OTP code');
+      if (otpCode.length < 6) throw new Error('Please enter the 6-digit OTP code');
       
       // REAL SUPABASE OTP VERIFICATION
       const { data, error: verifyError } = await supabase.auth.verifyOtp({
@@ -248,7 +248,7 @@ export default function VendorLoginPage() {
 
         {step === 'pin_verify' && (
           <form onSubmit={handlePinVerify} className="space-y-4">
-            <div><label className="block text-xs font-semibold text-[#A8B0C5] mb-1">Enter 6-Digit PIN</label><input type="password" maxLength={6} required value={pin} disabled={isLockedOnServer || failedAttempts >= 3} onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} placeholder="••••••" className="w-full bg-[#0A152B] border border-[#D4AF37]/30 text-center tracking-[0.5em] text-lg font-bold text-white rounded-xl py-3 focus:outline-none focus:border-[#D4AF37]" /></div>
+            <div><label className="block text-xs font-semibold text-[#A8B0C5] mb-1">Enter 6-Digit PIN</label><input type="password" maxLength={8} required value={pin} disabled={isLockedOnServer || failedAttempts >= 3} onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} placeholder="••••••" className="w-full bg-[#0A152B] border border-[#D4AF37]/30 text-center tracking-[0.5em] text-lg font-bold text-white rounded-xl py-3 focus:outline-none focus:border-[#D4AF37]" /></div>
             {isLockedOnServer || failedAttempts >= 3 ? (
               <div className="space-y-2"><p className="text-xs text-red-400 font-semibold text-center">Account PIN locked due to 3 failed attempts.</p><button type="button" onClick={() => setStep('forgot_email')} className="w-full py-3 bg-[#D4AF37] text-[#0A1931] font-bold text-xs rounded-xl shadow hover:opacity-95">Forgot PIN? Paid Email Recovery (₦1,000)</button></div>
             ) : (
@@ -259,8 +259,8 @@ export default function VendorLoginPage() {
 
         {step === 'pin_create' && (
           <form onSubmit={handlePinCreate} className="space-y-4">
-            <div><label className="block text-xs font-semibold text-[#A8B0C5] mb-1">New 6-Digit PIN</label><input type="password" maxLength={6} required value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} placeholder="••••••" className="w-full bg-[#0A152B] border border-[#D4AF37]/30 text-center tracking-[0.5em] text-lg font-bold text-white rounded-xl py-3 focus:outline-none focus:border-[#D4AF37]" /></div>
-            <div><label className="block text-xs font-semibold text-[#A8B0C5] mb-1">Confirm 6-Digit PIN</label><input type="password" maxLength={6} required value={confirmPin} onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, ''))} placeholder="••••••" className="w-full bg-[#0A152B] border border-[#D4AF37]/30 text-center tracking-[0.5em] text-lg font-bold text-white rounded-xl py-3 focus:outline-none focus:border-[#D4AF37]" /></div>
+            <div><label className="block text-xs font-semibold text-[#A8B0C5] mb-1">New 6-Digit PIN</label><input type="password" maxLength={8} required value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} placeholder="••••••" className="w-full bg-[#0A152B] border border-[#D4AF37]/30 text-center tracking-[0.5em] text-lg font-bold text-white rounded-xl py-3 focus:outline-none focus:border-[#D4AF37]" /></div>
+            <div><label className="block text-xs font-semibold text-[#A8B0C5] mb-1">Confirm 6-Digit PIN</label><input type="password" maxLength={8} required value={confirmPin} onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, ''))} placeholder="••••••" className="w-full bg-[#0A152B] border border-[#D4AF37]/30 text-center tracking-[0.5em] text-lg font-bold text-white rounded-xl py-3 focus:outline-none focus:border-[#D4AF37]" /></div>
             <button type="submit" disabled={loading || pin.length !== 6 || pin !== confirmPin} className="w-full py-3 bg-gradient-to-r from-[#F2D57E] to-[#D4A937] text-[#0A1931] font-bold text-xs uppercase tracking-wider rounded-xl shadow-lg hover:opacity-95 transition disabled:opacity-50">{loading ? 'Securing...' : 'Confirm & Enter Console'}</button>
           </form>
         )}
@@ -281,8 +281,8 @@ export default function VendorLoginPage() {
         {step === 'forgot_otp' && (
           <form onSubmit={handleVerifyOtp} className="space-y-4">
             <p className="text-xs text-[#A8B0C5]">Enter the 6-digit verification code sent to <span className="text-white font-semibold">{maskEmail(email)}</span>.</p>
-            <div><input type="text" maxLength={6} required value={otpCode} onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))} placeholder="123456" className="w-full bg-[#0A152B] border border-[#D4AF37]/30 text-center tracking-[0.5em] text-lg font-bold text-white rounded-xl py-3 focus:outline-none focus:border-[#D4AF37]" /></div>
-            <button type="submit" disabled={loading || otpCode.length !== 6} className="w-full py-3 bg-gradient-to-r from-[#F2D57E] to-[#D4A937] text-[#0A1931] font-bold text-xs uppercase rounded-xl hover:opacity-95 transition">{loading ? 'Verifying...' : 'Verify OTP Code'}</button>
+            <div><input type="text" maxLength={8} required value={otpCode} onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))} placeholder="123456" className="w-full bg-[#0A152B] border border-[#D4AF37]/30 text-center tracking-[0.5em] text-lg font-bold text-white rounded-xl py-3 focus:outline-none focus:border-[#D4AF37]" /></div>
+            <button type="submit" disabled={loading || otpCode.length < 6} className="w-full py-3 bg-gradient-to-r from-[#F2D57E] to-[#D4A937] text-[#0A1931] font-bold text-xs uppercase rounded-xl hover:opacity-95 transition">{loading ? 'Verifying...' : 'Verify OTP Code'}</button>
           </form>
         )}
 
@@ -295,8 +295,8 @@ export default function VendorLoginPage() {
 
         {step === 'forgot_new_pin' && (
           <form onSubmit={handleSaveNewPin} className="space-y-4">
-            <div><label className="block text-xs font-semibold text-[#A8B0C5] mb-1">Enter New 6-Digit PIN</label><input type="password" maxLength={6} required value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} placeholder="••••••" className="w-full bg-[#0A152B] border border-[#D4AF37]/30 text-center tracking-[0.5em] text-lg font-bold text-white rounded-xl py-3 focus:outline-none focus:border-[#D4AF37]" /></div>
-            <div><label className="block text-xs font-semibold text-[#A8B0C5] mb-1">Confirm New PIN</label><input type="password" maxLength={6} required value={confirmPin} onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, ''))} placeholder="••••••" className="w-full bg-[#0A152B] border border-[#D4AF37]/30 text-center tracking-[0.5em] text-lg font-bold text-white rounded-xl py-3 focus:outline-none focus:border-[#D4AF37]" /></div>
+            <div><label className="block text-xs font-semibold text-[#A8B0C5] mb-1">Enter New 6-Digit PIN</label><input type="password" maxLength={8} required value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} placeholder="••••••" className="w-full bg-[#0A152B] border border-[#D4AF37]/30 text-center tracking-[0.5em] text-lg font-bold text-white rounded-xl py-3 focus:outline-none focus:border-[#D4AF37]" /></div>
+            <div><label className="block text-xs font-semibold text-[#A8B0C5] mb-1">Confirm New PIN</label><input type="password" maxLength={8} required value={confirmPin} onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, ''))} placeholder="••••••" className="w-full bg-[#0A152B] border border-[#D4AF37]/30 text-center tracking-[0.5em] text-lg font-bold text-white rounded-xl py-3 focus:outline-none focus:border-[#D4AF37]" /></div>
             <button type="submit" disabled={loading || pin.length !== 6 || pin !== confirmPin} className="w-full py-3 bg-gradient-to-r from-[#F2D57E] to-[#D4A937] text-[#0A1931] font-bold text-xs uppercase rounded-xl hover:opacity-95 transition">{loading ? 'Saving...' : 'Save & Enter Console'}</button>
           </form>
         )}
