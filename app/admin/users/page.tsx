@@ -1,5 +1,4 @@
 import { createClient } from '@/lib/supabase/server';
-import { Users, Shield, Wallet } from 'lucide-react';
 import { AdminStatusButtons } from '@/components/AdminStatusButtons';
 
 function naira(kobo: number) {
@@ -9,7 +8,6 @@ function naira(kobo: number) {
 export default async function AdminUsersPage() {
   const supabase = createClient();
 
-  // Fetch profiles joined with wallets
   const [{ data: profiles }, { data: wallets }] = await Promise.all([
     supabase
       .from('profiles')
@@ -20,7 +18,7 @@ export default async function AdminUsersPage() {
   ]);
 
   const walletMap = new Map<string, number>();
-  (wallets ?? []).forEach((w) => walletMap.set(w.user_id, w.balance_kobo));
+  (wallets ?? []).forEach((w: any) => walletMap.set(w.user_id, w.balance_kobo));
 
   return (
     <div className="space-y-6">
@@ -57,7 +55,7 @@ export default async function AdminUsersPage() {
                   </td>
                 </tr>
               ) : (
-                profiles?.map((u) => {
+                profiles?.map((u: any) => {
                   const bal = walletMap.get(u.id) ?? 0;
                   return (
                     <tr key={u.id} className="hover:bg-white/[0.02] transition">

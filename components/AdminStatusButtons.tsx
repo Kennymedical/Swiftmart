@@ -36,7 +36,7 @@ export function AdminStatusButtons({
 
       if (!res.ok) throw new Error('Failed to update status');
       router.refresh();
-    } catch (err: unknown) {
+    } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
       alert(message);
     } finally {
