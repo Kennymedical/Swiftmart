@@ -165,17 +165,22 @@ export default function AdminLoginPage() {
     try {
       if (!email) throw new Error('Please enter your administrator email address');
 
-      // 🔥 THE FIX: Call our new API that bypasses the "email column" error
-      const res = await fetch('/api/admin/recover-pin', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email })
+      const { data, error: rpcErr } = await supabase.rpc('request_pin_reset_otp', {
+        p_email: email,
+        p_role: 'admin',
       });
-      const data = await res.json();
 
-      if (!res.ok) throw new Error(data.error || 'Failed to dispatch recovery OTP');
+      if (rpcErr) throw new Error(rpcErr.message);
+      if (!data?.reset_request_id) throw new Error('Failed to initialize recovery');
 
-      setResetRequestId(data.reset_request_id || 'REQ-' + Date.now());
+      setResetRequestId(data.reset_request_id);
+
+      if (data.dispatch_token) {
+        await supabase.functions.invoke('send-otp', {
+          body: { email, otp: data.dispatch_token, type: 'pin_reset' }
+        }).catch((e) => console.warn('Email dispatch notice:', e));
+      }
+
       setSuccess(`Verification code dispatched to ${email}. Valid for 10 minutes.`);
       setStep('forgot_otp');
     } catch (err: any) {
