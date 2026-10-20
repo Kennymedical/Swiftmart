@@ -3,43 +3,41 @@ import { createClient } from '@supabase/supabase-js';
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId, table, status } = await req.json();
+    const { targetId, table, status } = await req.json();
 
     const supabaseAdmin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // 1. Verify the caller is an admin
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     
-    const { data: { user } } = await supabaseAdmin.auth.getUser(authHeader.replace('Bearer ', ''));
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { data: adminProfile } = await supabaseAdmin.from('profiles').select('role').eq('id', user.id).single();
     if (adminProfile?.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
-    // 2. Update the status
     if (table === 'vendors') {
-      await supabaseAdmin.from('vendors').update({ status }).eq('user_id', userId);
+      await supabaseAdmin.from('vendors').update({ status }).eq('id', targetId);
     } else {
-      // For users, we toggle is_active based on blacklist
       const is_active = status === 'blacklisted' ? false : true;
-      await supabaseAdmin.from('profiles').update({ is_active }).eq('id', userId);
+      await supabaseAdmin.from('profiles').update({ is_active }).eq('id', targetId);
     }
 
-    // 3. Log the action in security_alerts
     await supabaseAdmin.from('security_alerts').insert({
-      user_id: userId,
+      user_id: user.id,
       alert_type: 'ADMIN_ACTION',
       severity: status === 'blacklisted' ? 'high' : 'medium',
-      details: { action: `Status changed to ${status} by admin`, table },
+      details: { action: `Status changed to ${status} for ${table} ID: ${targetId}` },
       resolved: true
     });
 
-    return NextResponse.json({ success: true, message: `User marked as ${status}` });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json({ success: true });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
