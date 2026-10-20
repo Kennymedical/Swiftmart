@@ -11,7 +11,7 @@ export default async function AdminUsersPage() {
   const [{ data: profiles }, { data: wallets }] = await Promise.all([
     supabase
       .from('profiles')
-      .select('id, full_name, phone, role, created_at, is_active')
+      .select('id, full_name, phone, role, created_at, is_active, status')
       .order('created_at', { ascending: false })
       .limit(50),
     supabase.from('wallets').select('user_id, balance_kobo'),
@@ -84,7 +84,7 @@ export default async function AdminUsersPage() {
                         <AdminStatusButtons 
                           targetId={u.id} 
                           table="profiles" 
-                          currentStatus={u.is_active === false ? 'blacklisted' : 'active'} 
+                          currentStatus={u.status || (u.is_active === false ? 'blacklisted' : 'active')} 
                         />
                       </td>
                     </tr>

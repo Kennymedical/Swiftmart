@@ -23,8 +23,9 @@ export async function POST(req: NextRequest) {
     if (table === 'vendors') {
       await supabaseAdmin.from('vendors').update({ status }).eq('id', targetId);
     } else {
-      const is_active = status === 'blacklisted' ? false : true;
-      await supabaseAdmin.from('profiles').update({ is_active }).eq('id', targetId);
+      // For profiles, update BOTH is_active and status
+      const is_active = status === 'active';
+      await supabaseAdmin.from('profiles').update({ is_active, status }).eq('id', targetId);
     }
 
     await supabaseAdmin.from('security_alerts').insert({
