@@ -195,11 +195,16 @@ export default function VendorLoginPage() {
     setError('');
     setLoading(true);
     try {
-      // We bypass the mock payment check here for the new native flow
-      // In the future, you will call your wallet deduction RPC here
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate payment delay
+      if (!userId) throw new Error('Session missing. Please log in again.');
+
+      // REAL FINTECH DEBIT: Deduct ₦1,000 and log to transactions
+      const { error: rpcErr } = await supabase.rpc('deduct_pin_reset_fee', { 
+        p_user_id: userId 
+      });
+
+      if (rpcErr) throw new Error(rpcErr.message);
       
-      setSuccess('₦1,000 fee settled. Enter your new Security PIN.');
+      setSuccess('₦1,000 successfully debited from your wallet. Enter your new Security PIN.');
       setStep('forgot_new_pin');
     } catch (err: any) {
       setError(err.message || 'Payment processing failed');
