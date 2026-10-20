@@ -270,6 +270,13 @@ export default function AdminLoginPage() {
     }
   };
 
+  const maskEmail = (emailStr: string) => {
+    if (!emailStr || !emailStr.includes('@')) return emailStr;
+    const [local, domain] = emailStr.split('@');
+    if (local.length <= 2) return local[0] + '*'.repeat(local.length - 1) + '@' + domain;
+    return local[0] + '*'.repeat(local.length - 2) + local[local.length - 1] + '@' + domain;
+  };
+
   return (
     <div className="min-h-screen bg-[#070D1E] flex flex-col justify-center items-center px-4 py-8">
       <div className="w-full max-w-md bg-gradient-to-b from-[#142850] to-[#0A1931] border border-[#D4AF37]/40 rounded-3xl p-6 sm:p-8 shadow-[0_12px_40px_rgba(0,0,0,0.7)] text-[#F5F7FA]">
@@ -293,7 +300,14 @@ export default function AdminLoginPage() {
           <form onSubmit={handleCredentialsSubmit} className="space-y-4">
             <div>
               <label className="block text-xs font-semibold text-[#A8B0C5] mb-1">Email</label>
-              <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="admin@swiftmart.ng" className="w-full bg-[#0A152B] border border-[#D4AF37]/30 text-xs text-white rounded-xl px-3 py-2.5 focus:outline-none focus:border-[#D4AF37]" />
+              <input
+                type="text"
+                readOnly
+                disabled
+                value={maskEmail(email)}
+                className="w-full bg-[#0A152B] border border-[#D4AF37]/30 text-xs text-gray-400 rounded-xl px-3 py-2.5 cursor-not-allowed opacity-80"
+              />
+              <p className="text-[10px] text-gray-500 mt-1">Linked to your logged-in account. Cannot be changed.</p>
             </div>
             <div>
               <label className="block text-xs font-semibold text-[#A8B0C5] mb-1">Password</label>
