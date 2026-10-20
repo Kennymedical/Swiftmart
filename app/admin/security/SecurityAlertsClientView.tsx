@@ -166,6 +166,7 @@ export function SecurityAlertsClientView({
 
             {/* Individual Acknowledge / Resolve Actions */}
             <AlertActions
+              alertType={alert.alert_type}
               alertId={alert.id}
               acknowledged={Boolean(alert.acknowledged_at)}
               resolved={Boolean(alert.resolved)}
