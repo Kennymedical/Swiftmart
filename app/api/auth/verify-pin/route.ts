@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId, pin, type } = await req.json(); // Changed to userId
+    const { userId, pin, type } = await req.json();
     
     const supabaseAdmin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -28,15 +28,32 @@ export async function POST(req: NextRequest) {
     }
 
     if (record.dashboard_pin_hash === pin) {
+      // SUCCESS: Reset attempts
       await supabaseAdmin.from(table).update({ failed_pin_attempts: 0, pin_locked_until: null }).eq(idField, userId);
-      await supabaseAdmin.from('security_logs').insert({ user_id: userId, action: 'LOGIN_SUCCESS' });
+      
+      // 🔥 LOG TO SECURITY_ALERTS
+      await supabaseAdmin.from('security_alerts').insert({ 
+        user_id: userId, 
+        alert_type: 'LOGIN_SUCCESS',
+        severity: 'low',
+        resolved: true
+      });
+      
       return NextResponse.json({ success: true });
     } else {
+      // FAILED: Increment attempts, Lock if needed
       const newAttempts = (record.failed_pin_attempts || 0) + 1;
       const lockUntil = newAttempts >= 3 ? new Date(Date.now() + 15 * 60000).toISOString() : null;
       
       await supabaseAdmin.from(table).update({ failed_pin_attempts: newAttempts, pin_locked_until: lockUntil }).eq(idField, userId);
-      await supabaseAdmin.from('security_logs').insert({ user_id: userId, action: 'PIN_FAILED' });
+      
+      // 🔥 LOG TO SECURITY_ALERTS
+      await supabaseAdmin.from('security_alerts').insert({ 
+        user_id: userId, 
+        alert_type: newAttempts >= 3 ? 'PIN_LOCKOUT' : 'PIN_VERIFICATION_FAILED',
+        severity: newAttempts >= 3 ? 'critical' : 'medium',
+        resolved: false
+      });
 
       return NextResponse.json({ 
         error: newAttempts >= 3 ? 'Too many failed attempts. Account locked.' : `Wrong PIN. ${3 - newAttempts} attempts left.`,
