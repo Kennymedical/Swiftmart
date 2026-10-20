@@ -150,17 +150,19 @@ export default function VendorLoginPage() {
     setError('');
     setLoading(true);
     try {
-      if (!email) throw new Error('Please enter your vendor email address');
-      const { data, error: rpcErr } = await supabase.rpc('request_pin_reset_otp', { p_email: email, p_role: 'vendor' });
-      if (rpcErr) throw new Error(rpcErr.message);
-      if (!data?.reset_request_id) throw new Error('Failed to initialize recovery');
-      setResetRequestId(data.reset_request_id);
-      if (data.dispatch_token) {
-        await supabase.functions.invoke('send-otp', { body: { email, otp: data.dispatch_token, type: 'pin_reset' } }).catch((e) => console.warn('Email dispatch notice:', e));
-      }
-      setSuccess(`Verification code dispatched to ${email}. Valid for 10 minutes.`);
+      if (!email) throw new Error('Please enter your administrator email address');
+      
+      // REAL SUPABASE EMAIL OTP
+      const { error: otpError } = await supabase.auth.resetPasswordForEmail(email);
+      if (otpError) throw otpError;
+
+      setSuccess(`A real 6-digit code has been sent to ${email}. Check your inbox!`);
       setStep('forgot_otp');
-    } catch (err: any) { setError(err.message || 'Failed to dispatch recovery OTP'); } finally { setLoading(false); }
+    } catch (err: any) {
+      setError(err.message || 'Failed to send OTP');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleVerifyOtp = async (e: React.FormEvent) => {
@@ -169,12 +171,24 @@ export default function VendorLoginPage() {
     setLoading(true);
     try {
       if (otpCode.length !== 6) throw new Error('Please enter the 6-digit OTP code');
-      if (!resetRequestId) throw new Error('Recovery session missing');
-      const { data, error: rpcErr } = await supabase.rpc('verify_pin_reset_otp', { p_reset_request_id: resetRequestId, p_otp_code: otpCode });
-      if (rpcErr) throw new Error(rpcErr.message);
+      
+      // REAL SUPABASE OTP VERIFICATION
+      const { data, error: verifyError } = await supabase.auth.verifyOtp({
+        email,
+        token: otpCode,
+        type: 'recovery'
+      });
+
+      if (verifyError) throw verifyError;
+      if (data.user) setUserId(data.user.id);
+
       setSuccess('Email verified! Please complete the ₦1,000 PIN regeneration fee to proceed.');
       setStep('forgot_pay');
-    } catch (err: any) { setError(err.message || 'OTP verification failed'); } finally { setLoading(false); }
+    } catch (err: any) {
+      setError(err.message || 'Invalid or expired OTP');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleFeePayment = async () => {

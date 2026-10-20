@@ -161,37 +161,17 @@ export default function AdminLoginPage() {
     e.preventDefault();
     setError('');
     setLoading(true);
-
     try {
       if (!email) throw new Error('Please enter your administrator email address');
+      
+      // REAL SUPABASE EMAIL OTP
+      const { error: otpError } = await supabase.auth.resetPasswordForEmail(email);
+      if (otpError) throw otpError;
 
-      const { data, error: rpcErr } = await supabase.rpc('request_pin_reset_otp', {
-        p_email: email,
-        p_role: 'admin',
-      });
-
-      if (rpcErr) throw new Error(rpcErr.message);
-      if (!data?.reset_request_id) throw new Error('Failed to initialize recovery');
-
-      setResetRequestId(data.reset_request_id);
-
-      // Try to send SMS
-      if (data.dispatch_token) {
-        const { data: fnData, error: fnError } = await supabase.functions.invoke('send-otp', {
-          body: { email, otp: data.dispatch_token, type: 'pin_reset' }
-        });
-
-        if (fnError || (fnData && fnData.error)) {
-          const realError = fnError?.message || fnData?.error || 'Unknown SMS error';
-          setError(`SMS Failed: ${realError}. (Dev Mode: Check Supabase > pin_reset_requests)`);
-        } else {
-          setSuccess(`Real SMS sent to your registered phone number!`);
-        }
-      }
-
+      setSuccess(`A real 6-digit code has been sent to ${email}. Check your inbox!`);
       setStep('forgot_otp');
     } catch (err: any) {
-      setError(err.message || 'Failed to dispatch recovery OTP');
+      setError(err.message || 'Failed to send OTP');
     } finally {
       setLoading(false);
     }
@@ -201,22 +181,23 @@ export default function AdminLoginPage() {
     e.preventDefault();
     setError('');
     setLoading(true);
-
     try {
       if (otpCode.length !== 6) throw new Error('Please enter the 6-digit OTP code');
-      if (!resetRequestId) throw new Error('Recovery session missing');
-
-      const { data, error: rpcErr } = await supabase.rpc('verify_pin_reset_otp', {
-        p_reset_request_id: resetRequestId,
-        p_otp_code: otpCode,
+      
+      // REAL SUPABASE OTP VERIFICATION
+      const { data, error: verifyError } = await supabase.auth.verifyOtp({
+        email,
+        token: otpCode,
+        type: 'recovery'
       });
 
-      if (rpcErr) throw new Error(rpcErr.message);
+      if (verifyError) throw verifyError;
+      if (data.user) setUserId(data.user.id);
 
       setSuccess('Email verified! Please complete the ₦1,000 PIN regeneration fee to proceed.');
       setStep('forgot_pay');
     } catch (err: any) {
-      setError(err.message || 'OTP verification failed');
+      setError(err.message || 'Invalid or expired OTP');
     } finally {
       setLoading(false);
     }
