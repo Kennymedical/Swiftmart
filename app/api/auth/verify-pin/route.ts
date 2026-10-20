@@ -27,6 +27,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Dashboard is locked. Try again later.' }, { status: 403 });
     }
 
+
+    // Fetch user details for logging
+    const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(userId);
+    const userEmail = authUser?.user?.email || 'Unknown Email';
+    const userRole = type === 'admin' ? (record.role || 'admin') : 'vendor';
+    const userName = type === 'admin' ? (record.full_name || 'Unknown Name') : (record.business_name || 'Unknown Business');
+
     if (record.dashboard_pin_hash === pin) {
       // SUCCESS: Reset attempts
       await supabaseAdmin.from(table).update({ failed_pin_attempts: 0, pin_locked_until: null }).eq(idField, userId);
@@ -34,24 +41,9 @@ export async function POST(req: NextRequest) {
       // 🔥 LOG TO SECURITY_ALERTS
       await supabaseAdmin.from('security_alerts').insert({ 
         user_id: userId, 
-        alert_type: 'LOGIN_SUCCESS',
-        severity: 'low',
-        resolved: true
-      });
-      
-      return NextResponse.json({ success: true });
-    } else {
-      // FAILED: Increment attempts, Lock if needed
-      const newAttempts = (record.failed_pin_attempts || 0) + 1;
-      const lockUntil = newAttempts >= 3 ? new Date(Date.now() + 15 * 60000).toISOString() : null;
-      
-      await supabaseAdmin.from(table).update({ failed_pin_attempts: newAttempts, pin_locked_until: lockUntil }).eq(idField, userId);
-      
-      // 🔥 LOG TO SECURITY_ALERTS
-      await supabaseAdmin.from('security_alerts').insert({ 
-        user_id: userId, 
         alert_type: newAttempts >= 3 ? 'PIN_LOCKOUT' : 'PIN_VERIFICATION_FAILED',
         severity: newAttempts >= 3 ? 'critical' : 'medium',
+        details: { email: userEmail, name: userName, role: userRole },
         resolved: false
       });
 
