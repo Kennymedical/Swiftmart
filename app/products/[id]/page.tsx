@@ -17,6 +17,7 @@ interface ProductPageProps {
 export async function generateMetadata({
   params,
 }: ProductPageProps): Promise<Metadata> {
+  const { id } = await params;
   const supabase = createClient();
   const { data: product } = await supabase
     .from('products')
