@@ -11,7 +11,7 @@ function formatNaira(kobo: number) {
 }
 
 interface ProductPageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export async function generateMetadata({
@@ -21,7 +21,7 @@ export async function generateMetadata({
   const { data: product } = await supabase
     .from('products')
     .select('id, name, slug, description, images, price_kobo, status')
-    .eq('id', params.id)
+    .eq('id', id)
     .single();
 
   if (!product || product.status !== 'active') {
@@ -38,7 +38,7 @@ export async function generateMetadata({
       ? product.description.slice(0, 160)
       : `Buy ${product.name} on SwiftMart. Escrow protected marketplace with doorstep delivery across Nigeria.`;
   const primaryImage = product.images?.[0];
-  const canonicalUrl = `https://swiftmart.ng/products/${params.id}`;
+  const canonicalUrl = `https://swiftmart.ng/products/${id}`;
 
   return {
     title,
@@ -65,6 +65,9 @@ export async function generateMetadata({
 export default async function ProductDetailPage({
   params,
 }: ProductPageProps) {
+  const resolvedParams = await params;
+  const id = resolvedParams.id;
+
   const supabase = createClient();
 
   const { data: product, error } = await supabase
@@ -72,7 +75,7 @@ export default async function ProductDetailPage({
     .select(
       'id, name, slug, description, images, price_kobo, compare_at_kobo, stock, status, rating, review_count, sold_count, vendor:vendors(id, business_name, rating)'
     )
-    .eq('id', params.id)
+    .eq('id', id)
     .single();
 
   if (error && error.code !== 'PGRST116') {
