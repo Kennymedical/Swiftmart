@@ -68,6 +68,8 @@ export default async function ProductDetailPage({
   const resolvedParams = await params;
   const id = resolvedParams.id;
 
+  
+
   const supabase = createClient();
 
   const { data: product, error } = await supabase
