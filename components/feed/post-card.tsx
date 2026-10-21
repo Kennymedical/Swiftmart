@@ -119,11 +119,11 @@ export function PostCard({ post, currentUserId }: { post: PostCardData; currentU
   const displayName = post.author.full_name || post.author.username;
 
   return (
-    <article className="mb-2 bg-white sm:rounded-lg sm:border">
+    <article className="mb-2 bg-gradient-to-br from-[#142850] to-[#1B2F5E] sm:rounded-2xl border border-[#D4AF37]/25 shadow-[0_4px_20px_rgba(212,175,55,0.08)] text-[#F5F7FA]">
       {/* Header */}
       <div className="flex items-center justify-between p-3">
         <Link href={`/profile/${post.author.username}`} className="flex items-center gap-2">
-          <div className="h-10 w-10 overflow-hidden rounded-full bg-gray-200">
+          <div className="h-10 w-10 overflow-hidden rounded-full bg-[#0F2140]">
             {post.author.avatar_url && (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={post.author.avatar_url} alt={displayName} className="h-full w-full object-cover" />
@@ -132,9 +132,9 @@ export function PostCard({ post, currentUserId }: { post: PostCardData; currentU
           <div>
             <p className="text-sm font-semibold leading-tight">
               {displayName}
-              {post.vendor && <span className="ml-1 font-normal text-gray-500">→ {post.vendor.business_name}</span>}
+              {post.vendor && <span className="ml-1 font-normal text-[#A8B0C5]">→ {post.vendor.business_name}</span>}
             </p>
-            <p className="text-xs text-gray-400">{timeAgo(post.created_at)}</p>
+            <p className="text-xs text-[#A8B0C5]">{timeAgo(post.created_at)}</p>
           </div>
         </Link>
         <FollowButton
@@ -148,7 +148,7 @@ export function PostCard({ post, currentUserId }: { post: PostCardData; currentU
       {post.content && <p className="whitespace-pre-line px-3 pb-2 text-sm">{post.content}</p>}
 
       {post.image_urls.length > 0 && (
-        <div className="bg-gray-100">
+        <div className="bg-[#0F2140]">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={post.image_urls[0]} alt="" className="max-h-[480px] w-full object-cover" />
         </div>
@@ -159,7 +159,7 @@ export function PostCard({ post, currentUserId }: { post: PostCardData; currentU
           href={`/products/${post.product.slug}`}
           className="mx-3 mb-3 flex items-center gap-3 rounded-md border p-2"
         >
-          <div className="h-14 w-14 flex-shrink-0 overflow-hidden rounded-md bg-gray-100">
+          <div className="h-14 w-14 flex-shrink-0 overflow-hidden rounded-md bg-[#0F2140]">
             {post.product.images[0] && (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -171,14 +171,14 @@ export function PostCard({ post, currentUserId }: { post: PostCardData; currentU
           </div>
           <div className="min-w-0">
             <p className="truncate text-sm font-medium">{post.product.name}</p>
-            <p className="text-sm font-semibold">{formatNaira(post.product.price_kobo)}</p>
+            <p className="text-sm font-semibold">{formatNaira(Math.round(post.product.price_kobo * 1.2))}</p>
           </div>
         </Link>
       )}
 
       {/* Engagement counts */}
       {(likeCount > 0 || commentCount > 0) && (
-        <div className="flex justify-between px-3 pb-1 text-xs text-gray-500">
+        <div className="flex justify-between px-3 pb-1 text-xs text-[#A8B0C5]">
           <span>{likeCount > 0 && `${likeCount} like${likeCount === 1 ? '' : 's'}`}</span>
           <span>{commentCount > 0 && `${commentCount} comment${commentCount === 1 ? '' : 's'}`}</span>
         </div>
@@ -234,8 +234,8 @@ function FooterButton({
     <button
       onClick={onClick}
       className={`flex-1 rounded-md py-2 text-center text-sm font-medium ${
-        active ? 'text-blue-600' : 'text-gray-600'
-      } hover:bg-gray-50`}
+        active ? 'text-blue-600' : 'text-[#A8B0C5]'
+      } hover:bg-white/5`}
     >
       {label}
     </button>

@@ -1,7 +1,8 @@
 import { createClient } from '@/lib/supabase/server';
 import { StoryBar } from '@/components/feed/story-bar';
-import { PostCard, type PostCardData } from '@/components/feed/post-card';
 import { BottomNav } from '@/components/layout/bottom-nav';
+import { PostFab } from '@/components/feed/PostFab';
+import { PostActions } from '@/components/feed/PostActions';
 
 async function getFeedData() {
   const supabase = createClient();
@@ -21,76 +22,112 @@ async function getFeedData() {
     .order('created_at', { ascending: false })
     .limit(30);
 
-  let likedPostIds = new Set<string>();
-  let savedPostIds = new Set<string>();
-  let followedAuthorIds = new Set<string>();
   let profile: { username: string; avatar_url: string | null } | null = null;
   let unreadNotifications = 0;
+  let likedPostIds = new Set<string>();
+  let isVendor = false;
 
-  if (user && posts && posts.length > 0) {
-    const postIds = posts.map((p) => p.id);
-    const authorIds = [...new Set(posts.map((p) => (p.author as any).id))];
-
-    const [{ data: likes }, { data: saves }, { data: follows }, { data: profileRow }, { count }] =
-      await Promise.all([
-        supabase.from('likes').select('post_id').eq('user_id', user.id).in('post_id', postIds),
-        supabase.from('saved_posts').select('post_id').eq('user_id', user.id).in('post_id', postIds),
-        supabase
-          .from('follows')
-          .select('following_id')
-          .eq('follower_id', user.id)
-          .in('following_id', authorIds),
-        supabase.from('profiles').select('username, avatar_url').eq('id', user.id).single(),
-        supabase
-          .from('notifications')
-          .select('id', { count: 'exact', head: true })
-          .eq('user_id', user.id)
-          .is('read_at', null),
-      ]);
-
-    likedPostIds = new Set((likes ?? []).map((l) => l.post_id));
-    savedPostIds = new Set((saves ?? []).map((s) => s.post_id));
-    followedAuthorIds = new Set((follows ?? []).map((f) => f.following_id));
+  if (user) {
+    const postIds = (posts ?? []).map((p) => p.id);
+    const [{ data: profileRow }, { count }, { data: likes }, { data: vendorRow }] = await Promise.all([
+      supabase.from('profiles').select('username, avatar_url').eq('id', user.id).single(),
+      supabase
+        .from('notifications')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .is('read_at', null),
+      postIds.length
+        ? supabase.from('likes').select('post_id').eq('user_id', user.id).in('post_id', postIds)
+        : Promise.resolve({ data: [] }),
+      supabase.from('vendors').select('id').eq('user_id', user.id).single(),
+    ]);
     profile = profileRow;
     unreadNotifications = count ?? 0;
+    likedPostIds = new Set((likes ?? []).map((l) => l.post_id));
+    isVendor = !!vendorRow;
   }
 
-  const feed: PostCardData[] = (posts ?? []).map((p: any) => ({
-    ...p,
-    liked_by_me: likedPostIds.has(p.id),
-    saved_by_me: savedPostIds.has(p.id),
-    followed_by_me: followedAuthorIds.has(p.author.id),
-  }));
-
-  return { feed, currentUserId: user?.id ?? null, profile, unreadNotifications };
+  return { feed: posts ?? [], profile, unreadNotifications, likedPostIds, isVendor };
 }
 
 export default async function FeedPage() {
-  const { feed, currentUserId, profile, unreadNotifications } = await getFeedData();
+  const { feed, profile, unreadNotifications, likedPostIds, isVendor } = await getFeedData();
 
   return (
-    <div className="min-h-screen bg-gray-100 pb-16 sm:pb-0">
+    <div className="min-h-screen bg-[#0F172A] pb-24">
       <div className="mx-auto max-w-lg">
         <StoryBar currentUserAvatarUrl={profile?.avatar_url} />
 
         {feed.length === 0 ? (
-          <p className="py-16 text-center text-gray-500">
+          <p className="py-16 text-center text-[#A8B0C5]">
             No posts yet — follow some vendors to fill your feed.
           </p>
         ) : (
-          <div className="space-y-2 py-2">
-            {feed.map((post) => (
-              <PostCard key={post.id} post={post} currentUserId={currentUserId} />
-            ))}
+          <div className="px-4 pt-4 space-y-4">
+            {feed.map((post: any) => {
+              const image = post.product?.images?.[0] ?? post.image_urls?.[0] ?? null;
+
+              return (
+                <div
+                  key={post.id}
+                  className="bg-[#1E293B] border border-[#D4AF37]/20 rounded-2xl p-4 shadow-[0_0_15px_rgba(212,175,55,0.1)]"
+                >
+                  <div className="flex items-center gap-3 mb-3">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={
+                        post.author?.avatar_url ||
+                        `https://ui-avatars.com/api/?name=${post.author?.username}&background=D4AF37&color=0F172A`
+                      }
+                      className="w-10 h-10 rounded-full border-2 border-[#D4AF37]"
+                      alt={post.author?.username ?? 'user'}
+                    />
+                    <div>
+                      <p className="font-bold text-white">{post.author?.username}</p>
+                      <p className="text-xs text-[#A8B0C5]">
+                        {new Date(post.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+
+                  {image && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={image} className="w-full rounded-xl mb-3" alt={post.product?.name ?? 'post image'} />
+                  )}
+
+                  {post.product && (
+                    <h2 className="text-lg font-bold text-white mb-1">{post.product.name}</h2>
+                  )}
+
+                  {post.content && <p className="text-sm text-[#F5EAC2] mb-3">{post.content}</p>}
+
+                  {post.product && (
+                    <div className="flex items-center justify-between">
+                      <p className="text-2xl font-extrabold text-[#D4AF37]">
+                        ₦{(Math.round(post.product.price_kobo * 1.2) / 100).toLocaleString()}
+                      </p>
+                      <button className="bg-[#D4AF37] text-[#E9C86A] font-bold px-5 py-2 rounded-xl hover:scale-105 transition">
+                        Buy Now
+                      </button>
+                    </div>
+                  )}
+
+                  <PostActions
+                    postId={post.id}
+                    initialLiked={likedPostIds.has(post.id)}
+                    initialLikeCount={post.like_count}
+                    commentCount={post.comment_count}
+                  />
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
 
-      <BottomNav
-        username={profile?.username}
-        avatarUrl={profile?.avatar_url}
-        unreadNotifications={unreadNotifications}
-      />
+      <PostFab isVendor={isVendor} />
+
+      
     </div>
   );
 }
