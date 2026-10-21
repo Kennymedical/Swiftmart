@@ -81,6 +81,33 @@ describe('PIN recovery request rate limiting', () => {
     expect(await reservePinRecoveryRequest(client, 'person@example.com')).toMatchObject({ allowed: true, attempts: 1 });
   });
 
+  it('does not let simultaneous requests exceed the per-email allowance', async () => {
+    const client = createRecoveryLimitRpc(() => 1_000_000);
+    const outcomes = await Promise.all(
+      Array.from({ length: 40 }, () => reservePinRecoveryRequest(client, 'burst@example.com')),
+    );
+
+    expect(outcomes.filter((result) => result.allowed)).toHaveLength(3);
+    expect(outcomes.filter((result) => !result.allowed)).toHaveLength(37);
+    expect(client.rows.get(hashRecoveryEmail('burst@example.com'))?.attempts).toBe(3);
+    expect(client.rows.get(hashRecoveryEmail('burst@example.com'))?.lockedUntil).not.toBeNull();
+  });
+
+  it('keeps concurrent requests denied throughout an active lockout', async () => {
+    let now = 1_000_000;
+    const client = createRecoveryLimitRpc(() => now);
+    const reserve = () => reservePinRecoveryRequest(client, 'locked@example.com');
+    await Promise.all(Array.from({ length: 3 }, reserve));
+    expect((await reserve()).allowed).toBe(false);
+
+    const blocked = await Promise.all(Array.from({ length: 40 }, reserve));
+    expect(blocked.every((result) => !result.allowed)).toBe(true);
+    expect(new Set(blocked.map((result) => result.lockedUntil)).size).toBe(1);
+
+    now += 15 * 60 * 1000 + 1;
+    expect(await reserve()).toMatchObject({ allowed: true, attempts: 1, lockedUntil: null });
+  });
+
   it('fails closed when the persistent rate-limit RPC is unavailable', async () => {
     const client = { rpc: async () => ({ data: null, error: { message: 'database unavailable' } }) };
     await expect(reservePinRecoveryRequest(client, 'person@example.com')).rejects.toThrow('database unavailable');
