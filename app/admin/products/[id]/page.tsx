@@ -15,7 +15,7 @@ function naira(kobo: number) {
 export default async function AdminProductDetailPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
   const resolvedParams = await params;
   const id = resolvedParams.id;
