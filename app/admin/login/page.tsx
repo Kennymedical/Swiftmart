@@ -107,10 +107,12 @@ export default function AdminLoginPage() {
     setLoading(true);
     try {
       if (!userId) throw new Error('Session invalid, please sign in again');
-      const { error: updateError } = await supabase.from('profiles').update({ dashboard_pin_hash: pin, failed_pin_attempts: 0, pin_locked_until: null }).eq('id', userId);
-      if (updateError) throw updateError;
-
-      document.cookie = `swiftmart_admin_pin_session=${userId}; path=/; max-age=86400; SameSite=Lax`;
+      const res = await fetch('/api/auth/set-pin', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin, type: 'admin' }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to save security PIN');
       sessionStorage.setItem('swiftmart_admin_pin_verified', 'true');
       setSuccess('Security PIN established successfully!');
       setTimeout(() => router.push('/admin'), 800);
@@ -134,7 +136,7 @@ export default function AdminLoginPage() {
       const res = await fetch('/api/auth/verify-pin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, pin, type: 'admin' })
+        body: JSON.stringify({ pin, type: 'admin' })
       });
       const data = await res.json();
 
@@ -147,7 +149,6 @@ export default function AdminLoginPage() {
         throw new Error(data.error || 'Incorrect PIN');
       }
 
-      document.cookie = `swiftmart_admin_pin_session=${userId}; path=/; max-age=86400; SameSite=Lax`;
       sessionStorage.setItem('swiftmart_admin_pin_verified', 'true');
       router.push('/admin');
     } catch (err: any) {
@@ -164,11 +165,15 @@ export default function AdminLoginPage() {
     try {
       if (!email) throw new Error('Please enter your administrator email address');
       
-      // REAL SUPABASE EMAIL OTP
-      const { error: otpError } = await supabase.auth.resetPasswordForEmail(email);
-      if (otpError) throw otpError;
+      const response = await fetch('/api/auth/pin-recovery/request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, type: 'admin' }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || 'Failed to send OTP');
 
-      setSuccess(`A real 6-digit code has been sent to ${email}. Check your inbox!`);
+      setSuccess('If the account is eligible, a recovery code has been sent. Check your inbox.');
       setStep('forgot_otp');
     } catch (err: any) {
       setError(err.message || 'Failed to send OTP');
@@ -243,7 +248,14 @@ export default function AdminLoginPage() {
 
       if (rpcErr) throw new Error(rpcErr.message);
 
-      document.cookie = `swiftmart_${'ADMIN_OR_VENDOR'}_pin_session=${userId}; path=/; max-age=86400; SameSite=Lax`;
+      const recoveryResponse = await fetch('/api/auth/pin-recovery/reset-limit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'admin', pin }),
+      });
+      const recoveryResult = await recoveryResponse.json().catch(() => ({}));
+      if (!recoveryResponse.ok) throw new Error(recoveryResult.error || 'PIN was updated, but recovery finalization failed. Please contact support.');
+
       sessionStorage.setItem('swiftmart_pin_verified', 'true');
       setSuccess('PIN regenerated successfully! Redirecting...');
       setTimeout(() => router.push('/admin'), 800); // Will redirect to root, layout will handle correct dashboard

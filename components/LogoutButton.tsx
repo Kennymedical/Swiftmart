@@ -8,6 +8,7 @@ export default function LogoutButton() {
   const supabase = createClient();
 
   async function handleLogout() {
+    await fetch('/api/auth/clear-dashboard-session', { method: 'POST' });
     await supabase.auth.signOut();
     router.push('/login');
     router.refresh();

@@ -5,11 +5,9 @@ import { createClient } from '@/lib/supabase/server';
 import { ShieldCheck } from 'lucide-react';
 import { AdminHeaderSearch } from '@/components/admin/AdminHeaderSearch';
 import { DashboardLock } from '@/components/DashboardLock';
+import { verifyDashboardSessionToken } from '@/lib/auth/dashboard-session';
 import { AdminNav } from './AdminNav';
 import Link from 'next/link';
-
-// Configurable dashboard session TTL (default 8 hours = 28800 seconds)
-const DASHBOARD_SESSION_TTL_SECONDS = Number(process.env.DASHBOARD_SESSION_TTL_SECONDS) || 28800;
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const supabase = createClient();
@@ -43,17 +41,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const cookieStore = cookies();
   const sessionToken = cookieStore.get('swiftmart_admin_pin_session')?.value;
 
-  let sessionValid = false;
-  if (sessionToken) {
-    const parts = sessionToken.split(':');
-    const tokenUserId = parts[0];
-    const issuedAt = Number(parts[1]) || 0;
-    const nowSec = Math.floor(Date.now() / 1000);
-
-    if (tokenUserId === user.id && (issuedAt === 0 || nowSec - issuedAt < DASHBOARD_SESSION_TTL_SECONDS)) {
-      sessionValid = true;
-    }
-  }
+  const sessionValid = !!sessionToken &&
+    (profile.role === 'admin' || profile.role === 'staff') &&
+    verifyDashboardSessionToken(sessionToken, user.id, profile.role);
 
   if (!sessionValid) {
     // Record rejected direct route attempt in audit log

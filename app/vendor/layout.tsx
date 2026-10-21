@@ -4,9 +4,7 @@ import { headers, cookies } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
 import { Clock, ShieldAlert, ArrowLeft } from 'lucide-react';
 import { DashboardLock } from '@/components/DashboardLock';
-
-// Configurable dashboard session TTL (default 8 hours = 28800 seconds)
-const DASHBOARD_SESSION_TTL_SECONDS = Number(process.env.DASHBOARD_SESSION_TTL_SECONDS) || 28800;
+import { verifyDashboardSessionToken } from '@/lib/auth/dashboard-session';
 
 export default async function VendorLayout({ children }: { children: React.ReactNode }) {
   const headersList = headers();
@@ -101,17 +99,8 @@ export default async function VendorLayout({ children }: { children: React.React
   const cookieStore = cookies();
   const sessionToken = cookieStore.get('swiftmart_vendor_pin_session')?.value;
 
-  let sessionValid = false;
-  if (sessionToken) {
-    const parts = sessionToken.split(':');
-    const tokenUserId = parts[0];
-    const issuedAt = Number(parts[1]) || 0;
-    const nowSec = Math.floor(Date.now() / 1000);
-
-    if (tokenUserId === user.id && (issuedAt === 0 || nowSec - issuedAt < DASHBOARD_SESSION_TTL_SECONDS)) {
-      sessionValid = true;
-    }
-  }
+  const sessionValid = !!sessionToken &&
+    verifyDashboardSessionToken(sessionToken, user.id, 'vendor');
 
   if (!sessionValid) {
     try {
