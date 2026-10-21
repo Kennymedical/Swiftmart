@@ -17,6 +17,9 @@ export default async function AdminProductDetailPage({
 }: {
   params: { id: string };
 }) {
+  const resolvedParams = await params;
+  const id = resolvedParams.id;
+
   const supabase = createClient();
 
   const { data: product, error } = await supabase
@@ -24,7 +27,7 @@ export default async function AdminProductDetailPage({
     .select(
       'id, name, slug, description, images, price_kobo, compare_at_kobo, stock, status, rating, review_count, sold_count, created_at, vendor:vendors(id, business_name, status, user_id)'
     )
-    .eq('id', params.id)
+    .eq('id', id)
     .single();
 
   if (error) {

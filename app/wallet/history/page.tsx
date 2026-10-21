@@ -8,15 +8,17 @@ const PAGE_SIZE = 20;
 export default async function WalletHistoryPage({
   searchParams,
 }: {
-  searchParams: { page?: string };
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
+  const resolvedSearchParams = await searchParams;
+
   const supabase = createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  const page = Math.max(1, Number(searchParams.page ?? '1'));
+  const page = Math.max(1, Number(resolvedSearchParams.page ?? '1'));
   const from = (page - 1) * PAGE_SIZE;
   const to = from + PAGE_SIZE - 1;
 

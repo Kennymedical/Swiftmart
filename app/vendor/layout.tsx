@@ -7,7 +7,7 @@ import { DashboardLock } from '@/components/DashboardLock';
 import { verifyDashboardSessionToken } from '@/lib/auth/dashboard-session';
 
 export default async function VendorLayout({ children }: { children: React.ReactNode }) {
-  const headersList = headers();
+  const headersList = await headers();
   const pathname = headersList.get('x-pathname') || headersList.get('referer') || '/vendor';
   const ip = headersList.get('x-forwarded-for')?.split(',')[0].trim() || 'unknown';
   const userAgent = headersList.get('user-agent') || 'unknown';
@@ -96,7 +96,7 @@ export default async function VendorLayout({ children }: { children: React.React
   }
 
   // Validate server-side PIN session with configurable TTL
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const sessionToken = cookieStore.get('swiftmart_vendor_pin_session')?.value;
 
   const sessionValid = !!sessionToken &&

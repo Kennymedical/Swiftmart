@@ -5,13 +5,16 @@ function naira(kobo: number) {
   return `₦${(kobo / 100).toLocaleString('en-NG')}`;
 }
 
-export default async function AdminVendorDetailPage({ params }: { params: { id: string } }) {
+export default async function AdminVendorDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = await params;
+  const id = resolvedParams.id;
+
   const supabase = createClient();
 
   const { data: vendor } = await supabase
     .from('vendors')
     .select('id, user_id, business_name, description, status, kyc_bank_account_name, kyc_bank_account_number, kyc_bank_code, commission_rate, rating, review_count, created_at')
-    .eq('id', params.id)
+    .eq('id', id)
     .single();
 
   if (!vendor) {

@@ -13,13 +13,10 @@ const PAGE_SIZE = 10;
 export default async function AdminSecurityPage({
   searchParams,
 }: {
-  searchParams?: {
-    severity?: string;
-    status?: string;
-    q?: string;
-    page?: string;
-  };
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
+  const resolvedSearchParams = await searchParams;
+
   const supabase = createClient();
 
   // Strict Server-Side Authorization: Only full administrators allowed
@@ -60,10 +57,10 @@ export default async function AdminSecurityPage({
     );
   }
 
-  const severityFilter = searchParams?.severity ?? '';
-  const statusFilter = searchParams?.status ?? 'open';
-  const searchQuery = (searchParams?.q ?? '').trim().toLowerCase();
-  const currentPage = Math.max(1, parseInt(searchParams?.page ?? '1', 10) || 1);
+  const severityFilter = (resolvedSearchParams?.severity as string) ?? '';
+  const statusFilter = (resolvedSearchParams?.status as string) ?? 'open';
+  const searchQuery = ((resolvedSearchParams?.q as string) ?? '').trim().toLowerCase();
+  const currentPage = Math.max(1, parseInt((resolvedSearchParams?.page as string) ?? '1', 10) || 1);
   const offset = (currentPage - 1) * PAGE_SIZE;
 
   let matchedUserIds: string[] | null = null;

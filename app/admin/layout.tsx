@@ -13,7 +13,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const supabase = createClient();
   const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-  const headersList = headers();
+  const headersList = await headers();
   const pathname = headersList.get('x-pathname') || headersList.get('referer') || '/admin';
   const ip = headersList.get('x-forwarded-for')?.split(',')[0].trim() || 'unknown';
   const userAgent = headersList.get('user-agent') || 'unknown';
@@ -38,7 +38,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   }
 
   // Validate server-side PIN session with configurable TTL and device verification
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const sessionToken = cookieStore.get('swiftmart_admin_pin_session')?.value;
 
   const sessionValid = !!sessionToken &&

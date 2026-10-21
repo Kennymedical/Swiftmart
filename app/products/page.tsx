@@ -10,12 +10,14 @@ function formatNaira(kobo: number) {
 export default async function ProductsPage({
   searchParams,
 }: {
-  searchParams?: { category?: string; q?: string; vendor?: string };
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
+  const resolvedSearchParams = await searchParams;
+
   const supabase = createClient();
-  const selectedCategorySlug = searchParams?.category;
-  const searchQuery = searchParams?.q?.trim() || '';
-  const vendorId = searchParams?.vendor;
+  const selectedCategorySlug = resolvedSearchParams?.category;
+  const searchQuery = (resolvedSearchParams?.q as string)?.trim() || '';
+  const vendorId = resolvedSearchParams?.vendor;
 
   // 1. Fetch categories for chips
   const { data: categories } = await supabase

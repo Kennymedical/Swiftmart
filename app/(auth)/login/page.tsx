@@ -9,8 +9,8 @@ import { AlertCircle } from 'lucide-react';
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams?.get('redirect') || '/';
-  const isSessionExpired = searchParams?.get('session_expired') === 'true';
+  const redirectTo = (searchParams.get('redirect')) || '/';
+  const isSessionExpired = searchParams.get('session_expired') === "true";
 
   const supabase = createClient();
   const [email, setEmail] = useState('');
