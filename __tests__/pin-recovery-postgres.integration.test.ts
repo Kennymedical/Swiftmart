@@ -37,7 +37,8 @@ suite('PostgreSQL PIN recovery limiter concurrency (live integration)', () => {
     const reservations = results.map((result) => result.data as { allowed: boolean; attempts: number; locked_until: string | null });
     expect(reservations.filter((result) => result.allowed)).toHaveLength(3);
     expect(reservations.filter((result) => !result.allowed)).toHaveLength(37);
-    expect(reservations.every((result) => result.locked_until)).toBe(true);
+    expect(reservations.filter((result) => result.allowed).every((result) => result.locked_until === null)).toBe(true);
+    expect(reservations.filter((result) => !result.allowed).every((result) => Boolean(result.locked_until))).toBe(true);
 
     const whileLocked = await Promise.all(Array.from({ length: 20 }, () =>
       supabase!.rpc('reserve_pin_recovery_request', {
