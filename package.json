@@ -6,7 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "test:integration:pin-recovery": "vitest run __tests__/pin-recovery-postgres.integration.test.ts",
+    "test:integration:postgrest": "vitest run __tests__/postgrest-queries.staging.integration.test.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
@@ -30,5 +35,12 @@
     "tailwindcss": "^3.4.10",
     "typescript": "^5.5.4",
     "vitest": "^5.0.5"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "overrides": {
+    "postcss": "$postcss",
+    "postcss-selector-parser": "^6.1.5"
   }
 }
