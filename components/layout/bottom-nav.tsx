@@ -5,17 +5,28 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   Home,
   ShoppingBag,
-  Bell,
+  MessageCircle,
   User,
   LayoutDashboard,
   Wallet,
   Users,
   LogOut,
 } from 'lucide-react';
+import { useUnreadMessages } from '../chat/useUnreadMessages';
+
+function UnreadBadge({ count }: { count: number }) {
+  if (count <= 0) return null;
+  return (
+    <span className="absolute -top-1.5 -right-2.5 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center">
+      {count > 99 ? '99+' : count}
+    </span>
+  );
+}
 
 export function BottomNav() {
   const pathname = usePathname();
   const router = useRouter();
+  const unread = useUnreadMessages();
 
   // Suppress all navigation bars completely while logging in or registering
   const isAuthRoute =
@@ -67,6 +78,19 @@ export function BottomNav() {
             <span>Directory</span>
           </Link>
 
+          <Link
+            href="/admin/messages"
+            className={`flex flex-col items-center gap-1 text-[11px] font-bold transition ${
+              pathname.startsWith('/admin/messages') ? 'text-[#D4AF37]' : 'text-[#A8B0C5] hover:text-[#D4AF37]'
+            }`}
+          >
+            <span className="relative">
+              <MessageCircle size={20} />
+              <UnreadBadge count={unread} />
+            </span>
+            <span>Inbox</span>
+          </Link>
+
           <button
             onClick={handleExitDashboard}
             type="button"
@@ -113,6 +137,19 @@ export function BottomNav() {
             <span>Wallet</span>
           </Link>
 
+          <Link
+            href="/vendor/messages"
+            className={`flex flex-col items-center gap-1 text-[11px] font-bold transition ${
+              pathname.startsWith('/vendor/messages') ? 'text-[#D4AF37]' : 'text-[#A8B0C5] hover:text-[#D4AF37]'
+            }`}
+          >
+            <span className="relative">
+              <MessageCircle size={20} />
+              <UnreadBadge count={unread} />
+            </span>
+            <span>Inbox</span>
+          </Link>
+
           <button
             onClick={handleExitDashboard}
             type="button"
@@ -131,7 +168,7 @@ export function BottomNav() {
     { href: '/', label: 'Home', icon: Home },
     { href: '/products', label: 'Shop', icon: ShoppingBag },
     { href: '/wallet', label: 'Wallet', icon: Wallet },
-    { href: '/notifications', label: 'Alerts', icon: Bell },
+    { href: '/messages', label: 'Messages', icon: MessageCircle },
     { href: '/profile', label: 'Profile', icon: User },
   ];
 
@@ -151,7 +188,10 @@ export function BottomNav() {
                 isActive ? 'text-[#D4AF37] font-bold' : 'text-[#A8B0C5] hover:text-[#D4AF37]'
               }`}
             >
-              <Icon size={18} />
+              <span className="relative">
+                <Icon size={18} />
+                {href === '/messages' && <UnreadBadge count={unread} />}
+              </span>
               <span>{label}</span>
             </Link>
           );

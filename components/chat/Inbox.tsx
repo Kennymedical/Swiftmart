@@ -145,7 +145,7 @@ export default function Inbox() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto min-h-screen bg-white">
+    <div className="max-w-2xl mx-auto min-h-screen bg-white pb-24">
       <div className="px-4 pt-4 pb-2 flex items-center justify-between">
         <h1 className="text-xl font-bold">Messages</h1>
         <button onClick={() => setShowHelp(v => !v)} className="text-sm font-semibold text-[#1e88e5]">

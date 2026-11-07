@@ -218,6 +218,11 @@ export default function ChatWindow({ conversationId }: { conversationId: string 
 
   const showWarning = conv?.type === 'vendor' && OFF_PLATFORM.test(text);
 
+  function goBack() {
+    if (typeof window !== 'undefined' && window.history.length > 1) router.back();
+    else router.push('/messages');
+  }
+
   if (state === 'loading') {
     return <div className="fixed inset-0 z-50 bg-white flex items-center justify-center text-sm text-gray-500">Loading chat...</div>;
   }
@@ -234,7 +239,7 @@ export default function ChatWindow({ conversationId }: { conversationId: string 
     <div className="fixed inset-0 z-50 bg-white flex flex-col">
       {/* Header */}
       <div className="bg-[#1e88e5] text-white px-3 py-3 flex items-center gap-3">
-        <button onClick={() => router.push('/messages')} aria-label="Back" className="p-1 rounded hover:bg-blue-600">
+        <button onClick={goBack} aria-label="Back" className="p-1 rounded hover:bg-blue-600">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
         </button>
         <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center font-bold overflow-hidden">
